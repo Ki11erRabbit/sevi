@@ -32,6 +32,15 @@ impl ModeKeybindings {
         }
     }
 
+    pub fn get_ignore_universal(&mut self, mode: &str, keys: &Vec<KeyEvent>) -> Option<&String> {
+        match self.bindings.get(mode) {
+            Some(mode_bindings) => {
+                mode_bindings.get(keys)
+            },
+            None => None,
+        }
+    }
+
     pub fn set_universal(&mut self, keys: Vec<KeyEvent>, command: &str) {
         self.universal_bindings.insert(keys, command.to_string());
     }
@@ -140,6 +149,183 @@ impl ModeKeybindings {
             }
 
         }
+        // Pane Management
+        {
+            // Splitting
+            {
+                // Split Horizontal
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('w'),
+                    modifiers: KeyModifiers::CTRL,
+                }, KeyEvent {
+                    key: Key::Char('s'),
+                    modifiers: KeyModifiers::NONE,
+
+                }], "split_horizontal".to_string());
+
+                // Split Vertical
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('w'),
+                    modifiers: KeyModifiers::CTRL,
+                }, KeyEvent {
+                    key: Key::Char('v'),
+                    modifiers: KeyModifiers::NONE,
+
+                }], "split_vertical".to_string());
+
+            }
+
+            // Pane Left
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('w'),
+                    modifiers: KeyModifiers::NONE,
+                }, KeyEvent {
+                    key: Key::Char('h'),
+                    modifiers: KeyModifiers::NONE,
+                }], "pane_left".to_string());
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('w'),
+                    modifiers: KeyModifiers::NONE,
+                }, KeyEvent {
+                    key: Key::Left,
+                    modifiers: KeyModifiers::NONE,
+                }], "pane_left".to_string());
+            }
+            // Pane Right
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('w'),
+                    modifiers: KeyModifiers::NONE,
+                }, KeyEvent {
+                    key: Key::Char('l'),
+                    modifiers: KeyModifiers::NONE,
+                }], "pane_right".to_string());
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('w'),
+                    modifiers: KeyModifiers::NONE,
+                }, KeyEvent {
+                    key: Key::Right,
+                    modifiers: KeyModifiers::NONE,
+                }], "pane_right".to_string());
+            }
+            // Pane Up
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('w'),
+                    modifiers: KeyModifiers::NONE,
+                }, KeyEvent {
+                    key: Key::Char('k'),
+                    modifiers: KeyModifiers::NONE,
+                }], "pane_up".to_string());
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('w'),
+                    modifiers: KeyModifiers::NONE,
+                }, KeyEvent {
+                    key: Key::Up,
+                    modifiers: KeyModifiers::NONE,
+                }], "pane_up".to_string());
+            }
+            // Pane Down
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('w'),
+                    modifiers: KeyModifiers::NONE,
+                }, KeyEvent {
+                    key: Key::Char('j'),
+                    modifiers: KeyModifiers::NONE,
+                }], "pane_down".to_string());
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('w'),
+                    modifiers: KeyModifiers::NONE,
+                }, KeyEvent {
+                    key: Key::Down,
+                    modifiers: KeyModifiers::NONE,
+                }], "pane_down".to_string());
+            }
+
+
+        }
+
+        // Tab Management
+        {
+            // New Tab
+            {
+                // New Tab
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('t'),
+                    modifiers: KeyModifiers::CTRL,
+                }, KeyEvent {
+                    key: Key::Char('t'),
+                    modifiers: KeyModifiers::NONE,
+                }], "new_tab".to_string());
+
+                // New Tab with Current Pane
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('t'),
+                    modifiers: KeyModifiers::CTRL,
+                }, KeyEvent {
+                    key: Key::Char('T'),
+                    modifiers: KeyModifiers::NONE,
+                }], "new_tab_current_pane".to_string());
+            }
+
+            // Tab Left
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('t'),
+                    modifiers: KeyModifiers::CTRL,
+                }, KeyEvent {
+                    key: Key::Char('h'),
+                    modifiers: KeyModifiers::NONE,
+                }], "tab_left".to_string());
+
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('t'),
+                    modifiers: KeyModifiers::CTRL,
+                }, KeyEvent {
+                    key: Key::Left,
+                    modifiers: KeyModifiers::NONE,
+                }], "tab_left".to_string());
+            }
+
+            // Tab Right
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('t'),
+                    modifiers: KeyModifiers::CTRL,
+                }, KeyEvent {
+                    key: Key::Char('l'),
+                    modifiers: KeyModifiers::NONE,
+                }], "tab_right".to_string());
+
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('t'),
+                    modifiers: KeyModifiers::CTRL,
+                }, KeyEvent {
+                    key: Key::Right,
+                    modifiers: KeyModifiers::NONE,
+                }], "tab_right".to_string());
+            }
+        }
+
+
+        // Jump Management
+        {
+            // Jump Forwards 
+            bindings.insert(vec![KeyEvent {
+                key: Key::Char('i'),
+                modifiers: KeyModifiers::CTRL,
+            }], "jump_forwards".to_string());
+
+            // Jump Backwards
+            bindings.insert(vec![KeyEvent {
+                key: Key::Char('o'),
+                modifiers: KeyModifiers::CTRL,
+            }], "jump_backwards".to_string());
+        }
+
+
         // Misc Commands
         {
             // Cancel
@@ -168,10 +354,6 @@ impl ModeKeybindings {
                         modifiers: KeyModifiers::NONE,
                     }], "right".to_string());
                     bindings.insert(vec![KeyEvent {
-                        key: Key::Right,
-                        modifiers: KeyModifiers::NONE,
-                    }], "right".to_string());
-                    bindings.insert(vec![KeyEvent {
                         key: Key::Char(' '),
                         modifiers: KeyModifiers::NONE,
                     }], "right".to_string());
@@ -180,10 +362,6 @@ impl ModeKeybindings {
                 {
                     bindings.insert(vec![KeyEvent {
                         key: Key::Char('h'),
-                        modifiers: KeyModifiers::NONE,
-                    }], "left".to_string());
-                    bindings.insert(vec![KeyEvent {
-                        key: Key::Left,
                         modifiers: KeyModifiers::NONE,
                     }], "left".to_string());
                     bindings.insert(vec![KeyEvent {
@@ -198,10 +376,6 @@ impl ModeKeybindings {
                         modifiers: KeyModifiers::NONE,
                     }], "down".to_string());
                     bindings.insert(vec![KeyEvent {
-                        key: Key::Down,
-                        modifiers: KeyModifiers::NONE,
-                    }], "down".to_string());
-                    bindings.insert(vec![KeyEvent {
                         key: Key::Enter,
                         modifiers: KeyModifiers::NONE,
                     }], "down".to_string());
@@ -210,10 +384,6 @@ impl ModeKeybindings {
                 {
                     bindings.insert(vec![KeyEvent {
                         key: Key::Char('k'),
-                        modifiers: KeyModifiers::NONE,
-                    }], "up".to_string());
-                    bindings.insert(vec![KeyEvent {
-                        key: Key::Up,
                         modifiers: KeyModifiers::NONE,
                     }], "up".to_string());
                 }
@@ -254,10 +424,6 @@ impl ModeKeybindings {
                         key: Key::Char('g'),
                         modifiers: KeyModifiers::NONE,
                     }], "start_of_file".to_string());
-                    bindings.insert(vec![KeyEvent {
-                        key: Key::Home,
-                        modifiers: KeyModifiers::NONE,
-                    }], "start_of_file".to_string());
                 }
                 // End of File
                 {
@@ -266,10 +432,6 @@ impl ModeKeybindings {
                         modifiers: KeyModifiers::NONE,
                     }, KeyEvent {
                         key: Key::Char('G'),
-                        modifiers: KeyModifiers::NONE,
-                    }], "end_of_file".to_string());
-                    bindings.insert(vec![KeyEvent {
-                        key: Key::End,
                         modifiers: KeyModifiers::NONE,
                     }], "end_of_file".to_string());
                 }
@@ -288,20 +450,12 @@ impl ModeKeybindings {
                 // Page Up
                 {
                     bindings.insert(vec![KeyEvent {
-                        key: Key::PageUp,
-                        modifiers: KeyModifiers::NONE,
-                    }], "page_up".to_string());
-                    bindings.insert(vec![KeyEvent {
                         key: Key::Char('b'),
                         modifiers: KeyModifiers::CTRL,
                     }], "page_up".to_string());
                 }
                 // Page Down
                 {
-                    bindings.insert(vec![KeyEvent {
-                        key: Key::PageDown,
-                        modifiers: KeyModifiers::NONE,
-                    }], "page_down".to_string());
                     bindings.insert(vec![KeyEvent {
                         key: Key::Char('f'),
                         modifiers: KeyModifiers::CTRL,
@@ -725,169 +879,6 @@ impl ModeKeybindings {
 
         }
         
-        // Pane Management
-        {
-            // Splitting
-            {
-                // Split Horizontal
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('w'),
-                    modifiers: KeyModifiers::CTRL,
-                }, KeyEvent {
-                    key: Key::Char('s'),
-                    modifiers: KeyModifiers::NONE,
-
-                }], "split_horizontal".to_string());
-
-                // Split Vertical
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('w'),
-                    modifiers: KeyModifiers::CTRL,
-                }, KeyEvent {
-                    key: Key::Char('v'),
-                    modifiers: KeyModifiers::NONE,
-
-                }], "split_vertical".to_string());
-
-            }
-
-            // Pane Left
-            {
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
-                }, KeyEvent {
-                    key: Key::Char('h'),
-                    modifiers: KeyModifiers::NONE,
-                }], "pane_left".to_string());
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
-                }, KeyEvent {
-                    key: Key::Left,
-                    modifiers: KeyModifiers::NONE,
-                }], "pane_left".to_string());
-            }
-            // Pane Right
-            {
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
-                }, KeyEvent {
-                    key: Key::Char('l'),
-                    modifiers: KeyModifiers::NONE,
-                }], "pane_right".to_string());
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
-                }, KeyEvent {
-                    key: Key::Right,
-                    modifiers: KeyModifiers::NONE,
-                }], "pane_right".to_string());
-            }
-            // Pane Up
-            {
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
-                }, KeyEvent {
-                    key: Key::Char('k'),
-                    modifiers: KeyModifiers::NONE,
-                }], "pane_up".to_string());
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
-                }, KeyEvent {
-                    key: Key::Up,
-                    modifiers: KeyModifiers::NONE,
-                }], "pane_up".to_string());
-            }
-            // Pane Down
-            {
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
-                }, KeyEvent {
-                    key: Key::Char('j'),
-                    modifiers: KeyModifiers::NONE,
-                }], "pane_down".to_string());
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
-                }, KeyEvent {
-                    key: Key::Down,
-                    modifiers: KeyModifiers::NONE,
-                }], "pane_down".to_string());
-            }
-
-
-        }
-
-        // Tab Management
-        {
-            // New Tab
-            {
-                // New Tab
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('t'),
-                    modifiers: KeyModifiers::CTRL,
-                }, KeyEvent {
-                    key: Key::Char('t'),
-                    modifiers: KeyModifiers::NONE,
-                }], "new_tab".to_string());
-
-                // New Tab with Current Pane
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('t'),
-                    modifiers: KeyModifiers::CTRL,
-                }, KeyEvent {
-                    key: Key::Char('T'),
-                    modifiers: KeyModifiers::NONE,
-                }], "new_tab_current_pane".to_string());
-            }
-
-            // Tab Left
-            {
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('t'),
-                    modifiers: KeyModifiers::CTRL,
-                }, KeyEvent {
-                    key: Key::Char('h'),
-                    modifiers: KeyModifiers::NONE,
-                }], "tab_left".to_string());
-
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('t'),
-                    modifiers: KeyModifiers::CTRL,
-                }, KeyEvent {
-                    key: Key::Left,
-                    modifiers: KeyModifiers::NONE,
-                }], "tab_left".to_string());
-            }
-
-            // Tab Right
-            {
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('t'),
-                    modifiers: KeyModifiers::CTRL,
-                }, KeyEvent {
-                    key: Key::Char('l'),
-                    modifiers: KeyModifiers::NONE,
-                }], "tab_right".to_string());
-
-                bindings.insert(vec![KeyEvent {
-                    key: Key::Char('t'),
-                    modifiers: KeyModifiers::CTRL,
-                }, KeyEvent {
-                    key: Key::Right,
-                    modifiers: KeyModifiers::NONE,
-                }], "tab_right".to_string());
-            }
-
-            
-
-
-        }
         
         // Register Management
         {
@@ -897,15 +888,16 @@ impl ModeKeybindings {
         {
         }
 
+        // Completion
+        {
+            bindings.insert(vec![KeyEvent {
+                key: Key::Char('n'),
+                modifiers: KeyModifiers::CTRL,
+            }], "open_completion".to_string());
+        }
 
         // Misc Commands
         {
-            // Cancel
-            bindings.insert(vec![KeyEvent {
-                key: Key::Esc,
-                modifiers: KeyModifiers::NONE,
-            }], "cancel".to_string());
-            
             // Undo
             bindings.insert(vec![KeyEvent {
                 key: Key::Char('u'),
@@ -928,6 +920,25 @@ impl ModeKeybindings {
 
         bindings
     }
+
+    fn generate_insert_keybindings() -> HashMap<Vec<KeyEvent>, String> {
+        let mut bindings = HashMap::new();
+
+        //todo: add conditional compilation for gui tab completion
+        // Completion
+        {
+            bindings.insert(vec![KeyEvent {
+                key: Key::Char('n'),
+                modifiers: KeyModifiers::CTRL,
+            }], "open_completion".to_string());
+        }
+
+
+
+        bindings
+    }
+
+
 }
 
 
