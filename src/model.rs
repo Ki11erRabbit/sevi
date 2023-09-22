@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use tuirealm::{Application, NoUserEvent, terminal::TerminalBridge, tui::prelude::{Layout, Direction, Constraint}, EventListenerCfg, Update};
 
-use crate::{Msg, Id};
+use crate::{Msg, Id, pane::Pane};
 
 use crate::hello_world::HelloWorld;
 
@@ -45,7 +45,7 @@ impl Model {
                 .draw(|f| {
                     let chunks = Layout::default()
                         .direction(Direction::Vertical)
-                        .margin(1)
+                        .margin(0)
                         .constraints(
                             [
                                 Constraint::Length(3),
@@ -54,7 +54,7 @@ impl Model {
                         )
                         .split(f.size());
 
-                    self.app.view(&Id::HelloWorld, f, chunks[0]);
+                    self.app.view(&Id::Pane, f, chunks[0]);
                 })
                 .is_ok());
 
@@ -71,15 +71,15 @@ impl Model {
 
         assert!(app
                 .mount(
-                    Id::HelloWorld,
+                    Id::Pane,
                     Box::new(
-                        HelloWorld::default()
+                        Pane::default()
                     ),
                     Vec::default(),
                 )
                 .is_ok());
 
-        assert!(app.active(&Id::HelloWorld).is_ok());
+        assert!(app.active(&Id::Pane).is_ok());
         app
     }
 
@@ -101,7 +101,11 @@ impl Update<Msg> for Model {
                 Msg::AppClose => {
                     self.quit = true;
                     None
-                }
+                },
+                Msg::Redraw => {
+                    self.redraw = true;
+                    None
+                },
             }
 
         } else {

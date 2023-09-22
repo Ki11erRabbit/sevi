@@ -4,16 +4,21 @@ use tuirealm::{PollStrategy, Update, Attribute, AttrValue};
 
 pub mod model;
 pub mod hello_world;
+pub mod pane;
+
+pub mod models;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Msg {
     AppClose,
+    Redraw,
 }
 
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum Id {
     HelloWorld,
+    Pane,
 }
 
 
