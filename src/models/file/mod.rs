@@ -59,6 +59,20 @@ impl File {
         self.saved
     }
 
+    pub fn get_line_count(&self) -> usize {
+        match self.file.as_ref().unwrap() {
+            Either::Left(file) => file.buffer.get_line_count(),
+            Either::Right(file) => file.buffer.get_line_count(),
+        }
+    }
+
+    pub fn get_row_len(&self, row: usize) -> Option<usize> {
+        match self.file.as_ref().unwrap() {
+            Either::Left(file) => file.buffer.line_len(row),
+            Either::Right(file) => file.buffer.line_len(row),
+        }
+    }
+
 
 
     pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {

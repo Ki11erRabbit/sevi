@@ -84,6 +84,8 @@ impl MockComponent for PaneContainer {
 
             let text: Text = text.into();
 
+            //frame.set_cursor(10, 10);
+
             frame.render_widget(
                 Paragraph::new(text)
                 .wrap(Wrap{ trim: false })
@@ -142,19 +144,21 @@ impl Component<Msg, UserEvent> for PaneContainer {
 
                 self.perform(Cmd::Custom("src/model.rs"));
 
-                return Some(Msg::Redraw);
+                return None;
             },
-            Event::User(UserEvent::OpenFile(file_name)) => {
-                
-                let settings = crate::models::settings::Settings::default();
+            Event::Keyboard(key_event) => {
 
-                let settings = Rc::new(RefCell::new(settings));
-
-                self.text_buffer = TextBuffer::new(Some(PathBuf::from(file_name)), settings);
-
+                self.text_buffer.process_keypress(key_event.into());
                 
 
-                return Some(Msg::Redraw);
+                let cursor = self.text_buffer.get_cursor_position();
+
+                let cursor = match cursor {
+                    Some((x, y)) => Some((x as u16, y as u16)),
+                    None => None,
+                };
+
+                return Some(Msg::MoveCursor(cursor));
             },
             _ => {}
         }

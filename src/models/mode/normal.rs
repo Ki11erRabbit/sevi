@@ -1,12 +1,14 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use crate::models::settings::mode_keybindings::ModeKeybindings;
 
 
 use crate::models::key::KeyEvent;
 use crate::models::key::Key;
 use crate::models::key::KeyModifiers;
 use crate::models::pane::TextPane;
+use crate::models::settings::Settings;
 
 use super::{Mode, ModeObserver, TextMode};
 
@@ -14,7 +16,7 @@ use super::{Mode, ModeObserver, TextMode};
 
 pub struct NormalMode {
     number_buffer: String,
-    keybindings: Rc<RefCell<HashMap<Vec<KeyEvent>, String>>>,
+    settings: Option<Rc<RefCell<Settings>>>,
     key_buffer: Vec<KeyEvent>,
 }
 
@@ -24,7 +26,7 @@ impl NormalMode {
     pub fn new() -> NormalMode {
         NormalMode {
             number_buffer: String::new(),
-            keybindings: Rc::new(RefCell::new(HashMap::new())),
+            settings: None,
             key_buffer: Vec::new(),
         }
     }
@@ -143,6 +145,9 @@ impl NormalMode {
             _ => {},
         }
 
+        self.key_buffer.clear();
+        self.number_buffer.clear();
+
     }
 }
 
@@ -152,8 +157,8 @@ impl Mode for NormalMode {
         String::from("Normal")
     }
 
-    fn add_keybindings(&mut self, bindings: HashMap<Vec<KeyEvent>, String>) {
-        self.keybindings.borrow_mut().extend(bindings);
+    fn add_settings(&mut self, settings: Rc<RefCell<Settings>>) {
+        self.settings = Some(settings);
     }
 
     fn refresh(&mut self) {
@@ -192,8 +197,11 @@ impl TextMode for NormalMode {
             key => {
 
                 self.key_buffer.push(key);
+
+                let settings = self.settings.clone().unwrap();
+                let mut settings = settings.borrow_mut();
                 
-                if let Some(command) = self.keybindings.clone().borrow().get(&self.key_buffer) {
+                if let Some(command) = settings.mode_keybindings.get(&self.get_name(), &self.key_buffer) {
                     self.execute_command(command, pane);
                 }
             }

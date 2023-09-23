@@ -1,7 +1,9 @@
 
-use std::collections::HashMap;
+use std::cell::RefCell;
+use std::rc::Rc;
 use crate::models::key::KeyEvent;
 use crate::models::pane::TextPane;
+use crate::models::settings::Settings;
 
 
 pub mod normal;
@@ -19,7 +21,7 @@ pub trait ModeObserver {
 pub trait Mode {
     fn get_name(&self) -> String;
 
-    fn add_keybindings(&mut self, bindings: HashMap<Vec<KeyEvent>, String>);
+    fn add_settings(&mut self, settings: Rc<RefCell<Settings>>);
 
     fn refresh(&mut self);
 

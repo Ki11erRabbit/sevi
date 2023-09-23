@@ -2,6 +2,10 @@
 use std::time::Duration;
 
 use tuirealm::{Application, NoUserEvent, terminal::TerminalBridge, tui::prelude::{Layout, Direction, Constraint}, EventListenerCfg, Update};
+use tuirealm::tui::backend::CrosstermBackend;
+use std::io::Stdout;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 use crate::{Msg, Id, pane::PaneContainer, UserEvent};
 
@@ -14,7 +18,8 @@ pub struct Model {
     pub app: Application<Id, Msg, UserEvent>,
     pub quit: bool,
     pub redraw: bool,
-    pub terminal: TerminalBridge,
+    pub terminal: Rc<RefCell<TerminalBridge>>,
+    pub cursor: Option<(u16, u16)>,
 }
 
 impl Default for Model {
@@ -23,16 +28,19 @@ impl Default for Model {
             app: Self::init_app(),
             quit: false,
             redraw: true,
-            terminal: TerminalBridge::new().expect("Failed to create terminal"),
+            terminal: Rc::new(RefCell::new(TerminalBridge::new().expect("Failed to create terminal bridge"))),
+            cursor: None,
         }
     }
 }
 
 impl Drop for Model {
     fn drop(&mut self) {
-        let _ = self.terminal.leave_alternate_screen();
-        let _ = self.terminal.disable_raw_mode();
-        let _ = self.terminal.clear_screen();
+        let terminal = self.terminal.clone();
+        let mut terminal = terminal.borrow_mut();
+        let _ = terminal.leave_alternate_screen();
+        let _ = terminal.disable_raw_mode();
+        let _ = terminal.clear_screen();
     }
 }
 
@@ -40,7 +48,7 @@ impl Drop for Model {
 impl Model {
     pub fn view(&mut self) {
         assert!(self
-                .terminal
+                .terminal.borrow_mut()
                 .raw_mut()
                 .draw(|f| {
                     let chunks = Layout::default()
@@ -57,6 +65,23 @@ impl Model {
                     self.app.view(&Id::Pane, f, chunks[0]);
                 })
                 .is_ok());
+
+
+        match self.cursor {
+            None => {
+                let terminal = self.terminal.clone();
+                let mut terminal = terminal.borrow_mut();
+                let term = terminal.raw_mut();
+                let _ = term.hide_cursor();
+            },
+            Some((x, y)) => {
+                let terminal = self.terminal.clone();
+                let mut terminal = terminal.borrow_mut();
+                let term = terminal.raw_mut();
+                let _ = term.set_cursor(x, y);
+                let _ = term.show_cursor();
+            },
+        }
 
     }
 
@@ -84,14 +109,17 @@ impl Model {
     }
 
     pub fn initialize(&mut self) {
-        let _ = self.terminal.enter_alternate_screen();
-        let _ = self.terminal.enable_raw_mode();
+        let terminal = self.terminal.clone();
+        let mut terminal = terminal.borrow_mut();
+        let _ = terminal.enter_alternate_screen();
+        let _ = terminal.enable_raw_mode();
     }
     
 }
 
 impl Update<Msg> for Model {
     fn update(&mut self, msg: Option<Msg>) -> Option<Msg> {
+
         if let Some(msg) = msg {
 
             self.redraw = true;
@@ -104,11 +132,32 @@ impl Update<Msg> for Model {
                 },
                 Msg::Redraw => {
                     self.redraw = true;
+
                     None
                 },
                 Msg::OpenFile(file) => {
                     Some(Msg::OpenFile(file))
-                }
+                },
+                Msg::MoveCursor(Some((x, y))) => {
+                    eprintln!("Move cursor to {}, {}", x, y);
+                    match &mut self.cursor {
+                        None => {
+                            self.cursor = Some((x, y));
+                        },
+                        Some(cursor) => {
+                            cursor.0 = x;
+                            cursor.1 = y;
+                        },
+                    }
+                    self.redraw = true;
+
+                    None
+                },
+                Msg::MoveCursor(None) => {
+                    self.cursor = None;
+
+                    None
+                },
             }
 
         } else {
