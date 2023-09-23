@@ -439,12 +439,12 @@ impl ModeKeybindings {
                 bindings.insert(vec![KeyEvent {
                     key: Key::Char('+'),
                     modifiers: KeyModifiers::NONE,
-                }], "up_start".to_string());
+                }], "up_line_start".to_string());
                 // Down one Line at Start
                 bindings.insert(vec![KeyEvent {
                     key: Key::Char('-'),
                     modifiers: KeyModifiers::NONE,
-                }], "down_start".to_string());
+                }], "down_line_start".to_string());
             }
 
             // File Movement
@@ -588,11 +588,11 @@ impl ModeKeybindings {
                     modifiers: KeyModifiers::NONE,
                 }], "insert_end".to_string());
 
-                // Insert Bellow
+                // Insert Below
                 bindings.insert(vec![KeyEvent {
                     key: Key::Char('o'),
                     modifiers: KeyModifiers::NONE,
-                }], "insert_bellow".to_string());
+                }], "insert_below".to_string());
                 // Insert Above
                 bindings.insert(vec![KeyEvent {
                     key: Key::Char('O'),

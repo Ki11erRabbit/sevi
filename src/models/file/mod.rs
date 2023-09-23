@@ -1,9 +1,10 @@
-use std::fs::File;
+use std::fs;
 use std::path::PathBuf;
 use tree_sitter::Parser;
 use crate::models::settings::Settings;
 use std::rc::Rc;
 use std::cell::RefCell;
+use either::Either;
 
 use crate::models::style::StyledText;
 
@@ -11,6 +12,211 @@ use self::buffer::Buffer;
 
 pub mod buffer;
 
+
+
+pub struct File {
+    file: Option<Either<UnopenedFile, OpenedFile>>,
+    saved: bool,
+}
+
+impl File {
+    pub fn new(path: Option<PathBuf>, settings: Rc<RefCell<Settings>>) -> Self {
+        Self {
+            file: match path {
+                Some(path) => Some(Either::Right(OpenedFile::new(path, settings.clone()))),
+                None => Some(Either::Left(UnopenedFile::new(settings.clone()))),
+            },
+            saved: true,
+        }
+    }
+
+    pub fn save(&mut self, file_path: Option<PathBuf>) {
+        
+        let file = self.file.take();
+
+        self.file = match file.unwrap() {
+            Either::Left(file) => {
+
+                let file_path = file_path.expect("No file path given to save to");
+                let string = file.buffer.to_string();
+
+                fs::write(&file_path, string).unwrap();
+
+                Some(Either::Right(OpenedFile::from((file, file_path))))
+            },
+            Either::Right(file) => {
+                let string = file.buffer.to_string();
+
+                fs::write(&file.path, string).unwrap();
+                
+                Some(Either::Right(file))
+            },
+        };
+        self.saved = true;
+    }
+
+    pub fn has_saved(&self) -> bool {
+        self.saved
+    }
+
+
+
+    pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {
+        match self.file.as_ref().unwrap() {
+            Either::Left(file) => file.get_byte_offset(row, col),
+            Either::Right(file) => file.get_byte_offset(row, col),
+        }
+    }
+
+    pub fn insert_after_current<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
+        match self.file.as_mut().unwrap() {
+            Either::Left(file) => file.insert_after_current(byte_offset, c),
+            Either::Right(file) => file.insert_after_current(byte_offset, c),
+        }
+        self.saved = false;
+    }
+    pub fn insert_before_current<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
+        let byte_offset = byte_offset.saturating_sub(1);
+        match self.file.as_mut().unwrap() {
+            Either::Left(file) => file.insert_before_current(byte_offset, c),
+            Either::Right(file) => file.insert_before_current(byte_offset, c),
+        }
+        self.saved = false;
+    }
+
+    pub fn insert_after<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
+        match self.file.as_mut().unwrap() {
+            Either::Left(file) => file.insert_after(byte_offset, c),
+            Either::Right(file) => file.insert_after(byte_offset, c),
+        }
+        self.saved = false;
+    }
+
+    pub fn insert_before<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
+        let byte_offset = byte_offset.saturating_sub(1);
+        match self.file.as_mut().unwrap() {
+            Either::Left(file) => file.insert_before(byte_offset, c),
+            Either::Right(file) => file.insert_before(byte_offset, c),
+        }
+        self.saved = false;
+    }
+
+    pub fn delete_current<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
+        match self.file.as_mut().unwrap() {
+            Either::Left(file) => file.delete_current(range),
+            Either::Right(file) => file.delete_current(range),
+        }
+        self.saved = false;
+    }
+
+    pub fn delete<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
+        match self.file.as_mut().unwrap() {
+            Either::Left(file) => file.delete(range),
+            Either::Right(file) => file.delete(range),
+        }
+        self.saved = false;
+    }
+
+    pub fn replace_current<R, T>(&mut self, range: R, c: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
+        match self.file.as_mut().unwrap() {
+            Either::Left(file) => file.replace_current(range, c),
+            Either::Right(file) => file.replace_current(range, c),
+        }
+        self.saved = false;
+    }
+
+    pub fn replace<R, T>(&mut self, range: R, c: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
+        match self.file.as_mut().unwrap() {
+            Either::Left(file) => file.replace(range, c),
+            Either::Right(file) => file.replace(range, c),
+        }
+        self.saved = false;
+    }
+
+    pub fn get_name(&self) -> String {
+        match self.file.as_ref().unwrap() {
+            Either::Left(file) => file.get_name(),
+            Either::Right(file) => file.get_name(),
+        }
+    }
+
+    pub fn display(&self) -> StyledText {
+        match self.file.as_ref().unwrap() {
+            Either::Left(file) => file.display(),
+            Either::Right(file) => file.display(),
+        }
+    }
+
+
+
+}
+
+
+
+
+pub struct UnopenedFile {
+    buffer: buffer::Buffer,
+    language: Option<String>,
+    settings: Rc<RefCell<Settings>>,
+}
+
+
+impl UnopenedFile {
+    pub fn new(settings: Rc<RefCell<Settings>>) -> Self {
+        Self {
+            buffer: buffer::Buffer::new(settings.clone()),
+            language: None,
+            settings,
+        }
+    }
+
+    pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {
+        self.buffer.get_byte_offset(row, col)
+    }
+
+    pub fn insert_after_current<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
+        self.buffer.insert_current(byte_offset, c);
+    }
+    pub fn insert_before_current<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
+        let byte_offset = byte_offset.saturating_sub(1);
+        self.buffer.insert_current(byte_offset, c);
+    }
+
+    pub fn insert_after<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
+        self.buffer.insert(byte_offset, c);
+    }
+
+    pub fn insert_before<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
+        let byte_offset = byte_offset.saturating_sub(1);
+        self.buffer.insert(byte_offset, c);
+    }
+
+    pub fn delete_current<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
+        self.buffer.delete_current(range);
+    }
+
+    pub fn delete<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
+        self.buffer.delete(range);
+    }
+
+    pub fn replace_current<R, T>(&mut self, range: R, c: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
+        self.buffer.replace_current(range, c);
+    }
+
+    pub fn replace<R, T>(&mut self, range: R, c: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
+        self.buffer.replace(range, c);
+    }
+
+    pub fn get_name(&self) -> String {
+        "".to_string()
+    }
+
+    pub fn display(&self) -> StyledText {
+
+        StyledText::from(self.buffer.to_string())
+    }
+
+}
 
 
 
@@ -28,7 +234,7 @@ pub struct OpenedFile {
 
 impl OpenedFile {
     pub fn new(path: PathBuf, settings: Rc<RefCell<Settings>>) -> Self {
-        let file = File::open(&path).unwrap();
+        let file = fs::File::open(&path).unwrap();
         let string = std::fs::read_to_string(&path).unwrap();
 
         let file_type = path.extension().and_then(|ext| ext.to_str()).unwrap_or("txt").to_string();
@@ -251,6 +457,25 @@ impl OpenedFile {
     pub fn display(&self) -> StyledText {
 
         StyledText::from(self.buffer.to_string())
+    }
+}
+
+
+
+impl From<(UnopenedFile, PathBuf)> for OpenedFile {
+    fn from((file, path): (UnopenedFile, PathBuf)) -> Self {
+        let mut buffer = file.buffer;
+        let settings = file.settings;
+
+        buffer.add_new_rope();
+
+        Self {
+            path,
+            buffer,
+            lsp_info: None,
+            language: None,
+            settings,
+        }
     }
 }
 
