@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use tuirealm::{Application, NoUserEvent, terminal::TerminalBridge, tui::prelude::{Layout, Direction, Constraint}, EventListenerCfg, Update};
 
-use crate::{Msg, Id, pane::Pane};
+use crate::{Msg, Id, pane::PaneContainer, UserEvent};
 
 use crate::hello_world::HelloWorld;
 
@@ -11,7 +11,7 @@ use crate::hello_world::HelloWorld;
 
 
 pub struct Model {
-    pub app: Application<Id, Msg, NoUserEvent>,
+    pub app: Application<Id, Msg, UserEvent>,
     pub quit: bool,
     pub redraw: bool,
     pub terminal: TerminalBridge,
@@ -60,9 +60,9 @@ impl Model {
 
     }
 
-    fn init_app() -> Application<Id, Msg, NoUserEvent> {
+    fn init_app() -> Application<Id, Msg, UserEvent> {
 
-        let mut app: Application<Id, Msg, NoUserEvent> = Application::init(
+        let mut app: Application<Id, Msg, UserEvent> = Application::init(
             EventListenerCfg::default()
                 .default_input_listener(Duration::from_millis(20))
                 .poll_timeout(Duration::from_millis(10))
@@ -73,7 +73,7 @@ impl Model {
                 .mount(
                     Id::Pane,
                     Box::new(
-                        Pane::default()
+                        PaneContainer::default()
                     ),
                     Vec::default(),
                 )
@@ -106,6 +106,9 @@ impl Update<Msg> for Model {
                     self.redraw = true;
                     None
                 },
+                Msg::OpenFile(file) => {
+                    Some(Msg::OpenFile(file))
+                }
             }
 
         } else {

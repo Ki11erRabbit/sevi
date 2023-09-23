@@ -1,5 +1,6 @@
 use self::text_modifier::Modifier;
 
+use std::fmt;
 use std::borrow::Cow;
 
 
@@ -122,6 +123,13 @@ impl<'a> StyledSpan<'a> {
 
 }
 
+impl fmt::Display for StyledSpan<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.text)?;
+        Ok(())
+    }
+}
+
 
 impl<'a> From<&'a str> for StyledSpan<'a> {
     fn from(text: &'a str) -> StyledSpan<'a> {
@@ -193,6 +201,15 @@ impl<'a> StyledText<'a> {
 
     pub fn len(&self) -> usize {
         self.spans.len()
+    }
+}
+
+impl fmt::Display for StyledText<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for span in &self.spans {
+            write!(f, "{}", span.text)?;
+        }
+        Ok(())
     }
 }
 
