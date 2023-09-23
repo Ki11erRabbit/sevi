@@ -1,11 +1,15 @@
 use std::fs::File;
 use std::path::PathBuf;
 use tree_sitter::Parser;
+use crate::models::settings::Settings;
+use std::rc::Rc;
+use std::cell::RefCell;
+
+use crate::models::style::StyledText;
 
 use self::buffer::Buffer;
 
 pub mod buffer;
-pub mod cursor;
 
 
 
@@ -13,16 +17,17 @@ pub mod cursor;
 
 
 pub struct OpenedFile {
-    pub path: PathBuf,
-    pub buffer: buffer::Buffer,
-    pub lsp_info: Option<String>,// TODO: make this take lsp syntax highlighting info
-    pub language: Option<String>,
+    path: PathBuf,
+    buffer: buffer::Buffer,
+    lsp_info: Option<String>,// TODO: make this take lsp syntax highlighting info
+    language: Option<String>,
+    settings: Rc<RefCell<Settings>>,
 }
 
 
 
 impl OpenedFile {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new(path: PathBuf, settings: Rc<RefCell<Settings>>) -> Self {
         let file = File::open(&path).unwrap();
         let string = std::fs::read_to_string(&path).unwrap();
 
@@ -187,6 +192,7 @@ impl OpenedFile {
             buffer,
             lsp_info,
             language,
+            settings,
         }
     }
 
@@ -228,9 +234,13 @@ impl OpenedFile {
     }
 
 
+    pub fn style(&self) -> StyledText {
+        todo!()
+    }
 
-
-
+    pub fn get_name(&self) -> String {
+        self.path.file_name().unwrap().to_str().unwrap().to_string()
+    }
 }
 
 

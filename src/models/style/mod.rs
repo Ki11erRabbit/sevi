@@ -141,28 +141,27 @@ impl<'a> From<&String> for StyledSpan<'a> {
     }
 }
 
-
-pub struct StyledText<'a> {
+pub struct StyledLine<'a> {
     pub spans: Vec<StyledSpan<'a>>,
 }
 
-impl<'a> StyledText<'a> {
-    pub fn new() -> StyledText<'a> {
-        StyledText {
+
+impl StyledLine<'_> {
+    pub fn new() -> StyledLine<'static> {
+        StyledLine {
             spans: Vec::new(),
         }
     }
 
-
-    pub fn push(&mut self, span: StyledSpan<'a>) {
+    pub fn push(&mut self, span: StyledSpan<'static>) {
         self.spans.push(span);
     }
 
-    pub fn push_raw<T>(&mut self, content: T) where T: Into<Cow<'a, str>> {
+    pub fn push_raw<T>(&mut self, content: T) where T: Into<Cow<'static, str>> {
         self.spans.push(StyledSpan::raw(content));
     }
 
-    pub fn push_styled<T>(&mut self, content: T, style: Style) where T: Into<Cow<'a, str>> {
+    pub fn push_styled<T>(&mut self, content: T, style: Style) where T: Into<Cow<'static, str>> {
         self.spans.push(StyledSpan::styled(content, style));
     }
 
@@ -190,16 +189,101 @@ impl<'a> StyledText<'a> {
         self.spans.len()
     }
 
-    pub fn iter(&self) -> std::slice::Iter<StyledSpan<'a>> {
+    pub fn iter(&self) -> std::slice::Iter<StyledSpan<'static>> {
         self.spans.iter()
     }
 
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<StyledSpan<'a>> {
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<StyledSpan<'static>> {
         self.spans.iter_mut()
     }
 
-    pub fn into_iter(self) -> std::vec::IntoIter<StyledSpan<'a>> {
+    pub fn into_iter(self) -> std::vec::IntoIter<StyledSpan<'static>> {
         self.spans.into_iter()
+    }
+}
+
+
+pub struct StyledText<'a> {
+    pub lines: Vec<StyledLine<'a>>,
+    push_line: bool,
+}
+
+impl<'a> StyledText<'a> {
+    pub fn new() -> StyledText<'a> {
+        StyledText {
+            lines: Vec::new(),
+            push_line: true,
+        }
+    }
+
+
+    pub fn push(&mut self, span: StyledSpan<'a>) {
+        if self.push_line {
+            self.lines.push(StyledLine::new());
+            self.push_line = false;
+        }
+        self.lines.last_mut().unwrap().push(span);
+        if span.text.ends_with('\n') {
+            self.push_line = true;
+        }
+    }
+
+    pub fn push_raw<T>(&mut self, content: T) where T: Into<Cow<'a, str>> {
+        if self.push_line {
+            self.lines.push(StyledLine::new());
+            self.push_line = false;
+        }
+        self.lines.last_mut().unwrap().push_raw(content);
+        if self.lines.last().unwrap().spans.last().unwrap().text.ends_with('\n') {
+            self.push_line = true;
+        }
+    }
+
+    pub fn push_styled<T>(&mut self, content: T, style: Style) where T: Into<Cow<'a, str>> {
+        if self.push_line {
+            self.lines.push(StyledLine::new());
+            self.push_line = false;
+        }
+        self.lines.last_mut().unwrap().push_styled(content, style);
+        if self.lines.last().unwrap().spans.last().unwrap().text.ends_with('\n') {
+            self.push_line = true;
+        }
+    }
+
+    pub fn patch_style(&mut self, style: Style) {
+        for span in &mut self.lines {
+            span.patch_style(style);
+        }
+    }
+
+    pub fn reset_style(&mut self) {
+        for span in &mut self.lines {
+            span.reset_style();
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.lines.clear();
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.lines.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.lines.len()
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<StyledLine<'a>> {
+        self.lines.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<StyledLine<'a>> {
+        self.lines.iter_mut()
+    }
+
+    pub fn into_iter(self) -> std::vec::IntoIter<StyledLine<'a>> {
+        self.lines.into_iter()
     }
 }
 
