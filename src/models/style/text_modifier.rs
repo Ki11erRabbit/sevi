@@ -5,7 +5,7 @@ use bitflags::bitflags;
 
 
 bitflags! {
-    #[derive(Clone, Copy, PartialEq, Eq)]
+    #[derive(Clone, Copy, PartialEq, Eq, Hash)]
     pub struct Modifier: u16 {
         const BOLD =         0b0000000000000001;
         const DIM =          0b0000000000000010;
