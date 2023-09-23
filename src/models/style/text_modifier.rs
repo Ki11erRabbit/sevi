@@ -30,3 +30,39 @@ impl fmt::Debug for Modifier {
     }
 
 }
+
+
+//TODO: Add conditional Compilation for TUI
+impl Into<tuirealm::tui::style::Modifier> for Modifier {
+    fn into(self) -> tuirealm::tui::style::Modifier {
+        let mut modifier = tuirealm::tui::style::Modifier::empty();
+        if self.contains(Modifier::BOLD) {
+            modifier = modifier | tuirealm::tui::style::Modifier::BOLD;
+        }
+        if self.contains(Modifier::DIM) {
+            modifier = modifier | tuirealm::tui::style::Modifier::DIM;
+        }
+        if self.contains(Modifier::ITALIC) {
+            modifier = modifier | tuirealm::tui::style::Modifier::ITALIC;
+        }
+        if self.contains(Modifier::UNDERLINE) {
+            modifier = modifier | tuirealm::tui::style::Modifier::UNDERLINED;
+        }
+        if self.contains(Modifier::SLOW_BLINK) {
+            modifier = modifier | tuirealm::tui::style::Modifier::SLOW_BLINK;
+        }
+        if self.contains(Modifier::RAPID_BLINK) {
+            modifier = modifier | tuirealm::tui::style::Modifier::RAPID_BLINK;
+        }
+        if self.contains(Modifier::REVERSED) {
+            modifier = modifier | tuirealm::tui::style::Modifier::REVERSED;
+        }
+        if self.contains(Modifier::HIDDEN) {
+            modifier = modifier | tuirealm::tui::style::Modifier::HIDDEN;
+        }
+        if self.contains(Modifier::CROSSED_OUT) {
+            modifier = modifier | tuirealm::tui::style::Modifier::CROSSED_OUT;
+        }
+        modifier
+    }
+}

@@ -3,11 +3,12 @@ use tuirealm::event::{KeyEvent, Key};
 use tuirealm::{State, NoUserEvent, Component, Event};
 use tuirealm::command::{Cmd, CmdResult};
 use tuirealm::props::Style;
-use tuirealm::{Props, Attribute, AttrValue, MockComponent, Frame, tui::{prelude::Rect, widgets::Paragraph}};
+use tuirealm::{Props, Attribute, AttrValue, MockComponent, Frame, tui::{prelude::Rect, widgets::{Paragraph, Wrap} }};
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::env;
+use tuirealm::tui::text::Text;
 
 use crate::models::pane::text::TextBuffer;
 use crate::models::pane::Pane;
@@ -81,10 +82,11 @@ impl MockComponent for PaneContainer {
 
             let text = self.text_buffer.draw();
 
-            let text = text.to_string();
+            let text: Text = text.into();
 
             frame.render_widget(
                 Paragraph::new(text)
+                .wrap(Wrap{ trim: false })
                     .style(
                         Style::default()
                     ),

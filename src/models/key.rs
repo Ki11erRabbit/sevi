@@ -191,3 +191,77 @@ impl fmt::Display for KeyEvent {
         write!(f, "{}", self.key)
     }
 }
+
+
+
+
+
+//TODO: add conditional compilation for using TUI
+impl From<tuirealm::event::KeyEvent> for KeyEvent {
+    fn from(key_event: tuirealm::event::KeyEvent) -> KeyEvent {
+        let code = match key_event.code {
+            tuirealm::event::Key::Backspace => Key::Backspace,
+            tuirealm::event::Key::Enter => Key::Enter,
+            tuirealm::event::Key::Left => Key::Left,
+            tuirealm::event::Key::Right => Key::Right,
+            tuirealm::event::Key::Up => Key::Up,
+            tuirealm::event::Key::Down => Key::Down,
+            tuirealm::event::Key::Home => Key::Home,
+            tuirealm::event::Key::End => Key::End,
+            tuirealm::event::Key::PageUp => Key::PageUp,
+            tuirealm::event::Key::PageDown => Key::PageDown,
+            tuirealm::event::Key::Tab => Key::Tab,
+            tuirealm::event::Key::BackTab => Key::BackTab,
+            tuirealm::event::Key::Delete => Key::Delete,
+            tuirealm::event::Key::Insert => Key::Insert,
+            tuirealm::event::Key::Function(n) => Key::F(n),
+            tuirealm::event::Key::Char(c) => Key::Char(c),
+            tuirealm::event::Key::Null => Key::Null,
+            tuirealm::event::Key::CapsLock => Key::CapsLock,
+            tuirealm::event::Key::ScrollLock => Key::ScrollLock,
+            tuirealm::event::Key::NumLock => Key::NumLock,
+            tuirealm::event::Key::PrintScreen => Key::PrintScreen,
+            tuirealm::event::Key::Pause => Key::Pause,
+            tuirealm::event::Key::Menu => Key::Menu,
+            tuirealm::event::Key::KeypadBegin => Key::KeypadBegin,
+            tuirealm::event::Key::Media(media_key) => Key::Media(match media_key {
+                tuirealm::event::MediaKeyCode::Play => MediaKey::Play,
+                tuirealm::event::MediaKeyCode::Pause => MediaKey::Pause,
+                tuirealm::event::MediaKeyCode::PlayPause => MediaKey::PlayPause,
+                tuirealm::event::MediaKeyCode::Reverse => MediaKey::Reverse,
+                tuirealm::event::MediaKeyCode::Stop => MediaKey::Stop,
+                tuirealm::event::MediaKeyCode::FastForward => MediaKey::FastForward,
+                tuirealm::event::MediaKeyCode::Rewind => MediaKey::Rewind,
+                tuirealm::event::MediaKeyCode::TrackNext => MediaKey::TrackNext,
+                tuirealm::event::MediaKeyCode::TrackPrevious => MediaKey::TrackPrevious,
+                tuirealm::event::MediaKeyCode::Record => MediaKey::Record,
+                tuirealm::event::MediaKeyCode::LowerVolume => MediaKey::LowerVolume,
+                tuirealm::event::MediaKeyCode::RaiseVolume => MediaKey::RaiseVolume,
+                tuirealm::event::MediaKeyCode::MuteVolume => MediaKey::MuteVolume,
+            }),
+            tuirealm::event::Key::Esc => Key::Esc,
+        };
+
+
+        let mut modifiers = if key_event.modifiers.contains(tuirealm::event::KeyModifiers::SHIFT) {
+            KeyModifiers::SHIFT
+        } else {
+            KeyModifiers::NONE
+        };
+        if key_event.modifiers.contains(tuirealm::event::KeyModifiers::CONTROL) {
+            modifiers |= KeyModifiers::CTRL;
+        }
+        if key_event.modifiers.contains(tuirealm::event::KeyModifiers::ALT) {
+            modifiers |= KeyModifiers::ALT;
+        }
+
+        KeyEvent::new(code, modifiers)
+    }
+}
+
+
+
+
+
+
+

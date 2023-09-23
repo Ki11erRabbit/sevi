@@ -87,6 +87,28 @@ impl Default for Style {
     }
 }
 
+//TODO: Add conditional Compilation for TUI
+impl Into<tuirealm::tui::style::Style> for Style {
+    fn into(self) -> tuirealm::tui::style::Style {
+        let mut style = tuirealm::tui::style::Style::default();
+        if let Some(fg) = self.fg {
+            style = style.fg(fg.into());
+        }
+        if let Some(bg) = self.bg {
+            style = style.bg(bg.into());
+        }
+        if let Some(underline_color) = self.underline_color {
+            style = style.underline_color(underline_color.into());
+        }
+        style = style.add_modifier(self.add_modifier.into());
+        style = style.remove_modifier(self.sub_modifier.into());
+        style
+    }
+}
+
+
+
+
 #[derive(Debug, Clone)]
 pub struct StyledSpan<'a> {
     pub text: Cow<'a, str>,
@@ -150,64 +172,102 @@ impl<'a> From<&String> for StyledSpan<'a> {
 }
 
 
-pub struct StyledText<'a> {
+impl<'a> Into<tuirealm::tui::prelude::Span<'a>> for StyledSpan<'a> {
+    fn into(self) -> tuirealm::tui::prelude::Span<'a> {
+        tuirealm::tui::prelude::Span::styled(self.text, self.style.into())
+    }
+}
+
+impl<'a> Into<tuirealm::tui::prelude::Line<'a>> for StyledSpan<'a> {
+    fn into(self) -> tuirealm::tui::prelude::Line<'a> {
+        tuirealm::tui::prelude::Line::styled(self.text, self.style.into())
+    }
+}
+
+
+pub struct StyledLine<'a> {
     pub spans: Vec<StyledSpan<'a>>,
+}
+
+impl<'a> StyledLine<'a> {
+
+}
+
+impl fmt::Display for StyledLine<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for span in &self.spans {
+            write!(f, "{}", span)?;
+        }
+        Ok(())
+    }
+}
+
+impl<'a> From<&'a str> for StyledLine<'a> {
+    fn from(text: &'a str) -> StyledLine<'a> {
+        StyledLine::from(vec![StyledSpan::from(text)])
+    }
+}
+
+impl<'a> From<String> for StyledLine<'a> {
+    fn from(text: String) -> StyledLine<'a> {
+        StyledLine::from(vec![StyledSpan::from(text)])
+    }
+}
+
+impl<'a> From<Vec<StyledSpan<'a>>> for StyledLine<'a> {
+    fn from(spans: Vec<StyledSpan<'a>>) -> StyledLine<'a> {
+        StyledLine {
+            spans,
+        }
+    }
+}
+
+impl<'a> Into<tuirealm::tui::prelude::Line<'a>> for StyledLine<'a> {
+    fn into(self) -> tuirealm::tui::prelude::Line<'a> {
+        tuirealm::tui::prelude::Line::from(self.spans.into_iter().map(|span| span.into()).collect::<Vec<_>>())
+    }
+}
+
+pub struct StyledText<'a> {
+    pub lines: Vec<StyledLine<'a>>,
 }
 
 impl<'a> StyledText<'a> {
     pub fn new() -> StyledText<'a> {
         StyledText {
-            spans: Vec::new(),
+            lines: Vec::new(),
         }
     }
 
     pub fn raw<T>(content: T) -> Self where T: Into<Cow<'a, str>> {
-        let mut stext = StyledText::new();
-        stext.push_raw(content);
-        stext
+        let lines: Vec<_> = match content.into() {
+            Cow::Borrowed("") => vec![StyledLine::from("")],
+            Cow::Borrowed(s) => s.lines().map(StyledLine::from).collect(),
+            Cow::Owned(s) if s.is_empty() => vec![StyledLine::from("")],
+            Cow::Owned(s) => s.lines().map(|l| StyledLine::from(l.to_owned())).collect(),
+        };
+
+        StyledText::from(lines)
     }
 
-    pub fn push(&'a mut self, span: StyledSpan<'a>) {
-        self.spans.push(span);
-    }
-
-    pub fn push_raw<T>(&mut self, content: T) where T: Into<Cow<'a, str>> {
-        self.spans.push(StyledSpan::raw(content));
-    }
-
-    pub fn push_styled<T>(&mut self, content: T, style: Style) where T: Into<Cow<'a, str>> {
-        self.spans.push(StyledSpan::styled(content, style));
-    }
-
-    pub fn patch_style(&mut self, style: Style) {
-        for span in &mut self.spans {
-            span.patch_style(style);
-        }
-    }
-
-    pub fn reset_style(&mut self) {
-        for span in &mut self.spans {
-            span.reset_style();
-        }
-    }
 
     pub fn clear(&mut self) {
-        self.spans.clear();
+        self.lines.clear();
     }
 
     pub fn is_empty(&self) -> bool {
-        self.spans.is_empty()
+        self.lines.is_empty()
     }
 
     pub fn len(&self) -> usize {
-        self.spans.len()
+        self.lines.len()
     }
 }
 
 impl fmt::Display for StyledText<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for span in &self.spans {
-            write!(f, "{}", span.text)?;
+        for line in &self.lines {
+            write!(f, "{}", line)?;
         }
         Ok(())
     }
@@ -219,10 +279,10 @@ impl<'a> Default for StyledText<'a> {
     }
 }
 
-impl<'a> From<StyledSpan<'a>> for StyledText<'a> {
-    fn from(span: StyledSpan<'a>) -> StyledText<'a> {
+impl<'a> From<Vec<StyledLine<'a>>> for StyledText<'a> {
+    fn from(lines: Vec<StyledLine<'a>>) -> StyledText<'a> {
         StyledText {
-            spans: vec![span],
+            lines,
         }
     }
 }
@@ -230,14 +290,7 @@ impl<'a> From<StyledSpan<'a>> for StyledText<'a> {
 
 impl<'a> From<&'a str> for StyledText<'a> {
     fn from(text: &'a str) -> StyledText<'a> {
-        let mut stext = StyledText::new();
-        let split = text.split('\n');
-        for line in split {
-            stext.push_raw(line);
-            stext.push_raw("\n");
-        }
-
-        stext
+        StyledText::raw(text)
     }
 }
 
@@ -250,5 +303,17 @@ impl<'a> From<String> for StyledText<'a> {
 impl<'a> From<&'a String> for StyledText<'a> {
     fn from(text: &'a String) -> StyledText<'a> {
         StyledText::raw(text)
+    }
+}
+
+
+
+//TODO: Add conditional Compilation for TUI
+
+impl<'a> Into<tuirealm::tui::prelude::Text<'a>> for StyledText<'a> {
+    fn into(self) -> tuirealm::tui::prelude::Text<'a> {
+
+        let temp: Vec<tuirealm::tui::prelude::Line> = self.lines.into_iter().map(|line| line.into()).collect::<Vec<_>>();
+        tuirealm::tui::prelude::Text::from(temp)
     }
 }

@@ -96,3 +96,30 @@ impl FromStr for Color {
     }
 
 }
+
+
+impl Into<tuirealm::tui::style::Color> for Color {
+    fn into(self) -> tuirealm::tui::style::Color {
+        match self {
+            Color::Reset => tuirealm::tui::style::Color::Reset,
+            Color::Black => tuirealm::tui::style::Color::Black,
+            Color::Red => tuirealm::tui::style::Color::Red,
+            Color::Green => tuirealm::tui::style::Color::Green,
+            Color::Yellow => tuirealm::tui::style::Color::Yellow,
+            Color::Blue => tuirealm::tui::style::Color::Blue,
+            Color::Magenta => tuirealm::tui::style::Color::Magenta,
+            Color::Cyan => tuirealm::tui::style::Color::Cyan,
+            Color::Gray => tuirealm::tui::style::Color::Gray,
+            Color::DarkGray => tuirealm::tui::style::Color::DarkGray,
+            Color::LightRed => tuirealm::tui::style::Color::LightRed,
+            Color::LightGreen => tuirealm::tui::style::Color::LightGreen,
+            Color::LightYellow => tuirealm::tui::style::Color::LightYellow,
+            Color::LightBlue => tuirealm::tui::style::Color::LightBlue,
+            Color::LightMagenta => tuirealm::tui::style::Color::LightMagenta,
+            Color::LightCyan => tuirealm::tui::style::Color::LightCyan,
+            Color::White => tuirealm::tui::style::Color::White,
+            Color::Rgb(r, g, b) => tuirealm::tui::style::Color::Rgb(r, g, b),
+            Color::Indexed(i) => tuirealm::tui::style::Color::Indexed(i),
+        }
+    }
+}
