@@ -53,7 +53,8 @@ impl OpenedFile {
 
                 parser.set_language(language).unwrap();
 
-                let mut buffer = Buffer::new(string);
+                let mut buffer = Buffer::from(string);
+                buffer.set_settings(settings.clone());
 
                 buffer.set_tree_sitter(parser);
 
@@ -66,7 +67,8 @@ impl OpenedFile {
 
                 parser.set_language(language).unwrap();
 
-                let mut buffer = Buffer::new(string);
+                let mut buffer = Buffer::from(string);
+                buffer.set_settings(settings.clone());
 
                 buffer.set_tree_sitter(parser);
 
@@ -79,7 +81,8 @@ impl OpenedFile {
 
                 parser.set_language(language).unwrap();
 
-                let mut buffer = Buffer::new(string);
+                let mut buffer = Buffer::from(string);
+                buffer.set_settings(settings.clone());
 
                 buffer.set_tree_sitter(parser);
 
@@ -92,7 +95,8 @@ impl OpenedFile {
 
                 parser.set_language(language).unwrap();
 
-                let mut buffer = Buffer::new(string);
+                let mut buffer = Buffer::from(string);
+                buffer.set_settings(settings.clone());
 
                 buffer.set_tree_sitter(parser);
 
@@ -105,7 +109,8 @@ impl OpenedFile {
 
                 parser.set_language(language).unwrap();
 
-                let mut buffer = Buffer::new(string);
+                let mut buffer = Buffer::from(string);
+                buffer.set_settings(settings.clone());
 
                 buffer.set_tree_sitter(parser);
 
@@ -118,7 +123,8 @@ impl OpenedFile {
 
                 parser.set_language(language).unwrap();
 
-                let mut buffer = Buffer::new(string);
+                let mut buffer = Buffer::from(string);
+                buffer.set_settings(settings.clone());
 
                 buffer.set_tree_sitter(parser);
 
@@ -131,7 +137,8 @@ impl OpenedFile {
 
                 parser.set_language(language).unwrap();
 
-                let mut buffer = Buffer::new(string);
+                let mut buffer = Buffer::from(string);
+                buffer.set_settings(settings.clone());
 
                 buffer.set_tree_sitter(parser);
 
@@ -144,7 +151,8 @@ impl OpenedFile {
 
                 parser.set_language(language).unwrap();
 
-                let mut buffer = Buffer::new(string);
+                let mut buffer = Buffer::from(string);
+                buffer.set_settings(settings.clone());
 
                 buffer.set_tree_sitter(parser);
 
@@ -157,7 +165,8 @@ impl OpenedFile {
 
                 parser.set_language(language).unwrap();
 
-                let mut buffer = Buffer::new(string);
+                let mut buffer = Buffer::from(string);
+                buffer.set_settings(settings.clone());
 
                 buffer.set_tree_sitter(parser);
 
@@ -170,14 +179,16 @@ impl OpenedFile {
 
                 parser.set_language(language).unwrap();
 
-                let mut buffer = Buffer::new(string);
+                let mut buffer = Buffer::from(string);
+                buffer.set_settings(settings.clone());
 
                 buffer.set_tree_sitter(parser);
                 
                 (Some("csharp".to_string()), buffer)
             },
             "txt" | _ => {
-                let mut buffer = Buffer::new(string);
+                let mut buffer = Buffer::from(string);
+                buffer.set_settings(settings.clone());
 
                 (None, buffer)
             }
@@ -233,13 +244,13 @@ impl OpenedFile {
         self.buffer.replace(range, c);
     }
 
-
-    pub fn style(&self) -> StyledText {
-        todo!()
-    }
-
     pub fn get_name(&self) -> String {
         self.path.file_name().unwrap().to_str().unwrap().to_string()
+    }
+
+    pub fn display(&self) -> StyledText {
+
+        StyledText::from(self.buffer.to_string())
     }
 }
 

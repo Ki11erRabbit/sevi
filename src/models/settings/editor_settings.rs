@@ -46,7 +46,7 @@ impl Default for EditorSettings {
 
 
 impl EditorSettings {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         // TODO: try to open a config file and load the settings from there
         // if that fails, return the default settings
         Self::default()

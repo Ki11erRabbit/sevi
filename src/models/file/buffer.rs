@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::settings::Settings;
+use std::fmt;
+use crate::models::settings::Settings;
 
 use tree_sitter;
 use crop::{Rope, RopeSlice};
@@ -36,7 +37,7 @@ impl Buffer {
         self.version
     }
 
-    pub fn set_tree_sitter(&mut self, parser: tree_sitter::Parser) {
+    pub fn set_tree_sitter(&mut self, mut parser: tree_sitter::Parser) {
         let mut trees = Vec::new();
         trees.push(parser.parse(&self.history[self.current].to_string(), None).unwrap());
         self.tree_sitter_info = Some((parser, trees));
@@ -58,7 +59,7 @@ impl Buffer {
 
     pub fn line_len(&self, row: usize) -> Option<usize> {
         self.history[self.current].lines().nth(row).map(|line| line.chars().map(|c| if c == '\t' {
-            self.settings.borrow().editor_settings.tab_size
+            self.settings.borrow().editor_settings.tab_size as usize
         } else {
             1
         }).sum())
@@ -501,7 +502,20 @@ impl Buffer {
     }
 
 
-    pub fn get_row<'a>(&'a self, row: usize, col_offset: usize, cols: usize) -> Option<BufferSlice<'a>> {
+    pub fn get_row<'a>(&'a self, row: usize) -> Option<BufferSlice<'a>> {
+        
+        if row >= self.history[self.current].line_len() {
+            return None;
+        }
+        
+
+
+        let line = self.history[self.current].line(row);
+        Some(BufferSlice::new(line, self.settings.clone()))
+
+    }
+
+    pub fn get_row_special<'a>(&'a self, row: usize, col_offset: usize, cols: usize) -> Option<BufferSlice<'a>> {
         
         if row >= self.history[self.current].line_len() {
             return None;
@@ -524,7 +538,6 @@ impl Buffer {
         Some(BufferSlice::new(line.byte_slice(col_offset..len), self.settings.clone()))
 
     }
-
 
 
 
@@ -571,6 +584,12 @@ impl From<&String> for Buffer {
     }
 }
 
+impl fmt::Display for Buffer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.history[self.current])
+    }
+}
+
 
 
 
@@ -597,7 +616,7 @@ impl<'a> BufferSlice<'a> {
 
     pub fn len(&self) -> usize {
         self.slice.chars().map(|c| if c == '\t' {
-            self.settings.borrow().editor_settings.tab_size
+            self.settings.borrow().editor_settings.tab_size as usize
         } else {
             1
         }).sum()
@@ -605,6 +624,8 @@ impl<'a> BufferSlice<'a> {
 
 
 }
+
+
 
 
 

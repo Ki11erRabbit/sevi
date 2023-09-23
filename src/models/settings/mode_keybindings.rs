@@ -34,7 +34,7 @@ impl Default for ModeKeybindings {
 
 impl ModeKeybindings {
 
-    pub const fn new() -> ModeKeybindings {
+    pub fn new() -> ModeKeybindings {
         //TODO: add a way to load keybindings from a file
         let mut bindings = HashMap::new();
 
