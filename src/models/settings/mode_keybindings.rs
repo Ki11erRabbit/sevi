@@ -13,22 +13,56 @@ pub struct ModeKeybindings {
 }
 
 
+impl Default for ModeKeybindings {
+    fn default() -> ModeKeybindings {
+        //TODO: add a way to load keybindings from a file
+        let mut bindings = HashMap::new();
+
+        bindings.insert("normal".to_string(), ModeKeybindings::generate_normal_keybindings());
+        bindings.insert("insert".to_string(), ModeKeybindings::generate_insert_keybindings());
+        bindings.insert("command".to_string(), ModeKeybindings::generate_command_keybindings());
+        bindings.insert("selection".to_string(), ModeKeybindings::generate_selection_keybindings());
+
+        ModeKeybindings {
+            universal_bindings: ModeKeybindings::generate_universal_keybindings(),
+            bindings,
+        }
+    }
+}
+
+
+
 impl ModeKeybindings {
 
+    pub const fn new() -> ModeKeybindings {
+        //TODO: add a way to load keybindings from a file
+        let mut bindings = HashMap::new();
+
+        bindings.insert("normal".to_string(), ModeKeybindings::generate_normal_keybindings());
+        bindings.insert("insert".to_string(), ModeKeybindings::generate_insert_keybindings());
+        bindings.insert("command".to_string(), ModeKeybindings::generate_command_keybindings());
+        bindings.insert("selection".to_string(), ModeKeybindings::generate_selection_keybindings());
+
+        ModeKeybindings {
+            universal_bindings: ModeKeybindings::generate_universal_keybindings(),
+            bindings,
+        }
+    }
 
 
     pub fn get(&mut self, mode: &str, keys: &Vec<KeyEvent>) -> Option<&String> {
-        
-        if self.universal_bindings.contains_key(keys) {
-            return self.universal_bindings.get(keys);
-        }
 
 
         match self.bindings.get(mode) {
             Some(mode_bindings) => {
                 mode_bindings.get(keys)
             },
-            None => None,
+            None => {
+                match self.universal_bindings.get(keys) {
+                    Some(command) => Some(command),
+                    None => None,
+                }
+            },
         }
     }
 
@@ -933,10 +967,71 @@ impl ModeKeybindings {
             }], "open_completion".to_string());
         }
 
+        bindings
+    }
 
+    fn generate_command_keybindings() -> HashMap<Vec<KeyEvent>, String> {
+        let mut bindings = HashMap::new();
+
+        // Move to ends
+        {
+            // Start of Line
+            bindings.insert(vec![KeyEvent {
+                key: Key::Up,
+                modifiers: KeyModifiers::NONE,
+            }], "start".to_string());
+
+            // End of Line
+            bindings.insert(vec![KeyEvent {
+                key: Key::Down,
+                modifiers: KeyModifiers::NONE,
+            }], "end".to_string());
+        }
+    
+        bindings
+    }
+
+    fn generate_selection_keybindings() -> HashMap<Vec<KeyEvent>, String> {
+        let mut bindings = HashMap::new();
+
+        // Copy, Cut, Delete, Paste
+        {
+            // Paste
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('p'),
+                    modifiers: KeyModifiers::NONE,
+                }], "paste".to_string());
+            }
+
+            // Copy
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('y'),
+                    modifiers: KeyModifiers::NONE,
+                }], "copy".to_string());
+            }
+
+            // Cut
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('d'),
+                    modifiers: KeyModifiers::NONE,
+                }], "cut".to_string());
+            }
+
+            // Delete
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('x'),
+                    modifiers: KeyModifiers::NONE,
+                }], "delete".to_string());
+            }
+        }
 
         bindings
     }
+
 
 
 }
