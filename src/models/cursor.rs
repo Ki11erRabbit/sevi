@@ -118,10 +118,17 @@ impl Cursor {
                 self.row = self.row.saturating_sub(n);
             }
             CursorMovement::Down => {
-                self.row_movement = RowMovement::Down;
-                if self.row < number_of_lines - 1 {
-                    self.row += 1;
+                eprintln!("row: {}, n: {}", self.row, n);
+                if self.row < number_of_lines {
+                    let new_row =(self.row + n) % number_of_lines;
+                    if new_row < self.row {
+                        self.row = number_of_lines.saturating_sub(1)
+                    } else {
+                        self.row = new_row;
+                    }
                 }
+                self.row_movement = RowMovement::Down;
+
             }
             CursorMovement::Left => {
                 self.col_movement = ColMovement::Left;
@@ -130,7 +137,14 @@ impl Cursor {
             CursorMovement::Right => {
                 self.col_movement = ColMovement::Right;
                 if self.col < number_of_cols {
-                    self.col += 1;
+                    let new_col = (self.col + n) % (number_of_cols + 1);
+                    if new_col < self.col {
+                        self.col = number_of_cols;
+                    } else {
+                        self.col = new_col;
+                    }
+                } else {
+                    self.col = number_of_cols;
                 }
             }
             CursorMovement::LineStart => {

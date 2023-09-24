@@ -153,6 +153,9 @@ impl Model {
         match self.pane.borrow().get_scroll_amount() {
             None => {},
             Some((x, y)) => {
+                if x == 0 && y == 0 {
+                    return;
+                }
                 self.sender.send(AppEvent::Scroll(x as u16, y as u16)).unwrap();
             }
         }

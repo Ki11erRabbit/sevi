@@ -219,7 +219,8 @@ impl TextMode for NormalMode {
     fn update_status(&self, pane: &dyn TextPane) -> (String, String, String) {
         let (col, row) = pane.get_cursor();
 
-        let mut first = format!("{}:{}", col + 1, row + 1);
+
+        let mut first = format!("{}:{}", row + 1, col + 1);
 
         if !self.number_buffer.is_empty() {
             first.push_str(&format!(" {}", self.number_buffer));
