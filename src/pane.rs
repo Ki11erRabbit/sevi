@@ -13,8 +13,7 @@ use tuirealm::tui::text::Text;
 use crate::models::pane::text::TextBuffer;
 use crate::models::pane::Pane;
 
-use crate::Msg;
-use crate::UserEvent;
+
 
 
 

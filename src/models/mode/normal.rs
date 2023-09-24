@@ -195,6 +195,13 @@ impl TextMode for NormalMode {
                 }
 
             },
+            KeyEvent {
+                key: Key::Esc,
+                ..
+            } => {
+                self.key_buffer.clear();
+                self.number_buffer.clear();
+            },
             key => {
 
                 self.key_buffer.push(key);

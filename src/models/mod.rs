@@ -13,20 +13,27 @@ pub mod mode;
 pub mod cursor;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Id {
-    Pane(usize),
+    Buffer,
     Status,
+    NumberLine,
+    Gutter,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Message<'a> {
+#[derive(Debug, Clone,  PartialEq, Eq, Hash, PartialOrd)]
+pub enum AppEvent {
+    Edit,
+    StatusChanged,
+    Scroll(u16, u16),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Message {
     AppClose,
     Redraw,
     OpenFile(String),
     MoveCursor(Option<(u16, u16)>),
     Scroll(Option<(u16, u16)>),
     Key(key::KeyEvent),
-    Lines(StyledText<'a>),
-    Status(StyledText<'a>, StyledText<'a>, StyledText<'a>),
 }
 
 
