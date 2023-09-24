@@ -10,16 +10,17 @@ use std::cell::RefCell;
 use crate::{Msg, Id, pane::PaneContainer, UserEvent};
 
 use crate::hello_world::HelloWorld;
+use crate::models::Message;
+use crate::models::pane::text::TextBuffer;
 
 
-
-
-pub struct Model {
-    pub app: Application<Id, Msg, UserEvent>,
+pub struct Model<'a> {
+    pub app: Application<Id, Message<'a>, UserEvent>,
     pub quit: bool,
     pub redraw: bool,
     pub terminal: Rc<RefCell<TerminalBridge>>,
     pub cursor: Option<(u16, u16)>,
+    pub pane: TextBuffer,
 }
 
 impl Default for Model {
@@ -85,9 +86,9 @@ impl Model {
 
     }
 
-    fn init_app() -> Application<Id, Msg, UserEvent> {
+    fn init_app() -> Application<Id, Message, UserEvent> {
 
-        let mut app: Application<Id, Msg, UserEvent> = Application::init(
+        let mut app: Application<Id, Message, UserEvent> = Application::init(
             EventListenerCfg::default()
                 .default_input_listener(Duration::from_millis(20))
                 .poll_timeout(Duration::from_millis(10))
@@ -122,7 +123,7 @@ impl Update<Msg> for Model {
 
         if let Some(msg) = msg {
 
-            self.redraw = true;
+
 
 
             match msg {
@@ -139,7 +140,6 @@ impl Update<Msg> for Model {
                     Some(Msg::OpenFile(file))
                 },
                 Msg::MoveCursor(Some((x, y))) => {
-                    eprintln!("Move cursor to {}, {}", x, y);
                     match &mut self.cursor {
                         None => {
                             self.cursor = Some((x, y));

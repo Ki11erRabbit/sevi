@@ -1,4 +1,5 @@
 use std::cmp;
+use crate::models::style::StyledText;
 
 pub mod key;
 
@@ -10,10 +11,23 @@ pub mod file;
 pub mod pane;
 pub mod mode;
 pub mod cursor;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Id {
+    Pane(usize),
+    Status,
+}
 
-
-
-
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Message<'a> {
+    AppClose,
+    Redraw,
+    OpenFile(String),
+    MoveCursor(Option<(u16, u16)>),
+    Scroll(Option<(u16, u16)>),
+    Key(key::KeyEvent),
+    Lines(StyledText<'a>),
+    Status(StyledText<'a>, StyledText<'a>, StyledText<'a>),
+}
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

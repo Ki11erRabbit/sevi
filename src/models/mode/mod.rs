@@ -4,6 +4,7 @@ use std::rc::Rc;
 use crate::models::key::KeyEvent;
 use crate::models::pane::TextPane;
 use crate::models::settings::Settings;
+use crate::models::style::StyledText;
 
 
 pub mod normal;
@@ -30,5 +31,7 @@ pub trait Mode {
 
 pub trait TextMode {
     fn process_keypress(&mut self, key: KeyEvent, pane: &mut dyn TextPane);
+
+    fn update_status(&self, pane: &dyn TextPane) -> (String, String, String);
 }
 

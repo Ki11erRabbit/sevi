@@ -184,7 +184,7 @@ impl<'a> Into<tuirealm::tui::prelude::Line<'a>> for StyledSpan<'a> {
     }
 }
 
-
+#[derive(Debug, Clone)]
 pub struct StyledLine<'a> {
     pub spans: Vec<StyledSpan<'a>>,
 }
@@ -228,6 +228,7 @@ impl<'a> Into<tuirealm::tui::prelude::Line<'a>> for StyledLine<'a> {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct StyledText<'a> {
     pub lines: Vec<StyledLine<'a>>,
 }

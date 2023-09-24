@@ -9,6 +9,7 @@ use crate::models::key::Key;
 use crate::models::key::KeyModifiers;
 use crate::models::pane::TextPane;
 use crate::models::settings::Settings;
+use crate::models::style::StyledText;
 
 use super::{Mode, ModeObserver, TextMode};
 
@@ -208,6 +209,28 @@ impl TextMode for NormalMode {
         }
     }
 
+    fn update_status(&self, pane: &dyn TextPane) -> (String, String, String) {
+        let (col, row) = pane.get_cursor();
+
+        let mut first = format!("{}:{}", col + 1, row + 1);
+
+        if !self.number_buffer.is_empty() {
+            first.push_str(&format!(" {}", self.number_buffer));
+        }
+
+        let mut second = String::new();
+        if !self.key_buffer.is_empty() {
+            for key in &self.key_buffer {
+                second.push_str(&format!("{} ", key));
+            }
+        }
+
+        let name = self.get_name();
+
+
+
+        (name, first, second)
+    }
 }
 
 

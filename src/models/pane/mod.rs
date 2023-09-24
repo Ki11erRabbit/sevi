@@ -10,15 +10,19 @@ pub trait Pane {
 
     fn get_cursor_position(&self) -> Option<(usize, usize)>;
 
+    fn get_scroll_amount(&self) -> Option<(usize, usize)>;
+
     fn draw(&self) -> StyledText;
 
     fn process_keypress(&mut self, key: KeyEvent);
+
+    fn get_status(&self) -> (StyledText, StyledText, StyledText);
 }
 
 
 
 pub trait TextPane: Pane {
-
+    fn get_cursor(&self) -> (usize, usize);
     
 }
 

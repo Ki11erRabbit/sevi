@@ -113,10 +113,24 @@ impl Pane for TextBuffer {
         mode.process_keypress(key, self);
     }
 
+    fn get_status(&self) -> (StyledText, StyledText, StyledText) {
+        let mode = self.mode.clone();
+        let mode = mode.borrow();
+        let (name, first, second) = mode.update_status(self);
+
+        (StyledText::from(first), StyledText::from(second), StyledText::from(name))
+    }
+
+    fn get_scroll_amount(&self) -> Option<(usize, usize)> {
+        Some(self.cursor.get_scroll_amount())
+    }
+
 }
 
 impl TextPane for TextBuffer {
-
+    fn get_cursor(&self) -> (usize, usize) {
+        self.cursor.get_cursor()
+    }
 }
 
 
