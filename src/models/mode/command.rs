@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::models::key::KeyEvent;
+use crate::models::key::{Key, KeyEvent};
 use crate::models::mode::{Mode, TextMode};
 use crate::models::pane::TextPane;
 use crate::models::settings::Settings;
@@ -30,7 +30,7 @@ impl CommandMode {
             "cancel" => {
                 self.command_buffer.clear();
                 self.edit_pos = 0;
-                //TODO: also leave command mode
+                pane.execute_command("change_mode Normal");
             }
             "left" => {
                 //Todo: make sure that we move by the right byte size
@@ -64,6 +64,7 @@ impl CommandMode {
                 pane.execute_command(&self.command_buffer);
                 self.command_buffer.clear();
                 self.edit_pos = 0;
+                pane.execute_command("change_mode Normal");
             }
             _ => {}
         }
@@ -97,9 +98,15 @@ impl TextMode for CommandMode {
                     self.execute_command(command, pane);
                     self.key_buffer.clear();
                 } else {
-                    self.command_buffer.insert(self.edit_pos, key.get_char());
-                    //TODO: make sure that we move by the right byte size
-                    self.edit_pos += 1;
+                    match key.key {
+                        Key::Char(c) => {
+                            self.command_buffer.insert(self.edit_pos, c);
+                            //TODO: make sure that we move by the right byte size
+                            self.edit_pos += 1;
+                            self.key_buffer.clear();
+                        }
+                        _ => {}
+                    }
                 }
 
             }

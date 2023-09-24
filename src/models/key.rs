@@ -244,7 +244,15 @@ impl From<tuirealm::event::KeyEvent> for KeyEvent {
 
 
         let mut modifiers = if key_event.modifiers.contains(tuirealm::event::KeyModifiers::SHIFT) {
-            KeyModifiers::SHIFT
+            if let Key::Char(x) = code {
+                if x.is_uppercase() {
+                    KeyModifiers::NONE
+                } else {
+                    KeyModifiers::SHIFT
+                }
+            } else {
+                KeyModifiers::SHIFT
+            }
         } else {
             KeyModifiers::NONE
         };

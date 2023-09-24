@@ -7,6 +7,7 @@ use crate::models::key::{Key, KeyEvent, KeyModifiers};
 
 
 
+#[derive(Debug)]
 pub struct ModeKeybindings {
     universal_bindings: HashMap<Vec<KeyEvent>, String>,
     bindings: HashMap<String, HashMap<Vec<KeyEvent>, String>>,
@@ -18,10 +19,10 @@ impl Default for ModeKeybindings {
         //TODO: add a way to load keybindings from a file
         let mut bindings = HashMap::new();
 
-        bindings.insert("normal".to_string(), ModeKeybindings::generate_normal_keybindings());
-        bindings.insert("insert".to_string(), ModeKeybindings::generate_insert_keybindings());
-        bindings.insert("command".to_string(), ModeKeybindings::generate_command_keybindings());
-        bindings.insert("selection".to_string(), ModeKeybindings::generate_selection_keybindings());
+        bindings.insert("Normal".to_string(), ModeKeybindings::generate_normal_keybindings());
+        bindings.insert("Insert".to_string(), ModeKeybindings::generate_insert_keybindings());
+        bindings.insert("Command".to_string(), ModeKeybindings::generate_command_keybindings());
+        bindings.insert("Selection".to_string(), ModeKeybindings::generate_selection_keybindings());
 
         ModeKeybindings {
             universal_bindings: ModeKeybindings::generate_universal_keybindings(),
@@ -38,10 +39,10 @@ impl ModeKeybindings {
         //TODO: add a way to load keybindings from a file
         let mut bindings = HashMap::new();
 
-        bindings.insert("normal".to_string(), ModeKeybindings::generate_normal_keybindings());
-        bindings.insert("insert".to_string(), ModeKeybindings::generate_insert_keybindings());
-        bindings.insert("command".to_string(), ModeKeybindings::generate_command_keybindings());
-        bindings.insert("selection".to_string(), ModeKeybindings::generate_selection_keybindings());
+        bindings.insert("Normal".to_string(), ModeKeybindings::generate_normal_keybindings());
+        bindings.insert("Insert".to_string(), ModeKeybindings::generate_insert_keybindings());
+        bindings.insert("Command".to_string(), ModeKeybindings::generate_command_keybindings());
+        bindings.insert("Selection".to_string(), ModeKeybindings::generate_selection_keybindings());
 
         ModeKeybindings {
             universal_bindings: ModeKeybindings::generate_universal_keybindings(),
@@ -50,12 +51,20 @@ impl ModeKeybindings {
     }
 
 
-    pub fn get(&mut self, mode: &str, keys: &Vec<KeyEvent>) -> Option<&String> {
+    pub fn get(&mut self, mode: &String, keys: &Vec<KeyEvent>) -> Option<&String> {
 
 
         match self.bindings.get(mode) {
             Some(mode_bindings) => {
-                mode_bindings.get(keys)
+                match mode_bindings.get(keys) {
+                    Some(command) => Some(command),
+                    None => {
+                        match self.universal_bindings.get(keys) {
+                            Some(command) => Some(command),
+                            None => None,
+                        }
+                    }
+                }
             },
             None => {
                 match self.universal_bindings.get(keys) {
@@ -66,7 +75,7 @@ impl ModeKeybindings {
         }
     }
 
-    pub fn get_ignore_universal(&mut self, mode: &str, keys: &Vec<KeyEvent>) -> Option<&String> {
+    pub fn get_ignore_universal(&mut self, mode: &String, keys: &Vec<KeyEvent>) -> Option<&String> {
         match self.bindings.get(mode) {
             Some(mode_bindings) => {
                 mode_bindings.get(keys)
@@ -986,6 +995,25 @@ impl ModeKeybindings {
                 key: Key::Down,
                 modifiers: KeyModifiers::NONE,
             }], "end".to_string());
+        }
+        // Execute
+        {
+            bindings.insert(vec![KeyEvent {
+                key: Key::Enter,
+                modifiers: KeyModifiers::NONE,
+            }], "execute".to_string());
+        }
+        // Backspace and delete
+        {
+            bindings.insert(vec![KeyEvent {
+                key: Key::Backspace,
+                modifiers: KeyModifiers::NONE,
+            }], "backspace".to_string());
+
+            bindings.insert(vec![KeyEvent {
+                key: Key::Delete,
+                modifiers: KeyModifiers::NONE,
+            }], "delete".to_string());
         }
     
         bindings

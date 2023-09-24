@@ -12,6 +12,7 @@ use std::path::PathBuf;
 use crate::models::cursor::CursorMovement;
 use crate::models::pane::Pane;
 use crate::models::file::File;
+use crate::models::mode::command::CommandMode;
 use crate::models::settings::Settings;
 use crate::models::mode::TextMode;
 use crate::models::mode::normal::NormalMode;
@@ -45,12 +46,16 @@ impl TextBuffer {
 
         let normal_mode = Rc::new(RefCell::new(NormalMode::new()));
         normal_mode.borrow_mut().add_settings(settings.clone());
+        let command_mode = Rc::new(RefCell::new(CommandMode::new()));
+        command_mode.borrow_mut().add_settings(settings.clone());
 
         let normal_mode: Rc<RefCell<dyn TextMode>> = normal_mode.clone();
+        let command_mode: Rc<RefCell<dyn TextMode>> = command_mode.clone();
 
 
         let mut modes = HashMap::new();
         modes.insert("Normal".to_string(), normal_mode.clone());
+        modes.insert("Command".to_string(), command_mode);
 
         Self {
             file,
@@ -90,10 +95,14 @@ impl Pane for TextBuffer {
 
                 let amount = command_args.next().unwrap_or("1").parse::<usize>().unwrap_or(1);
 
-                //todo: add to jump table when doign large movements
+                //todo: add to jump table when doing large movements
 
                 self.cursor.move_cursor(direction, amount, &self.file);
 
+            },
+            "change_mode" => {
+                let mode = command_args.next().unwrap_or("Normal");
+                self.mode = self.modes.get(mode).unwrap().clone();
             },
             _ => {},
         }

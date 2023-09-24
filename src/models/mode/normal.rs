@@ -36,7 +36,6 @@ impl NormalMode {
         let mut command_args = command.split_whitespace();
         let command_name = command_args.next().unwrap_or("");
 
-
         match command {
             "cancel" => {
                 self.number_buffer.clear();
@@ -123,25 +122,26 @@ impl NormalMode {
                 pane.execute_command("insert above");
             },
             "command_mode" => {
-                pane.execute_command("command_mode");
+                eprintln!("command_mode");
+                pane.execute_command("change_mode Command");
             },
             "selection_mode" => {
-                pane.execute_command("selection_mode normal");
+                pane.execute_command("change_mode selection_normal");
             },
             "selection_mode_line" => {
-                pane.execute_command("selection_mode line");
+                pane.execute_command("change_mode selection_line");
             },
             "selection_mode_block" => {
-                pane.execute_command("selection_mode block");
+                pane.execute_command("change_mode selection_block");
             },
             "search_mode_down" => {
-                pane.execute_command("search_mode down");
+                pane.execute_command("change_mode search_down");
             },
             "search_mode_up" => {
-                pane.execute_command("search_mode up");
+                pane.execute_command("change_mode search_up");
             },
             "replace_mode" => {
-                pane.execute_command("replace_mode");
+                pane.execute_command("change_mode replace");
             },
             _ => {},
         }
@@ -208,7 +208,6 @@ impl TextMode for NormalMode {
 
                 let settings = self.settings.clone().unwrap();
                 let mut settings = settings.borrow_mut();
-                
                 if let Some(command) = settings.mode_keybindings.get(&self.get_name(), &self.key_buffer) {
                     self.execute_command(command, pane);
                 }
