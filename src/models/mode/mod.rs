@@ -8,6 +8,7 @@ use crate::models::style::StyledText;
 
 
 pub mod normal;
+pub mod command;
 
 pub trait ModeObserver {
     fn run_command(&mut self, command: &str);
