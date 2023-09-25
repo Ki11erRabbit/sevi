@@ -133,6 +133,10 @@ impl<'a> StyledSpan<'a> {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.text.len()
+    }
+
 
     pub fn patch_style(&mut self, style: Style) {
         self.style = self.style.patch(style);
@@ -190,7 +194,23 @@ pub struct StyledLine<'a> {
 }
 
 impl<'a> StyledLine<'a> {
+    pub fn new() -> StyledLine<'a> {
+        StyledLine {
+            spans: Vec::new(),
+        }
+    }
 
+    pub fn push(&mut self, span: StyledSpan<'a>) {
+        self.spans.push(span);
+    }
+
+    pub fn extend(&mut self, spans: Vec<StyledSpan<'a>>) {
+        self.spans.extend(spans);
+    }
+
+    pub fn len(&self) -> usize {
+        self.spans.iter().map(|s| s.len()).sum()
+    }
 }
 
 impl fmt::Display for StyledLine<'_> {
@@ -219,6 +239,12 @@ impl<'a> From<Vec<StyledSpan<'a>>> for StyledLine<'a> {
         StyledLine {
             spans,
         }
+    }
+}
+
+impl<'a> Into<StyledText<'a>> for StyledLine<'a> {
+    fn into(self) -> StyledText<'a> {
+        StyledText::from(vec![self])
     }
 }
 
@@ -307,7 +333,11 @@ impl<'a> From<&'a String> for StyledText<'a> {
     }
 }
 
-
+impl<'a> Into<Vec<StyledSpan<'a>>> for StyledText<'a> {
+    fn into(self) -> Vec<StyledSpan<'a>> {
+        self.lines.into_iter().flat_map(|line| line.spans).collect::<Vec<_>>()
+    }
+}
 
 //TODO: Add conditional Compilation for TUI
 

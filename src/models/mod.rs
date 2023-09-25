@@ -11,6 +11,8 @@ pub mod file;
 pub mod pane;
 pub mod mode;
 pub mod cursor;
+pub mod status_bar;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Id {
     Buffer,
