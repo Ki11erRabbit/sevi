@@ -55,6 +55,13 @@ impl File {
         self.saved = true;
     }
 
+    pub fn get_path(&self) -> Option<PathBuf> {
+        match self.file.as_ref().unwrap() {
+            Either::Left(_) => None,
+            Either::Right(file) => Some(file.path.clone()),
+        }
+    }
+
     pub fn has_saved(&self) -> bool {
         self.saved
     }

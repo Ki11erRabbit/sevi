@@ -6,7 +6,7 @@ use tuirealm::tui::layout::Rect;
 use tuirealm::tui::text::Text;
 use tuirealm::tui::widgets::Paragraph;
 use crate::models::{AppEvent, Message};
-use crate::models::pane::Pane;
+use crate::models::pane::{Pane, TextPane};
 use crate::models::pane::text::TextBuffer;
 use crate::models::style::StyledText;
 
@@ -30,9 +30,10 @@ impl Buffer{
         }
     }
 
-    fn update_scroll(&mut self) {
+    fn update_scroll(&mut self, rect: Rect) {
+        self.pane.borrow_mut().scroll(rect.into());
         if let Some((x, y)) = self.pane.borrow().get_scroll_amount() {
-            self.scroll = (x as u16, y as u16);
+            self.scroll = (y as u16, x as u16);
         }
     }
 }
@@ -42,9 +43,12 @@ impl MockComponent for Buffer {
 
 
         if self.props.get_or(Attribute::Display, AttrValue::Flag(true)) == AttrValue::Flag(true) {
+            self.update_scroll(area);
+
             let pane = self.pane.clone();
-            let pane = pane.borrow();
+            let mut pane = pane.borrow_mut();
             let text = pane.draw();
+
 
             frame.render_widget(
                 Paragraph::new(text)
@@ -75,10 +79,6 @@ impl Component<Message, AppEvent> for Buffer {
     fn on(&mut self, ev: Event<AppEvent>) -> Option<Message> {
         match ev {
             Event::User(AppEvent::Edit) => {
-                Some(Message::Redraw)
-            }
-            Event::User(AppEvent::Scroll) => {
-                self.update_scroll();
                 Some(Message::Redraw)
             }
             _ => None,

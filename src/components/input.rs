@@ -56,6 +56,9 @@ impl Component<Message, AppEvent> for InputLayer {
             Event::User(AppEvent::OpenFile(path)) => {
                 Some(Message::OpenFile(path))
             }
+            Event::WindowResize(_, _) => {
+                Some(Message::Redraw)
+            }
             _ => None,
         }
     }

@@ -1,5 +1,7 @@
+use crate::models::file::File;
 use crate::models::style::StyledText;
 use crate::models::key::KeyEvent;
+use crate::models::Rect;
 
 pub mod text;
 
@@ -19,13 +21,19 @@ pub trait Pane {
     fn get_status(&self) -> (StyledText, StyledText, StyledText);
 
     fn refresh(&mut self);
+
 }
 
 
 
 pub trait TextPane: Pane {
     fn get_cursor(&self) -> (usize, usize);
-    
+
+    fn change_file(&mut self, file: File) -> File;
+
+    fn can_close(&self) -> bool;
+
+    fn scroll(&mut self, rect: Rect);
 }
 
 

@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use crate::models::cursor::CursorMovement;
 use crate::models::pane::Pane;
 use crate::models::file::File;
-use crate::models::{AppEvent, Message};
+use crate::models::{AppEvent, Message, Rect};
 use crate::models::mode::command::CommandMode;
 use crate::models::settings::Settings;
 use crate::models::mode::TextMode;
@@ -43,8 +43,8 @@ pub struct TextBuffer {
 
 
 impl TextBuffer {
-    pub fn new(path: Option<PathBuf>, sender: Sender<AppEvent>, settings: Rc<RefCell<Settings>>) -> Self {
-        let file = File::new(path, settings.clone());
+    pub fn new(file: File, sender: Sender<AppEvent>, settings: Rc<RefCell<Settings>>) -> Self {
+        //let file = File::new(path, settings.clone());
 
         let normal_mode = Rc::new(RefCell::new(NormalMode::new()));
         normal_mode.borrow_mut().add_settings(settings.clone());
@@ -116,6 +116,13 @@ impl Pane for TextBuffer {
             "q!" => {
                 self.sender.send(AppEvent::ForceClose).expect("Failed to send force quit event");
             }
+            "e" => {
+                let path = command_args.next();
+                if let Some(path) = path {
+                    self.sender.send(AppEvent::OpenFile(path.to_owned().into()))
+                        .expect("Failed to send open file event");
+                }
+            }
             _ => {},
         }
     }
@@ -155,6 +162,19 @@ impl TextPane for TextBuffer {
     fn get_cursor(&self) -> (usize, usize) {
         self.cursor.get_cursor()
 
+    }
+
+    fn change_file(&mut self, mut file: File) -> File {
+        std::mem::swap(&mut self.file, &mut file);
+        file
+    }
+
+    fn can_close(&self) -> bool {
+        self.file.has_saved()
+    }
+
+    fn scroll(&mut self, rect: Rect) {
+        self.cursor.scroll(rect);
     }
 }
 

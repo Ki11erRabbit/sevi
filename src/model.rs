@@ -5,6 +5,7 @@ use tuirealm::{Application, NoUserEvent, terminal::TerminalBridge, tui::prelude:
 
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::env;
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
@@ -15,7 +16,8 @@ use crate::components::input::InputLayer;
 
 
 use crate::models::{AppEvent, Id, Message};
-use crate::models::pane::Pane;
+use crate::models::file::File;
+use crate::models::pane::{Pane, TextPane};
 use crate::models::pane::text::TextBuffer;
 
 pub struct AppEventPort{
@@ -38,6 +40,8 @@ pub struct Model {
     pub terminal: Rc<RefCell<TerminalBridge>>,
     pub pane: Rc<RefCell<TextBuffer>>,
     pub sender: Sender<AppEvent>,
+    pub settings: Rc<RefCell<crate::models::settings::Settings>>,
+    pub files: HashMap<PathBuf, File>,
 }
 
 impl Default for Model {
@@ -56,7 +60,11 @@ impl Default for Model {
 
         let settings = Rc::new(RefCell::new(settings));
 
-        let pane = TextBuffer::new(path, sender.clone(), settings);
+        let file = File::new(path.clone(), settings.clone());
+
+
+
+        let pane = TextBuffer::new(file, sender.clone(), settings.clone());
         let pane = Rc::new(RefCell::new(pane));
 
 
@@ -106,6 +114,9 @@ impl Default for Model {
             terminal: Rc::new(RefCell::new(TerminalBridge::new().expect("Failed to create terminal bridge"))),
             pane,
             sender,
+            settings,
+            files: HashMap::new(),
+
         }
     }
 }
@@ -144,7 +155,7 @@ impl Model {
                 })
                 .is_ok());
 
-        self.sender.send(AppEvent::Scroll).unwrap();
+
 
         match self.pane.borrow().get_cursor_position() {
             None => {
@@ -164,41 +175,7 @@ impl Model {
 
         self.pane.borrow_mut().refresh();
 
-        /*match self.pane.borrow().get_scroll_amount() {
-            None => {},
-            Some((x, y)) => {
-                if x == 0 && y == 0 {
-                    return;
-                }
-                self.sender.send(AppEvent::Scroll(x as u16, y as u16)).unwrap();
-            }
-        }*/
-
-
     }
-
-    /*fn init_app() -> Application<Id, Message, NoUserEvent> {
-
-        let mut app: Application<Id, Message, NoUserEvent> = Application::init(
-            EventListenerCfg::default()
-                .default_input_listener(Duration::from_millis(20))
-                .poll_timeout(Duration::from_millis(10))
-                .tick_interval(Duration::from_secs(1)),
-        );
-
-        assert!(app
-                .mount(
-                    Id::Pane,
-                    Box::new(
-                        PaneContainer::default()
-                    ),
-                    Vec::default(),
-                )
-                .is_ok());
-
-        assert!(app.active(&Id::Pane).is_ok());
-        app
-    }*/
 
     pub fn initialize(&mut self) {
         let terminal = self.terminal.clone();
@@ -213,10 +190,6 @@ impl Update<Message> for Model {
     fn update(&mut self, msg: Option<Message>) -> Option<Message> {
 
         if let Some(msg) = msg {
-
-
-
-
             match msg {
                 Message::AppClose => {
                     self.quit = true;
@@ -228,8 +201,34 @@ impl Update<Message> for Model {
                     None
                 },
                 Message::OpenFile(file) => {
+                    let path = PathBuf::from(file.as_ref());
+                    let file = File::new(Some(path), self.settings.clone());
+
+                    let file = self.pane.borrow_mut().change_file(file);
+
+                    let path = file.get_path().unwrap_or(PathBuf::from(""));
+
+                    self.files.insert(path, file);
+
                     None
                 },
+                Message::Close => {
+
+                    if !self.pane.borrow().can_close() {
+                        //TODO: Send Error Message
+                        return None;
+                    }
+
+                    let key = self.files.keys().last().clone();
+                    if let Some(key) = key {
+                        let key = key.clone();
+                        let file = self.files.remove(&key).unwrap();
+                        let _ = self.pane.borrow_mut().change_file(file);
+                    } else {
+                        self.quit = true;
+                    }
+                    None
+                }
                 Message::Key(key) => {
                     self.pane.borrow_mut().process_keypress(key);
                     None
