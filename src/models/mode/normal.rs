@@ -122,7 +122,6 @@ impl NormalMode {
                 pane.execute_command("insert above");
             },
             "command_mode" => {
-                eprintln!("command_mode");
                 pane.execute_command("change_mode Command");
             },
             "selection_mode" => {

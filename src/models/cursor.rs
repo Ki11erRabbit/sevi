@@ -118,7 +118,6 @@ impl Cursor {
                 self.row = self.row.saturating_sub(n);
             }
             CursorMovement::Down => {
-                eprintln!("row: {}, n: {}", self.row, n);
                 if self.row < number_of_lines {
                     let new_row =(self.row + n) % number_of_lines;
                     if new_row < self.row {
