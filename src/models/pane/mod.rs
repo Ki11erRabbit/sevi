@@ -17,6 +17,8 @@ pub trait Pane {
     fn process_keypress(&mut self, key: KeyEvent);
 
     fn get_status(&self) -> (StyledText, StyledText, StyledText);
+
+    fn refresh(&mut self);
 }
 
 

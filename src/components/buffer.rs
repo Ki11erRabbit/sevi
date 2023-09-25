@@ -3,6 +3,7 @@ use std::rc::Rc;
 use tuirealm::{Attribute, AttrValue, Component, Event, Frame, MockComponent, NoUserEvent, Props, State};
 use tuirealm::command::{Cmd, CmdResult};
 use tuirealm::tui::layout::Rect;
+use tuirealm::tui::text::Text;
 use tuirealm::tui::widgets::Paragraph;
 use crate::models::{AppEvent, Message};
 use crate::models::pane::Pane;
@@ -28,10 +29,17 @@ impl Buffer{
             scroll: (0, 0),
         }
     }
+
+    fn update_scroll(&mut self) {
+        if let Some((x, y)) = self.pane.borrow().get_scroll_amount() {
+            self.scroll = (x as u16, y as u16);
+        }
+    }
 }
 
 impl MockComponent for Buffer {
     fn view(&mut self, frame: &mut Frame, area: Rect) {
+
 
         if self.props.get_or(Attribute::Display, AttrValue::Flag(true)) == AttrValue::Flag(true) {
             let pane = self.pane.clone();
@@ -69,12 +77,9 @@ impl Component<Message, AppEvent> for Buffer {
             Event::User(AppEvent::Edit) => {
                 Some(Message::Redraw)
             }
-            Event::User(AppEvent::Scroll(x, y)) => {
-                self.scroll = (x, y);
+            Event::User(AppEvent::Scroll) => {
+                self.update_scroll();
                 Some(Message::Redraw)
-            }
-            Event::Keyboard(key_event) => {
-                Some(Message::Key(key_event.into()))
             }
             _ => None,
         }

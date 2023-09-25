@@ -17,25 +17,40 @@ pub enum Id {
     Status,
     NumberLine,
     Gutter,
+    Input,
 }
+
+
 
 #[derive(Debug, Clone,  PartialEq, Eq, Hash, PartialOrd)]
 pub enum AppEvent {
     Edit,
     StatusChanged,
-    Scroll(u16, u16),
+    //Scroll(u16, u16),
+    Scroll,
+    OpenFile(Box<str>),
+    Close,
+    ForceClose,
+    ForceQuit,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Message {
     AppClose,
+    Close,
+    ForceClose,
     Redraw,
-    OpenFile(String),
+    OpenFile(Box<str>),
     MoveCursor(Option<(u16, u16)>),
     Scroll(Option<(u16, u16)>),
     Key(key::KeyEvent),
 }
 
+pub enum ModelMessage {
+    Close,
+    ForceQuit,
+    OpenFile(Box<str>),
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Rect {

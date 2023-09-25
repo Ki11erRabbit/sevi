@@ -12,6 +12,7 @@ use std::path::PathBuf;
 use crate::models::cursor::CursorMovement;
 use crate::models::pane::Pane;
 use crate::models::file::File;
+use crate::models::{AppEvent, Message};
 use crate::models::mode::command::CommandMode;
 use crate::models::settings::Settings;
 use crate::models::mode::TextMode;
@@ -35,13 +36,14 @@ pub struct TextBuffer {
     mode: Rc<RefCell<dyn TextMode>>,
     modes: HashMap<String, Rc<RefCell<dyn TextMode>>>,
     settings: Rc<RefCell<Settings>>,
+    sender: Sender<AppEvent>,
     //lsp_channels: (Sender<LspMessage>, Receiver<LspMessage>),
     //register_channels: (Sender<RegisterMessage>, Receiver<RegisterMessage>),
 }
 
 
 impl TextBuffer {
-    pub fn new(path: Option<PathBuf>, settings: Rc<RefCell<Settings>>) -> Self {
+    pub fn new(path: Option<PathBuf>, sender: Sender<AppEvent>, settings: Rc<RefCell<Settings>>) -> Self {
         let file = File::new(path, settings.clone());
 
         let normal_mode = Rc::new(RefCell::new(NormalMode::new()));
@@ -63,6 +65,7 @@ impl TextBuffer {
             mode: normal_mode,
             modes,
             settings,
+            sender,
         }
     }
 
@@ -104,6 +107,15 @@ impl Pane for TextBuffer {
                 let mode = command_args.next().unwrap_or("Normal");
                 self.mode = self.modes.get(mode).unwrap().clone();
             },
+            "qa!" => {
+                self.sender.send(AppEvent::ForceQuit).expect("Failed to send force quit event");
+            }
+            "q" => {
+                self.sender.send(AppEvent::Close).expect("Failed to send quit event");
+            }
+            "q!" => {
+                self.sender.send(AppEvent::ForceClose).expect("Failed to send force quit event");
+            }
             _ => {},
         }
     }
@@ -135,6 +147,8 @@ impl Pane for TextBuffer {
         Some(self.cursor.get_scroll_amount())
     }
 
+    fn refresh(&mut self) {
+    }
 }
 
 impl TextPane for TextBuffer {

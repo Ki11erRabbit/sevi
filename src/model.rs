@@ -1,7 +1,7 @@
 
 use std::time::Duration;
 
-use tuirealm::{Application, NoUserEvent, terminal::TerminalBridge, tui::prelude::{Layout, Direction, Constraint}, EventListenerCfg, Update, Event};
+use tuirealm::{Application, NoUserEvent, terminal::TerminalBridge, tui::prelude::{Layout, Direction, Constraint}, EventListenerCfg, Update, Event, SubEventClause, SubClause, Sub};
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -11,6 +11,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use tuirealm::listener::{ListenerResult, Poll};
 use crate::components::status_bar::StatusBar;
 use crate::components::buffer::Buffer;
+use crate::components::input::InputLayer;
 
 
 use crate::models::{AppEvent, Id, Message};
@@ -49,14 +50,16 @@ impl Default for Model {
             None
         };
 
+        let (sender, receiver) = std::sync::mpsc::channel();
+
         let settings = crate::models::settings::Settings::default();
 
         let settings = Rc::new(RefCell::new(settings));
 
-        let pane = TextBuffer::new(path, settings);
+        let pane = TextBuffer::new(path, sender.clone(), settings);
         let pane = Rc::new(RefCell::new(pane));
 
-        let (sender, receiver) = std::sync::mpsc::channel();
+
 
         let mut app = Application::init(
             EventListenerCfg::default()
@@ -75,10 +78,13 @@ impl Default for Model {
             Box::new(
                 Buffer::new(pane.clone())
             ),
-            Vec::default(),
+            vec![
+                Sub::new(SubEventClause::User(AppEvent::Scroll), SubClause::Always),
+                Sub::new(SubEventClause::User(AppEvent::Edit), SubClause::Always),
+            ],
             ).is_ok());
 
-        assert!(app.active(&Id::Buffer).is_ok());
+        //assert!(app.active(&Id::Buffer).is_ok());
 
         assert!(app.mount(
             Id::Status,
@@ -88,6 +94,10 @@ impl Default for Model {
             Vec::default(),
             ).is_ok());
 
+        assert!(app.mount(Id::Input, Box::new(
+            InputLayer::new()), Vec::default()).is_ok());
+
+        assert!(app.active(&Id::Input).is_ok());
 
         Self {
             app,
@@ -134,6 +144,7 @@ impl Model {
                 })
                 .is_ok());
 
+        self.sender.send(AppEvent::Scroll).unwrap();
 
         match self.pane.borrow().get_cursor_position() {
             None => {
@@ -150,7 +161,10 @@ impl Model {
                 let _ = term.show_cursor();
             },
         }
-        match self.pane.borrow().get_scroll_amount() {
+
+        self.pane.borrow_mut().refresh();
+
+        /*match self.pane.borrow().get_scroll_amount() {
             None => {},
             Some((x, y)) => {
                 if x == 0 && y == 0 {
@@ -158,7 +172,7 @@ impl Model {
                 }
                 self.sender.send(AppEvent::Scroll(x as u16, y as u16)).unwrap();
             }
-        }
+        }*/
 
 
     }
