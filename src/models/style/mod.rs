@@ -288,7 +288,7 @@ impl<'a> StyledText<'a> {
     }
 
     pub fn len(&self) -> usize {
-        self.lines.len()
+        self.lines.iter().map(|l| l.len()).sum()
     }
 }
 

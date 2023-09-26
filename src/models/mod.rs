@@ -46,6 +46,7 @@ pub enum Message {
     MoveCursor(Option<(u16, u16)>),
     Scroll(Option<(u16, u16)>),
     Key(key::KeyEvent),
+    Tick,
 }
 
 pub enum ModelMessage {

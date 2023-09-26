@@ -1,7 +1,10 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use crate::models::file::File;
 use crate::models::style::StyledText;
 use crate::models::key::KeyEvent;
 use crate::models::Rect;
+use crate::models::settings::Settings;
 
 pub mod text;
 
@@ -21,6 +24,8 @@ pub trait Pane {
     fn get_status(&self) -> (StyledText, StyledText, StyledText);
 
     fn refresh(&mut self);
+
+    fn get_settings(&self) -> Rc<RefCell<Settings>>;
 
 }
 

@@ -4,11 +4,13 @@ use tuirealm::{Attribute, AttrValue, Component, Event, Frame, MockComponent, NoU
 use tuirealm::command::{Cmd, CmdResult};
 use tuirealm::tui::layout::Rect;
 use tuirealm::tui::text::Text;
-use tuirealm::tui::widgets::Paragraph;
+use tuirealm::tui::widgets::{Paragraph, Wrap};
 use crate::models::{AppEvent, Message};
 use crate::models::pane::{Pane, TextPane};
 use crate::models::pane::text::TextBuffer;
+use crate::models::settings::editor_settings::NumberLineStyle;
 use crate::models::style::StyledText;
+use crate::widgets::editor::Editor;
 
 pub struct Buffer {
     pane: Rc<RefCell<TextBuffer>>,
@@ -49,9 +51,15 @@ impl MockComponent for Buffer {
             let mut pane = pane.borrow_mut();
             let text = pane.draw();
 
+            let (_, row) = pane.get_cursor();
+
+            let settings = pane.get_settings();
+            let settings = settings.borrow();
+            let number_line_type = settings.editor_settings.number_line;
 
             frame.render_widget(
-                Paragraph::new(text)
+                Editor::new(text)
+                    .number_line_type(number_line_type, row)
                     .scroll(self.scroll),
                 area,
             );

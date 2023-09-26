@@ -233,6 +233,10 @@ impl Update<Message> for Model {
                     self.pane.borrow_mut().process_keypress(key);
                     None
                 }
+                Message::Tick => {
+                    self.pane.borrow_mut().refresh();
+                    None
+                }
                 _ => None,
             }
 

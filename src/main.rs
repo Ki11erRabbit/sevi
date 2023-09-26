@@ -5,6 +5,7 @@ use tuirealm::SubEventClause;
 use tuirealm::SubClause;
 
 use std::env;
+use crate::models::Message;
 
 pub mod model;
 
@@ -12,6 +13,7 @@ pub mod model;
 
 pub mod models;
 pub mod components;
+pub mod widgets;
 
 
 fn main() {
@@ -33,6 +35,9 @@ fn main() {
                     }
                 }
             }
+            Ok(_) => {
+                model.update(Some(Message::Tick));
+            },
             _ => {},
         }
 

@@ -127,8 +127,6 @@ impl TextMode for InsertMode {
             }
         }
 
-        second.push_str(&format!(" {:?}", pane.get_cursor()));
-        second.push_str(&format!(" {}", pane.get_current_byte_position()));
 
         (self.get_name(), first, second)
     }

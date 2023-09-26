@@ -19,7 +19,7 @@ use crate::models::settings::Settings;
 use crate::models::mode::TextMode;
 use crate::models::mode::normal::NormalMode;
 use crate::models::mode::Mode;
-
+use crate::models::settings::editor_settings::NumberLineStyle;
 
 
 pub trait TextBufferObserver {
@@ -74,6 +74,30 @@ impl TextBuffer {
         }
     }
 
+    fn get_number_line_width(&self) -> usize {
+        let mut line_count = self.file.get_line_count();
+        match self.settings.borrow().editor_settings.number_line {
+            NumberLineStyle::None => 0,
+            NumberLineStyle::Relative => {
+                let mut places = 1;
+                let mut num_width = 3;
+                while places <= line_count {
+                    places *= 10;
+                    num_width += 1;
+                }
+                num_width
+            }
+            NumberLineStyle::Absolute => {
+                let mut places = 1;
+                let mut num_width = 0;
+                while places <= line_count {
+                    places *= 10;
+                    num_width += 1;
+                }
+                num_width
+            }
+        }
+    }
 }
 
 
@@ -189,6 +213,12 @@ impl Pane for TextBuffer {
     }
 
     fn refresh(&mut self) {
+        let number_line_width = self.get_number_line_width();
+        self.cursor.set_number_line_width(number_line_width);
+    }
+
+    fn get_settings(&self) -> Rc<RefCell<Settings>> {
+        self.settings.clone()
     }
 }
 
