@@ -118,6 +118,7 @@ pub struct StyledSpan<'a> {
 
 impl<'a> StyledSpan<'a> {
 
+
     /// Create a new StyledSpan with no style.
     pub fn raw<T>(content: T) -> StyledSpan<'a> where T: Into<Cow<'a, str>> {
         StyledSpan {

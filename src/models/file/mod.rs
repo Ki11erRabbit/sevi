@@ -4,9 +4,11 @@ use tree_sitter::Parser;
 use crate::models::settings::Settings;
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use either::Either;
 
-use crate::models::style::StyledText;
+use crate::models::style::{Style, StyledLine, StyledSpan, StyledText};
+use crate::models::style::color::Color;
 
 use self::buffer::Buffer;
 
@@ -27,6 +29,13 @@ impl File {
                 None => Some(Either::Left(UnopenedFile::new(settings.clone()))),
             },
             saved: true,
+        }
+    }
+
+    pub fn add_highlight(&mut self, start: usize, end: usize) {
+        match self.file.as_mut().unwrap() {
+            Either::Left(file) => file.add_highlight(start, end),
+            Either::Right(file) => file.add_highlight(start, end),
         }
     }
 
@@ -188,6 +197,7 @@ pub struct UnopenedFile {
     buffer: buffer::Buffer,
     language: Option<String>,
     settings: Rc<RefCell<Settings>>,
+    highlights: HashMap<usize, usize>,
 }
 
 
@@ -197,7 +207,12 @@ impl UnopenedFile {
             buffer: buffer::Buffer::new(settings.clone()),
             language: None,
             settings,
+            highlights: HashMap::new(),
         }
+    }
+
+    pub fn add_highlight(&mut self, start: usize, end: usize) {
+        self.highlights.insert(start, end);
     }
 
     pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {
@@ -242,8 +257,67 @@ impl UnopenedFile {
     }
 
     pub fn display(&self) -> StyledText {
+        let mut output = StyledText::new();
+        output.lines.push(StyledLine::from(""));
+        let mut line_index = 0;
+        let mut prev = 0;
+        for (start, end) in &self.highlights {
+            let temp = self.buffer.get_slice(prev, *start)
+                .expect("Positions were off")
+                .to_string();
+            if temp.contains('\n') {
+                let mut lines = temp.split('\n');
+                let first = lines.next().unwrap();
+                output.lines[line_index].push(
+                    StyledSpan::from(first.to_string())
+                );
+                for line in lines {
+                    line_index += 1;
+                    output.lines.push(
+                        StyledLine::from(line.to_string())
+                    );
+                }
+            } else {
+                output.lines[line_index].push(
+                    StyledSpan::from(temp)
+                );
+            }
 
-        StyledText::from(self.buffer.to_string())
+            // TODO: style this with a particular style
+            output.lines[line_index].push(
+                StyledSpan::styled(self.buffer.get_slice(*start, *end)
+                                       .expect("Positions were off")
+                                       .to_string(),
+                                   Style::new()
+                                       .bg(Color::Magenta)
+                )
+            );
+
+
+            prev = *end;
+        }
+        let temp = self.buffer.get_slice(prev, self.buffer.get_byte_count())
+            .expect("Positions were off")
+            .to_string();
+        if temp.contains('\n') {
+            let mut lines = temp.split('\n');
+            let first = lines.next().unwrap();
+            output.lines[line_index].push(
+                StyledSpan::from(first.to_string())
+            );
+            for line in lines {
+                line_index += 1;
+                output.lines.push(
+                    StyledLine::from(line.to_string())
+                );
+            }
+        } else {
+            output.lines[line_index].push(
+                StyledSpan::from(temp)
+            );
+        }
+
+        output
     }
 
 }
@@ -258,6 +332,7 @@ pub struct OpenedFile {
     lsp_info: Option<String>,// TODO: make this take lsp syntax highlighting info
     language: Option<String>,
     settings: Rc<RefCell<Settings>>,
+    highlights: HashMap<usize, usize>,
 }
 
 
@@ -440,10 +515,13 @@ impl OpenedFile {
             lsp_info,
             language,
             settings,
+            highlights: HashMap::new()
         }
     }
 
-
+    pub fn add_highlight(&mut self, start: usize, end: usize) {
+        self.highlights.insert(start, end);
+    }
 
     pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {
         self.buffer.get_byte_offset(row, col)
@@ -486,9 +564,69 @@ impl OpenedFile {
         self.path.file_name().unwrap().to_str().unwrap().to_string()
     }
 
-    pub fn display(&self) -> StyledText {
 
-        StyledText::from(self.buffer.to_string())
+    pub fn display(&self) -> StyledText {
+        let mut output = StyledText::new();
+        output.lines.push(StyledLine::from(""));
+        let mut line_index = 0;
+        let mut prev = 0;
+        for (start, end) in &self.highlights {
+            let temp = self.buffer.get_slice(prev, *start)
+                .expect("Positions were off")
+                .to_string();
+            if temp.contains('\n') {
+                let mut lines = temp.split('\n');
+                let first = lines.next().unwrap();
+                output.lines[line_index].push(
+                    StyledSpan::from(first.to_string())
+                );
+                for line in lines {
+                    line_index += 1;
+                    output.lines.push(
+                        StyledLine::from(line.to_string())
+                    );
+                }
+            } else {
+                output.lines[line_index].push(
+                    StyledSpan::from(temp)
+                );
+            }
+
+            // TODO: style this with a particular style
+            output.lines[line_index].push(
+                StyledSpan::styled(self.buffer.get_slice(*start, *end)
+                    .expect("Positions were off")
+                    .to_string(),
+                    Style::new()
+                        .bg(Color::Magenta)
+                )
+            );
+
+
+            prev = *end;
+        }
+        let temp = self.buffer.get_slice(prev, self.buffer.get_byte_count())
+            .expect("Positions were off")
+            .to_string();
+        if temp.contains('\n') {
+            let mut lines = temp.split('\n');
+            let first = lines.next().unwrap();
+            output.lines[line_index].push(
+                StyledSpan::from(first.to_string())
+            );
+            for line in lines {
+                line_index += 1;
+                output.lines.push(
+                    StyledLine::from(line.to_string())
+                );
+            }
+        } else {
+            output.lines[line_index].push(
+                StyledSpan::from(temp)
+            );
+        }
+
+        output
     }
 }
 
@@ -507,6 +645,7 @@ impl From<(UnopenedFile, PathBuf)> for OpenedFile {
             lsp_info: None,
             language: None,
             settings,
+            highlights: file.highlights,
         }
     }
 }

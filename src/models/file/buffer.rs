@@ -558,6 +558,16 @@ impl Buffer {
 
     }
 
+    pub fn get_slice<'a>(&'a self, start: usize, end: usize) -> Option<BufferSlice<'a>> {
+        if start > end {
+            return None;
+        }
+        if end > self.history[self.current].bytes().count() {
+            return None;
+        }
+        Some(BufferSlice::new(self.history[self.current].byte_slice(start..end), self.settings.clone()))
+    }
+
 
 
 }
@@ -611,6 +621,11 @@ impl fmt::Display for Buffer {
 
 
 
+impl fmt::Display for BufferSlice<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.slice)
+    }
+}
 
 pub struct BufferSlice<'a> {
     pub slice: RopeSlice<'a>,

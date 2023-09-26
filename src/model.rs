@@ -64,6 +64,7 @@ impl Default for Model {
 
 
 
+
         let pane = TextBuffer::new(file, sender.clone(), settings.clone());
         let pane = Rc::new(RefCell::new(pane));
 
