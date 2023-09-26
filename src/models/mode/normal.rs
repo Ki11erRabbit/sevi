@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -11,7 +12,7 @@ use crate::models::pane::TextPane;
 use crate::models::settings::Settings;
 use crate::models::style::StyledText;
 
-use super::{Mode, ModeObserver, TextMode};
+use super::{Mode, TextMode};
 
 
 
@@ -36,7 +37,7 @@ impl NormalMode {
         let mut command_args = command.split_whitespace();
         let command_name = command_args.next().unwrap_or("");
 
-        match command {
+        match command_name {
             "cancel" => {
                 self.number_buffer.clear();
                 self.key_buffer.clear();
@@ -171,6 +172,10 @@ impl Mode for NormalMode {
     }
 
     fn refresh(&mut self) {
+    }
+
+    fn add_special(&mut self, _something: &dyn Any) {
+
     }
 }
 

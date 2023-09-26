@@ -50,6 +50,8 @@ pub trait TextPane: Pane {
     fn get_byte_at(&self, byte_index: usize) -> u8;
 
     fn get_current_byte_position(&self) -> usize;
+
+    fn borrow_current_file(&self) -> &File;
 }
 
 

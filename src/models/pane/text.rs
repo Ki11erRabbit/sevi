@@ -19,6 +19,7 @@ use crate::models::settings::Settings;
 use crate::models::mode::TextMode;
 use crate::models::mode::normal::NormalMode;
 use crate::models::mode::Mode;
+use crate::models::mode::selection::{SelectionMode, SelectionType};
 use crate::models::settings::editor_settings::NumberLineStyle;
 
 
@@ -53,16 +54,20 @@ impl TextBuffer {
         command_mode.borrow_mut().add_settings(settings.clone());
         let insert_mode = Rc::new(RefCell::new(InsertMode::new()));
         insert_mode.borrow_mut().add_settings(settings.clone());
+        let selection_mode = Rc::new(RefCell::new(SelectionMode::new()));
+        selection_mode.borrow_mut().add_settings(settings.clone());
 
         let normal_mode: Rc<RefCell<dyn TextMode>> = normal_mode.clone();
         let command_mode: Rc<RefCell<dyn TextMode>> = command_mode.clone();
         let insert_mode: Rc<RefCell<dyn TextMode>> = insert_mode.clone();
+        let selection_mode: Rc<RefCell<dyn TextMode>> = selection_mode.clone();
 
 
         let mut modes = HashMap::new();
         modes.insert("Normal".to_string(), normal_mode.clone());
         modes.insert("Command".to_string(), command_mode);
         modes.insert("Insert".to_string(), insert_mode);
+        modes.insert("Selection".to_string(), selection_mode);
 
         Self {
             file,
@@ -161,6 +166,27 @@ impl Pane for TextBuffer {
                         self.mode = self.modes.get("Insert").unwrap().clone();
                         self.cursor.move_cursor(CursorMovement::Up, 1, &self.file);
                     },
+                    "selection_normal" => {
+                        let mode= self.modes.get("Selection").unwrap().clone();
+                        let pos = self.get_cursor();
+                        mode.borrow_mut().add_special(&pos);
+                        mode.borrow_mut().add_special(&SelectionType::Normal);
+                        self.mode = mode;
+                    }
+                    "selection_line" => {
+                        let mode= self.modes.get("Selection").unwrap().clone();
+                        let pos = self.get_cursor();
+                        mode.borrow_mut().add_special(&pos);
+                        mode.borrow_mut().add_special(&SelectionType::Line);
+                        self.mode = mode;
+                    }
+                    "selection_block" => {
+                        let mode= self.modes.get("Selection").unwrap().clone();
+                        let pos = self.get_cursor();
+                        mode.borrow_mut().add_special(&pos);
+                        mode.borrow_mut().add_special(&SelectionType::Block);
+                        self.mode = mode;
+                    }
                     _ => panic!("Invalid mode"),
 
                 }
@@ -179,6 +205,32 @@ impl Pane for TextBuffer {
                 if let Some(path) = path {
                     self.sender.send(AppEvent::OpenFile(path.to_owned().into()))
                         .expect("Failed to send open file event");
+                }
+            }
+            "clear_selection" => {
+                self.file.clear_highlights();
+            }
+            "select" => {
+                let next = command_args.next();
+                if let Some("row") = next {
+                    if let Ok(row) = command_args.next().unwrap_or("0").parse::<usize>() {
+                        self.file.select_row(row);
+                    }
+                } else {
+                    if let Some(start) = next {
+                        if let Some(end) = command_args.next() {
+                            let start = start.split(',');
+                            let end = end.split(',');
+                            let start = start.map(|x| x.parse::<usize>().unwrap()).collect::<Vec<usize>>();
+                            let end = end.map(|x| x.parse::<usize>().unwrap()).collect::<Vec<usize>>();
+
+                            let start = self.file.get_byte_offset(start[1], start[0]).unwrap();
+                            let end = self.file.get_byte_offset(end[1], end[0]).unwrap();
+
+                            self.file.add_highlight(start, end);
+
+                        }
+                    }
                 }
             }
             _ => {},
@@ -285,6 +337,10 @@ impl TextPane for TextBuffer {
         let (col, row) = self.get_cursor();
 
         self.file.get_byte_offset(col, row).expect("Cursor was in an invalid position")
+    }
+
+    fn borrow_current_file(&self) -> &File {
+        &self.file
     }
 }
 

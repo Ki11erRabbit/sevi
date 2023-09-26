@@ -32,10 +32,24 @@ impl File {
         }
     }
 
+    pub fn clear_highlights(&mut self) {
+        match self.file.as_mut().unwrap() {
+            Either::Left(file) => file.highlights.clear(),
+            Either::Right(file) => file.highlights.clear(),
+        }
+    }
+
     pub fn add_highlight(&mut self, start: usize, end: usize) {
         match self.file.as_mut().unwrap() {
             Either::Left(file) => file.add_highlight(start, end),
             Either::Right(file) => file.add_highlight(start, end),
+        }
+    }
+
+    pub fn select_row(&mut self, row: usize) {
+        match self.file.as_mut().unwrap() {
+            Either::Left(file) => file.select_row(row),
+            Either::Right(file) => file.select_row(row),
         }
     }
 
@@ -215,6 +229,14 @@ impl UnopenedFile {
         self.highlights.insert(start, end);
     }
 
+    pub fn select_row(&mut self, row: usize) {
+        let len = self.buffer.get_row(row).unwrap().len();
+        let start = self.buffer.get_byte_offset(0, row).unwrap();
+        let byte_offset = self.buffer.get_byte_offset(len, row).unwrap();
+
+        self.add_highlight(start, byte_offset);
+    }
+
     pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {
         self.buffer.get_byte_offset(row, col)
     }
@@ -305,10 +327,16 @@ impl UnopenedFile {
             output.lines[line_index].push(
                 StyledSpan::from(first.to_string())
             );
+            output.lines[line_index].push(
+                StyledSpan::from("\n")
+            );
             for line in lines {
                 line_index += 1;
                 output.lines.push(
                     StyledLine::from(line.to_string())
+                );
+                output.lines[line_index].push(
+                    StyledSpan::from("\n")
                 );
             }
         } else {
@@ -523,6 +551,14 @@ impl OpenedFile {
         self.highlights.insert(start, end);
     }
 
+    pub fn select_row(&mut self, row: usize) {
+        let len = self.buffer.get_row(row).unwrap().len();
+        let start = self.buffer.get_byte_offset(0, row).unwrap();
+        let byte_offset = self.buffer.get_byte_offset(len, row).unwrap();
+
+        self.add_highlight(start, byte_offset);
+    }
+
     pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {
         self.buffer.get_byte_offset(row, col)
     }
@@ -580,10 +616,16 @@ impl OpenedFile {
                 output.lines[line_index].push(
                     StyledSpan::from(first.to_string())
                 );
+                output.lines.push(
+                    StyledLine::from("\n")
+                );
                 for line in lines {
                     line_index += 1;
                     output.lines.push(
                         StyledLine::from(line.to_string())
+                    );
+                    output.lines.push(
+                        StyledLine::from("\n")
                     );
                 }
             } else {
@@ -593,14 +635,40 @@ impl OpenedFile {
             }
 
             // TODO: style this with a particular style
-            output.lines[line_index].push(
-                StyledSpan::styled(self.buffer.get_slice(*start, *end)
-                    .expect("Positions were off")
-                    .to_string(),
-                    Style::new()
-                        .bg(Color::Magenta)
-                )
-            );
+
+            let temp = self.buffer.get_slice(*start, *end)
+                .expect("Positions were off")
+                .to_string();
+
+            if temp.contains('\n') {
+                let mut lines = temp.split('\n');
+                let first = lines.next().unwrap();
+                output.lines[line_index].push(
+                    StyledSpan::styled(first.to_string(),
+                                       Style::new()
+                                           .bg(Color::Magenta)
+                    )
+                );
+                output.lines.push(
+                    StyledLine::from("\n")
+                );
+                for line in lines {
+                    line_index += 1;
+                    output.lines.push(
+                        StyledLine::from(line.to_string())
+                    );
+                    output.lines.push(
+                        StyledLine::from("\n")
+                    );
+                }
+            } else {
+                output.lines[line_index].push(
+                    StyledSpan::styled(temp,
+                                       Style::new()
+                                           .bg(Color::Magenta)
+                    )
+                );
+            }
 
 
             prev = *end;

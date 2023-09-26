@@ -1,4 +1,4 @@
-
+use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
 use crate::models::key::KeyEvent;
@@ -10,14 +10,8 @@ use crate::models::style::StyledText;
 pub mod normal;
 pub mod command;
 pub mod insert;
+pub mod selection;
 
-pub trait ModeObserver {
-    fn run_command(&mut self, command: &str);
-
-    fn change_mode(&mut self, mode: &str);
-
-    fn update_status(&mut self, status: (String, String, String));
-}
 
 
 
@@ -28,10 +22,12 @@ pub trait Mode {
 
     fn refresh(&mut self);
 
+    fn add_special(&mut self, something: &dyn Any);
+
 }
 
 
-pub trait TextMode {
+pub trait TextMode: Mode {
     fn process_keypress(&mut self, key: KeyEvent, pane: &mut dyn TextPane);
 
     fn update_status(&self, pane: &dyn TextPane) -> (String, String, String);

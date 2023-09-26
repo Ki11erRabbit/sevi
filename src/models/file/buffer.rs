@@ -656,6 +656,10 @@ impl<'a> BufferSlice<'a> {
         }).sum()
     }
 
+    pub fn byte_len(&self) -> usize {
+        self.slice.bytes().count()
+    }
+
 
 }
 

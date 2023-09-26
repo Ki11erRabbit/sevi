@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
 use crate::models::key::{Key, KeyEvent};
@@ -83,6 +84,10 @@ impl Mode for InsertMode {
     }
 
     fn refresh(&mut self) {
+
+    }
+
+    fn add_special(&mut self, _something: &dyn Any) {
 
     }
 }
