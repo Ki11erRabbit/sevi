@@ -19,9 +19,9 @@ impl Status {
         bar.push(StyledSpan::from(" "));
         bar.extend(first.into());
 
-        let remaining = self.rect.width - bar.len();
+        //let remaining = self.rect.width - bar.len() * 2;
 
-        bar.push(StyledSpan::from(" ".repeat(remaining)));
+        //bar.push(StyledSpan::from(" ".repeat(remaining)));
         bar.extend(second.into());
 
         bar.into()

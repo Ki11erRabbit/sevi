@@ -34,6 +34,17 @@ pub trait TextPane: Pane {
     fn can_close(&self) -> bool;
 
     fn scroll(&mut self, rect: Rect);
+
+    fn backspace(&mut self);
+    fn delete(&mut self);
+    fn newline(&mut self);
+
+    fn insert_str_after(&mut self, index: usize, string: &str);
+    fn insert_str_before(&mut self, index: usize, string: &str);
+
+    fn get_byte_at(&self, byte_index: usize) -> u8;
+
+    fn get_current_byte_position(&self) -> usize;
 }
 
 

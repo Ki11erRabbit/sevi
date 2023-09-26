@@ -485,10 +485,6 @@ impl ModeKeybindings {
                         key: Key::Char('G'),
                         modifiers: KeyModifiers::NONE,
                     }], "goto_line".to_string());
-                    bindings.insert(vec![KeyEvent {
-                        key: Key::End,
-                        modifiers: KeyModifiers::NONE,
-                    }], "goto_line".to_string());
                 }
                 // Page Up
                 {
@@ -974,6 +970,34 @@ impl ModeKeybindings {
                 key: Key::Char('n'),
                 modifiers: KeyModifiers::CTRL,
             }], "open_completion".to_string());
+        }
+        // Backspace and Delete
+        {
+            // Backspace
+            bindings.insert(vec![KeyEvent {
+                key: Key::Backspace,
+                modifiers: KeyModifiers::NONE,
+            }], "backspace".to_string());
+
+            // Delete
+            bindings.insert(vec![KeyEvent {
+                key: Key::Delete,
+                modifiers: KeyModifiers::NONE,
+            }], "delete".to_string());
+        }
+        // cancel
+        {
+            bindings.insert(vec![KeyEvent {
+                key: Key::Esc,
+                modifiers: KeyModifiers::NONE,
+            }], "cancel".to_string());
+        }
+        // Enter Newline
+        {
+            bindings.insert(vec![KeyEvent {
+                key: Key::Enter,
+                modifiers: KeyModifiers::NONE,
+            }], "newline".to_string());
         }
 
         bindings

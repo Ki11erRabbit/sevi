@@ -43,6 +43,10 @@ impl Buffer {
         self.tree_sitter_info = Some((parser, trees));
     }
 
+    pub fn get_byte(&self, byte_offset: usize) -> u8 {
+        self.history[self.current].byte(byte_offset)
+    }
+
     pub fn undo(&mut self) {
         self.current = self.current.saturating_sub(1);
 
@@ -360,6 +364,21 @@ impl Buffer {
             
         match tree_sitter_info.as_mut() {
             None => {
+                match range.end_bound() {
+                    std::ops::Bound::Included(n) => {
+                        if *n >= self.history[self.current].byte_len() {
+                            return;
+                        }
+                    },
+                    std::ops::Bound::Excluded(n) => {
+                        if *n >= self.history[self.current].byte_len() {
+                            return;
+                        }
+                    },
+                    std::ops::Bound::Unbounded => {
+                        return;
+                    },
+                }
                 self.history[self.current].delete(range);
             },
             Some((parser, trees)) => {

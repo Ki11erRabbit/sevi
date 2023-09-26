@@ -160,7 +160,15 @@ impl Cursor {
             }
             CursorMovement::FileEnd => {
                 self.row_movement = RowMovement::Down;
-                self.row = number_of_lines - 1;
+                self.row = number_of_lines - 2;
+
+                let number_of_cols = if let Some(cols) = file.get_row_len(self.row) {
+                    cols
+                } else {
+                    0
+                };
+
+                self.col = number_of_cols;
             }
             /*CursorMovement::PageUp => {
                 self.row_movement = RowMovement::Up;

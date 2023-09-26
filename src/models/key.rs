@@ -2,7 +2,7 @@
 use core::fmt;
 
 use bitflags::bitflags;
-use iced::keyboard::Event;
+//use iced::keyboard::Event;
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -268,7 +268,7 @@ impl From<tuirealm::event::KeyEvent> for KeyEvent {
     }
 }
 
-impl From<Event> for KeyEvent {
+/*impl From<Event> for KeyEvent {
     fn from(value: Event) -> Self {
         match value {
             Event::KeyPressed {
@@ -479,7 +479,7 @@ impl From<Event> for KeyEvent {
             }
         }
     }
-}
+}*/
 
 
 

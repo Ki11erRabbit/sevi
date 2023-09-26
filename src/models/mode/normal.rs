@@ -104,22 +104,22 @@ impl NormalMode {
                 pane.execute_command("move previous_word_back");
             },
             "insert_before" => {
-                pane.execute_command("insert before");
+                pane.execute_command("change_mode insert_before");
             },
             "insert_after" => {
-                pane.execute_command("insert after");
+                pane.execute_command("change_mode insert_after");
             },
             "insert_start_of_line" => {
-                pane.execute_command("insert start_of_line");
+                pane.execute_command("change_mode insert_start_of_line");
             },
             "insert_end_of_line" => {
-                pane.execute_command("insert end_of_line");
+                pane.execute_command("change_mode insert_end_of_line");
             },
             "insert_below" => {
-                pane.execute_command("insert below");
+                pane.execute_command("change_mode insert_below");
             },
             "insert_above" => {
-                pane.execute_command("insert above");
+                pane.execute_command("change_mode insert_above");
             },
             "command_mode" => {
                 pane.execute_command("change_mode Command");
@@ -142,6 +142,15 @@ impl NormalMode {
             "replace_mode" => {
                 pane.execute_command("change_mode replace");
             },
+            "goto_line" => {
+                if !self.number_buffer.is_empty() {
+                    //TODO: add cursor movement to a particular line
+                    //pane.execute_command(&format!("goto_line {}", self.number_buffer));
+                    self.number_buffer.clear();
+                } else {
+                    return;
+                }
+            }
             _ => {},
         }
 

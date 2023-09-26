@@ -66,12 +66,21 @@ impl File {
         self.saved
     }
 
+
+    pub fn get_byte(&self, byte_offset: usize) -> u8 {
+        match self.file.as_ref().unwrap() {
+            Either::Left(file) => file.buffer.get_byte(byte_offset),
+            Either::Right(file) => file.buffer.get_byte(byte_offset),
+        }
+    }
+
     pub fn get_line_count(&self) -> usize {
         match self.file.as_ref().unwrap() {
             Either::Left(file) => file.buffer.get_line_count(),
             Either::Right(file) => file.buffer.get_line_count(),
         }
     }
+
 
     pub fn get_row_len(&self, row: usize) -> Option<usize> {
         match self.file.as_ref().unwrap() {
@@ -433,6 +442,8 @@ impl OpenedFile {
             settings,
         }
     }
+
+
 
     pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {
         self.buffer.get_byte_offset(row, col)

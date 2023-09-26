@@ -14,6 +14,7 @@ use crate::models::pane::Pane;
 use crate::models::file::File;
 use crate::models::{AppEvent, Message, Rect};
 use crate::models::mode::command::CommandMode;
+use crate::models::mode::insert::InsertMode;
 use crate::models::settings::Settings;
 use crate::models::mode::TextMode;
 use crate::models::mode::normal::NormalMode;
@@ -50,14 +51,18 @@ impl TextBuffer {
         normal_mode.borrow_mut().add_settings(settings.clone());
         let command_mode = Rc::new(RefCell::new(CommandMode::new()));
         command_mode.borrow_mut().add_settings(settings.clone());
+        let insert_mode = Rc::new(RefCell::new(InsertMode::new()));
+        insert_mode.borrow_mut().add_settings(settings.clone());
 
         let normal_mode: Rc<RefCell<dyn TextMode>> = normal_mode.clone();
         let command_mode: Rc<RefCell<dyn TextMode>> = command_mode.clone();
+        let insert_mode: Rc<RefCell<dyn TextMode>> = insert_mode.clone();
 
 
         let mut modes = HashMap::new();
         modes.insert("Normal".to_string(), normal_mode.clone());
         modes.insert("Command".to_string(), command_mode);
+        modes.insert("Insert".to_string(), insert_mode);
 
         Self {
             file,
@@ -87,12 +92,12 @@ impl Pane for TextBuffer {
                     Some("right") => CursorMovement::Right,
                     Some("page_up") => CursorMovement::PageUp,
                     Some("page_down") => CursorMovement::PageDown,
-                    /*Some("start_of_file") => CursorMovement::StartOfFile,
-                    Some("end_of_file") => CursorMovement::EndOfFile,
+                    Some("start_of_file") => CursorMovement::FileStart,
+                    Some("end_of_file") => CursorMovement::FileEnd,
                     Some("half_page_up") => CursorMovement::HalfPageUp,
                     Some("half_page_down") => CursorMovement::HalfPageDown,
-                    Some("start_of_line") => CursorMovement::StartOfLine,
-                    Some("end_of_line") => CursorMovement::EndOfLine,*/
+                    Some("start_of_line") => CursorMovement::LineStart,
+                    Some("end_of_line") => CursorMovement::LineEnd,
                     _ => panic!("Invalid direction"),
                 };
 
@@ -105,7 +110,36 @@ impl Pane for TextBuffer {
             },
             "change_mode" => {
                 let mode = command_args.next().unwrap_or("Normal");
-                self.mode = self.modes.get(mode).unwrap().clone();
+                match mode {
+                    "Normal" | "Insert" | "Command" => {
+                        self.mode = self.modes.get(mode).unwrap().clone();
+                    },
+                    "insert_before" => {
+                        self.mode = self.modes.get("Insert").unwrap().clone();
+                        self.cursor.move_cursor(CursorMovement::Left, 1, &self.file);
+                    },
+                    "insert_after" => {
+                        self.mode = self.modes.get("Insert").unwrap().clone();
+                    },
+                    "insert_start_of_line" => {
+                        self.mode = self.modes.get("Insert").unwrap().clone();
+                        //self.cursor.move_cursor(CursorMovement::StartOfLine, 1, &self.file);
+                    },
+                    "insert_end_of_line" => {
+                        self.mode = self.modes.get("Insert").unwrap().clone();
+                        //self.cursor.move_cursor(CursorMovement::EndOfLine, 1, &self.file);
+                    },
+                    "insert_below" => {
+                        self.mode = self.modes.get("Insert").unwrap().clone();
+                        self.cursor.move_cursor(CursorMovement::Down, 1, &self.file);
+                    },
+                    "insert_above" => {
+                        self.mode = self.modes.get("Insert").unwrap().clone();
+                        self.cursor.move_cursor(CursorMovement::Up, 1, &self.file);
+                    },
+                    _ => panic!("Invalid mode"),
+
+                }
             },
             "qa!" => {
                 self.sender.send(AppEvent::ForceQuit).expect("Failed to send force quit event");
@@ -175,6 +209,52 @@ impl TextPane for TextBuffer {
 
     fn scroll(&mut self, rect: Rect) {
         self.cursor.scroll(rect);
+    }
+
+    fn backspace(&mut self) {
+        let index = self.get_current_byte_position();
+
+        if self.file.get_byte(index.saturating_sub(1)) == b'\n' {
+            self.cursor.move_cursor(CursorMovement::Up, 1, &self.file);
+            self.cursor.move_cursor(CursorMovement::LineEnd, 1, &self.file);
+        } else {
+            self.cursor.move_cursor(CursorMovement::Left, 1, &self.file);
+        }
+        self.file.delete(index.saturating_sub(1)..index);
+    }
+
+    fn delete(&mut self) {
+        let index = self.get_current_byte_position();
+        let (col, row) = self.get_cursor();
+        if let Some(_) = self.file.get_byte_offset(col + 1, row) {
+            self.file.delete(index..index + 1);
+        }
+
+    }
+
+    fn newline(&mut self) {
+        let index = self.get_current_byte_position();
+        self.file.insert_after(index, '\n'.to_string());
+        self.cursor.move_cursor(CursorMovement::Down, 1, &self.file);
+        self.cursor.move_cursor(CursorMovement::LineStart, 1, &self.file);
+    }
+
+    fn insert_str_after(&mut self, index: usize, string: &str) {
+        self.file.insert_after_current(index, string);
+    }
+    fn insert_str_before(&mut self, index: usize, string: &str) {
+        self.file.insert_before_current(index, string);
+    }
+
+
+    fn get_byte_at(&self, byte_index: usize) -> u8 {
+        self.file.get_byte(byte_index)
+    }
+
+    fn get_current_byte_position(&self) -> usize {
+        let (col, row) = self.get_cursor();
+
+        self.file.get_byte_offset(col, row).expect("Cursor was in an invalid position")
     }
 }
 
