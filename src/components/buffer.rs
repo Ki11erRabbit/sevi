@@ -49,6 +49,8 @@ impl MockComponent for Buffer {
 
             let pane = self.pane.clone();
             let mut pane = pane.borrow_mut();
+            /*let (_, offset) = pane.get_scroll_amount().unwrap_or((0, 0));
+            let text = pane.draw_section(offset, offset + area.height as usize);*/
             let text = pane.draw();
 
             let (_, row) = pane.get_cursor();

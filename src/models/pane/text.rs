@@ -290,6 +290,10 @@ impl Pane for TextBuffer {
     fn get_settings(&self) -> Rc<RefCell<Settings>> {
         self.settings.clone()
     }
+
+    fn draw_section(&self, start_row: usize, end_row: usize) -> StyledText {
+        self.file.display_section(start_row, end_row)
+    }
 }
 
 impl TextPane for TextBuffer {

@@ -19,6 +19,7 @@ pub mod buffer;
 pub struct File {
     file: Option<Either<UnopenedFile, OpenedFile>>,
     saved: bool,
+    output: Rc<RefCell<String>>,
 }
 
 impl File {
@@ -29,6 +30,7 @@ impl File {
                 None => Some(Either::Left(UnopenedFile::new(settings.clone()))),
             },
             saved: true,
+            output: Rc::new(RefCell::new(String::new())),
         }
     }
 
@@ -207,6 +209,15 @@ impl File {
         }
     }
 
+    pub fn display_section(&self, start_row: usize, end_row: usize,) -> StyledText {
+        let string =  self.output.clone();
+        let mut string = string.borrow_mut();
+        match self.file.as_ref().unwrap() {
+            Either::Left(file) => file.display_section(&mut *string,start_row, end_row),
+            Either::Right(file) => file.display_section(&mut *string,start_row, end_row),
+        }
+    }
+
 
 
 }
@@ -248,26 +259,34 @@ impl UnopenedFile {
         }
     }
 
-    pub fn find_occurrences(&mut self, col: usize, row: usize, string: &str, down: bool) -> BTreeSet<(usize,usize)> {
+    pub fn find_occurrences(&mut self, _col: usize, row: usize, string: &str, down: bool) -> BTreeSet<(usize,usize)> {
         let range = if down {
-            row..self.buffer.get_byte_count()
+            row..self.buffer.get_line_count()
         } else {
             0..row
         };
         let mut output = BTreeSet::new();
-        for i in range {
-            if let Some(line) = self.buffer.get_row(i) {
-                if let Some(byte_offset) = self.buffer.get_byte_offset(col, i) {
-                    if let Some(index) = line.to_string().find(string) {
-                        if index == byte_offset {
-                            output.insert((i, index));
-                        }
+        for y in range {
+            if let Some(line) = self.buffer.get_row(y) {
+                if let Some(index) = line.to_string().find(string) {
+
+                    output.insert((index, y));
+                    let old_index = index;
+                    let index = line.get_byte_start() + index;
+
+                    let range =  self.buffer.get_byte_offset(old_index, y)
+                        .expect("Invalid byte offset")
+                        ..
+                        self.buffer.get_byte_offset(old_index, y)
+                            .expect("Invalid byte offset") +
+                            string.len();
+                    for b in range {
+                        self.highlights.insert(b);
                     }
                 }
             }
         }
         output
-
     }
 
     pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {
@@ -313,6 +332,47 @@ impl UnopenedFile {
 
     pub fn display(&self) -> StyledText {
         let string = self.buffer.to_string();
+        let mut acc = String::with_capacity(string.len());
+        let mut output = StyledText::new();
+        let mut line = StyledLine::new();
+        let mut highlight = false;
+        for (i, c) in string.chars().enumerate() {
+            if self.highlights.contains(&i) {
+                highlight = true;
+            } else if highlight {
+                highlight = false;
+                //TODO: put in a particular style
+                line.push(StyledSpan::styled(acc.clone(),
+                                             Style::default().bg(Color::Magenta)
+                ));
+                acc.clear();
+            }
+            if c == '\n' {
+                if highlight {
+                    line.push(StyledSpan::styled(acc.clone(),Style::default()
+                        .bg(Color::Magenta)
+                    ));
+                } else {
+                    line.push(StyledSpan::from(acc.clone()));
+                }
+                output.lines.push(line);
+                line = StyledLine::new();
+                acc.clear();
+            } else {
+                acc.push(c);
+            }
+        }
+        output
+    }
+
+    pub fn display_section(&self, string: &mut String,  start_row: usize, end_row: usize) -> StyledText {
+        string.clear();
+
+        for i in start_row..=end_row {
+            if let Some(line) = self.buffer.get_row(i) {
+                string.push_str(&line.to_string());
+            }
+        }
         let mut acc = String::with_capacity(string.len());
         let mut output = StyledText::new();
         let mut line = StyledLine::new();
@@ -565,7 +625,7 @@ impl OpenedFile {
         let range = if down {
             row..self.buffer.get_line_count()
         } else {
-            (0..row).rev()
+            0..row
         };
         let mut output = BTreeSet::new();
         for y in range {
@@ -588,9 +648,7 @@ impl OpenedFile {
                 }
             }
         }
-
         output
-
     }
 
     pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {
@@ -635,7 +693,6 @@ impl OpenedFile {
     }
 
     pub fn display(&self) -> StyledText {
-        eprintln!("highlights: {:?}", self.highlights);
         let string = self.buffer.to_string();
         let mut acc = String::with_capacity(string.len());
         let mut output = StyledText::new();
@@ -677,6 +734,47 @@ impl OpenedFile {
         output
     }
 
+    pub fn display_section(&self, string: &mut String,  start_row: usize, end_row: usize) -> StyledText {
+        string.clear();
+
+        for i in start_row..=end_row {
+            if let Some(line) = self.buffer.get_row(i) {
+                string.push_str(&line.to_string());
+            }
+        }
+        let mut acc = String::with_capacity(string.len());
+        let mut output = StyledText::new();
+        let mut line = StyledLine::new();
+        let mut highlight = false;
+        for (i, c) in string.chars().enumerate() {
+            if self.highlights.contains(&i) {
+                highlight = true;
+            } else if highlight {
+                highlight = false;
+                //TODO: put in a particular style
+                line.push(StyledSpan::styled(acc.clone(),
+                                             Style::default().bg(Color::Magenta)
+                ));
+                acc.clear();
+            }
+            if c == '\n' {
+                if highlight {
+                    line.push(StyledSpan::styled(acc.clone(),Style::default()
+                        .bg(Color::Magenta)
+                    ));
+                } else {
+                    line.push(StyledSpan::from(acc.clone()));
+                }
+                output.lines.push(line);
+                line = StyledLine::new();
+                acc.clear();
+            } else {
+                acc.push(c);
+            }
+        }
+        output
+
+    }
 
 }
 

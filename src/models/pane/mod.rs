@@ -19,6 +19,8 @@ pub trait Pane {
 
     fn draw(&self) -> StyledText;
 
+    fn draw_section(&self, start_row: usize, end_row: usize) -> StyledText;
+
     fn process_keypress(&mut self, key: KeyEvent);
 
     fn get_status(&self) -> (StyledText, StyledText, StyledText);
