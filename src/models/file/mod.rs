@@ -644,7 +644,7 @@ impl OpenedFile {
         let mut output = StyledText::new();
         let mut line = StyledLine::new();
         let mut highlight = false;
-        for (i, c) in string.chars().enumerate() {
+        for (i, c) in string.bytes().enumerate() {
             if self.highlights.contains(&i) {
                 if !highlight {
                     line.push(StyledSpan::from(acc.clone()));
@@ -662,7 +662,7 @@ impl OpenedFile {
                 }
                 highlight = false;
             }
-            if c == '\n' {
+            if c == b'\n' {
                 if highlight {
                     line.push(StyledSpan::styled(acc.clone(),Style::default()
                             .bg(Color::Magenta)
@@ -674,7 +674,7 @@ impl OpenedFile {
                 line = StyledLine::new();
                 acc.clear();
             } else {
-                acc.push(c);
+                acc.push(c as char);
             }
         }
         output
