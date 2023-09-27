@@ -1,7 +1,7 @@
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::models::key::KeyEvent;
+use crate::models::key::{Key, KeyEvent};
 use crate::models::mode::{Mode, TextMode};
 use crate::models::pane::TextPane;
 use crate::models::settings::Settings;
@@ -156,6 +156,14 @@ impl TextMode for SelectionMode {
     fn process_keypress(&mut self, key: KeyEvent, pane: &mut dyn TextPane) {
 
         match key {
+            KeyEvent {
+                key: Key::Esc,
+                ..
+            } => {
+                self.key_buffer.clear();
+                pane.execute_command("change_mode Normal");
+                pane.execute_command("clear_selection");
+            },
             key => {
 
                 self.key_buffer.push(key);

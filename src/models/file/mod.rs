@@ -283,72 +283,37 @@ impl UnopenedFile {
     }
 
     pub fn display(&self) -> StyledText {
+        let string = self.buffer.to_string();
+        let mut acc = String::with_capacity(string.len());
         let mut output = StyledText::new();
-        /*output.lines.push(StyledLine::from(""));
-        let mut line_index = 0;
-        let mut prev = 0;
-        for (start, end) in &self.highlights {
-            let temp = self.buffer.get_slice(prev, *start)
-                .expect("Positions were off")
-                .to_string();
-            if temp.contains('\n') {
-                let mut lines = temp.split('\n');
-                let first = lines.next().unwrap();
-                output.lines[line_index].push(
-                    StyledSpan::from(first.to_string())
-                );
-                for line in lines {
-                    line_index += 1;
-                    output.lines.push(
-                        StyledLine::from(line.to_string())
-                    );
+        let mut line = StyledLine::new();
+        let mut highlight = false;
+        for (i, c) in string.chars().enumerate() {
+            if self.highlights.contains(&i) {
+                highlight = true;
+            } else if highlight {
+                highlight = false;
+                //TODO: put in a particular style
+                line.push(StyledSpan::styled(acc.clone(),
+                                             Style::default().bg(Color::Magenta)
+                ));
+                acc.clear();
+            }
+            if c == '\n' {
+                if highlight {
+                    line.push(StyledSpan::styled(acc.clone(),Style::default()
+                        .bg(Color::Magenta)
+                    ));
+                } else {
+                    line.push(StyledSpan::from(acc.clone()));
                 }
+                output.lines.push(line);
+                line = StyledLine::new();
+                acc.clear();
             } else {
-                output.lines[line_index].push(
-                    StyledSpan::from(temp)
-                );
+                acc.push(c);
             }
-
-            // TODO: style this with a particular style
-            output.lines[line_index].push(
-                StyledSpan::styled(self.buffer.get_slice(*start, *end)
-                                       .expect("Positions were off")
-                                       .to_string(),
-                                   Style::new()
-                                       .bg(Color::Magenta)
-                )
-            );
-
-
-            prev = *end;
         }
-        let temp = self.buffer.get_slice(prev, self.buffer.get_byte_count())
-            .expect("Positions were off")
-            .to_string();
-        if temp.contains('\n') {
-            let mut lines = temp.split('\n');
-            let first = lines.next().unwrap();
-            output.lines[line_index].push(
-                StyledSpan::from(first.to_string())
-            );
-            output.lines[line_index].push(
-                StyledSpan::from("\n")
-            );
-            for line in lines {
-                line_index += 1;
-                output.lines.push(
-                    StyledLine::from(line.to_string())
-                );
-                output.lines[line_index].push(
-                    StyledSpan::from("\n")
-                );
-            }
-        } else {
-            output.lines[line_index].push(
-                StyledSpan::from(temp)
-            );
-        }*/
-
         output
     }
 
@@ -619,6 +584,7 @@ impl OpenedFile {
                 highlight = true;
             } else if highlight {
                 highlight = false;
+                //TODO: put in a particular style
                 line.push(StyledSpan::styled(acc.clone(),
                                              Style::default().bg(Color::Magenta)
                 ));
@@ -642,101 +608,7 @@ impl OpenedFile {
         output
     }
 
-    /*pub fn display(&self) -> StyledText {
-        let mut output = StyledText::new();
-        output.lines.push(StyledLine::from(""));
-        let mut line_index = 0;
-        let mut prev = 0;
-        for (start, end) in &self.highlights {
-            let temp = self.buffer.get_slice(prev, *start)
-                .expect("Positions were off")
-                .to_string();
-            if temp.contains('\n') {
-                let mut lines = temp.split('\n');
-                let first = lines.next().unwrap();
-                output.lines[line_index].push(
-                    StyledSpan::from(first.to_string())
-                );
-                output.lines.push(
-                    StyledLine::from("\n")
-                );
-                for line in lines {
-                    line_index += 1;
-                    output.lines.push(
-                        StyledLine::from(line.to_string())
-                    );
-                    output.lines.push(
-                        StyledLine::from("\n")
-                    );
-                }
-            } else {
-                output.lines[line_index].push(
-                    StyledSpan::from(temp)
-                );
-            }
 
-            // TODO: style this with a particular style
-
-            let temp = self.buffer.get_slice(*start, *end)
-                .expect("Positions were off")
-                .to_string();
-
-            if temp.contains('\n') {
-                let mut lines = temp.split('\n');
-                let first = lines.next().unwrap();
-                output.lines[line_index].push(
-                    StyledSpan::styled(first.to_string(),
-                                       Style::new()
-                                           .bg(Color::Magenta)
-                    )
-                );
-                output.lines.push(
-                    StyledLine::from("\n")
-                );
-                for line in lines {
-                    line_index += 1;
-                    output.lines.push(
-                        StyledLine::from(line.to_string())
-                    );
-                    output.lines.push(
-                        StyledLine::from("\n")
-                    );
-                }
-            } else {
-                output.lines[line_index].push(
-                    StyledSpan::styled(temp,
-                                       Style::new()
-                                           .bg(Color::Magenta)
-                    )
-                );
-            }
-
-
-            prev = *end;
-        }
-        let temp = self.buffer.get_slice(prev, self.buffer.get_byte_count())
-            .expect("Positions were off")
-            .to_string();
-        if temp.contains('\n') {
-            let mut lines = temp.split('\n');
-            let first = lines.next().unwrap();
-            output.lines[line_index].push(
-                StyledSpan::from(first.to_string())
-            );
-            for line in lines {
-                line_index += 1;
-                output.lines.push(
-                    StyledLine::from(line.to_string())
-                );
-            }
-        } else {
-            output.lines[line_index].push(
-                StyledSpan::from(temp)
-            );
-        }
-
-        output
-    }*/
 }
 
 
