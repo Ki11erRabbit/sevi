@@ -11,8 +11,7 @@ pub mod normal;
 pub mod command;
 pub mod insert;
 pub mod selection;
-
-
+pub mod search;
 
 
 pub trait Mode {

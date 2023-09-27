@@ -19,6 +19,7 @@ use crate::models::settings::Settings;
 use crate::models::mode::TextMode;
 use crate::models::mode::normal::NormalMode;
 use crate::models::mode::Mode;
+use crate::models::mode::search::{SearchMode, SearchType};
 use crate::models::mode::selection::{SelectionMode, SelectionType};
 use crate::models::settings::editor_settings::NumberLineStyle;
 
@@ -56,11 +57,14 @@ impl TextBuffer {
         insert_mode.borrow_mut().add_settings(settings.clone());
         let selection_mode = Rc::new(RefCell::new(SelectionMode::new()));
         selection_mode.borrow_mut().add_settings(settings.clone());
+        let search_mode = Rc::new(RefCell::new(SearchMode::new()));
+        search_mode.borrow_mut().add_settings(settings.clone());
 
         let normal_mode: Rc<RefCell<dyn TextMode>> = normal_mode.clone();
         let command_mode: Rc<RefCell<dyn TextMode>> = command_mode.clone();
         let insert_mode: Rc<RefCell<dyn TextMode>> = insert_mode.clone();
         let selection_mode: Rc<RefCell<dyn TextMode>> = selection_mode.clone();
+        let search_mode: Rc<RefCell<dyn TextMode>> = search_mode.clone();
 
 
         let mut modes = HashMap::new();
@@ -68,6 +72,7 @@ impl TextBuffer {
         modes.insert("Command".to_string(), command_mode);
         modes.insert("Insert".to_string(), insert_mode);
         modes.insert("Selection".to_string(), selection_mode);
+        modes.insert("Search".to_string(), search_mode);
 
         Self {
             file,
@@ -185,6 +190,16 @@ impl Pane for TextBuffer {
                         let pos = self.get_cursor();
                         mode.borrow_mut().add_special(&pos);
                         mode.borrow_mut().add_special(&SelectionType::Block);
+                        self.mode = mode;
+                    }
+                    "search_down" => {
+                        let mode = self.modes.get("Search").unwrap().clone();
+                        mode.borrow_mut().add_special(&SearchType::Forward);
+                        self.mode = mode;
+                    }
+                    "search_up" => {
+                        let mode = self.modes.get("Search").unwrap().clone();
+                        mode.borrow_mut().add_special(&SearchType::Backward);
                         self.mode = mode;
                     }
                     _ => panic!("Invalid mode"),
@@ -344,6 +359,10 @@ impl TextPane for TextBuffer {
 
     fn borrow_current_file(&self) -> &File {
         &self.file
+    }
+
+    fn borrow_current_file_mut(&mut self) -> &mut File {
+        &mut self.file
     }
 }
 

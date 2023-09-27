@@ -118,7 +118,7 @@ impl TextMode for CommandMode {
         }
     }
 
-    fn update_status(&self, pane: &dyn TextPane) -> (String, String, String) {
+    fn update_status(&self, _pane: &dyn TextPane) -> (String, String, String) {
         let first = format!(":{}", self.command_buffer);
         let second = String::new();
 

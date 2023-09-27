@@ -52,6 +52,8 @@ pub trait TextPane: Pane {
     fn get_current_byte_position(&self) -> usize;
 
     fn borrow_current_file(&self) -> &File;
+
+    fn borrow_current_file_mut(&mut self) -> &mut File;
 }
 
 

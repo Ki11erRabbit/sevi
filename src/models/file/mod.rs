@@ -4,7 +4,7 @@ use tree_sitter::Parser;
 use crate::models::settings::Settings;
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use either::Either;
 
 use crate::models::style::{Style, StyledLine, StyledSpan, StyledText};
@@ -50,6 +50,13 @@ impl File {
         match self.file.as_mut().unwrap() {
             Either::Left(file) => file.select_row(row),
             Either::Right(file) => file.select_row(row),
+        }
+    }
+
+    pub fn find(&mut self, col: usize, row: usize, string: &str, down: bool) -> BTreeSet<(usize, usize)> {
+        match self.file.as_mut().unwrap() {
+            Either::Left(file) => file.find_occurrences(col, row, string, down),
+            Either::Right(file) => file.find_occurrences(col, row, string, down),
         }
     }
 
@@ -239,6 +246,28 @@ impl UnopenedFile {
 
             self.add_highlight(start, byte_offset);
         }
+    }
+
+    pub fn find_occurrences(&mut self, col: usize, row: usize, string: &str, down: bool) -> BTreeSet<(usize,usize)> {
+        let range = if down {
+            row..self.buffer.get_byte_count()
+        } else {
+            0..row
+        };
+        let mut output = BTreeSet::new();
+        for i in range {
+            if let Some(line) = self.buffer.get_row(i) {
+                if let Some(byte_offset) = self.buffer.get_byte_offset(col, i) {
+                    if let Some(index) = line.to_string().find(string) {
+                        if index == byte_offset {
+                            output.insert((i, index));
+                        }
+                    }
+                }
+            }
+        }
+        output
+
     }
 
     pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {
@@ -532,6 +561,41 @@ impl OpenedFile {
         }
     }
 
+    pub fn find_occurrences(&mut self, col: usize, row: usize, string: &str, down: bool) -> BTreeSet<(usize,usize)> {
+        let range = if down {
+            row..self.buffer.get_line_count()
+        } else {
+            0..row
+        };
+        let mut output = BTreeSet::new();
+        for y in range {
+            if let Some(line) = self.buffer.get_row(y) {
+                if let Some(index) = line.to_string().find(string) {
+
+                    output.insert((index, y));
+
+                    let index = line.get_byte_start() + index;
+
+                    let range =  self.buffer.get_byte_offset(index, y)
+                        .expect("Invalid byte offset")
+                        ..
+                        self.buffer.get_byte_offset(index, y)
+                            .expect("Invalid byte offset") +
+                        index + string.len() + line.get_byte_start();
+                    eprintln!("range: {:?}", range);
+                    for b in range {
+                        self.highlights.insert(b);
+                        eprintln!("b: {}", b)
+                    }
+                    eprintln!("\n{:?}", self.highlights);
+                }
+            }
+        }
+
+        output
+
+    }
+
     pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {
         self.buffer.get_byte_offset(col, row)
     }
@@ -582,6 +646,8 @@ impl OpenedFile {
         for (i, c) in string.chars().enumerate() {
             if self.highlights.contains(&i) {
                 highlight = true;
+                line.push(StyledSpan::from(acc.clone()));
+                acc.clear();
             } else if highlight {
                 highlight = false;
                 //TODO: put in a particular style

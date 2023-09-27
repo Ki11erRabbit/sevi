@@ -660,6 +660,9 @@ impl<'a> BufferSlice<'a> {
         self.slice.bytes().count()
     }
 
+    pub fn get_byte_start(&self) -> usize {
+        self.slice.byte_of_line(0)
+    }
 
 }
 

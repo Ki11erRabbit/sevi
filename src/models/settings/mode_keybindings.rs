@@ -23,6 +23,7 @@ impl Default for ModeKeybindings {
         bindings.insert("Insert".to_string(), ModeKeybindings::generate_insert_keybindings());
         bindings.insert("Command".to_string(), ModeKeybindings::generate_command_keybindings());
         bindings.insert("Selection".to_string(), ModeKeybindings::generate_selection_keybindings());
+        bindings.insert("Search".to_string(), ModeKeybindings::generate_search_keybindings());
 
         ModeKeybindings {
             universal_bindings: ModeKeybindings::generate_universal_keybindings(),
@@ -43,6 +44,7 @@ impl ModeKeybindings {
         bindings.insert("Insert".to_string(), ModeKeybindings::generate_insert_keybindings());
         bindings.insert("Command".to_string(), ModeKeybindings::generate_command_keybindings());
         bindings.insert("Selection".to_string(), ModeKeybindings::generate_selection_keybindings());
+        bindings.insert("Search".to_string(), ModeKeybindings::generate_search_keybindings());
 
         ModeKeybindings {
             universal_bindings: ModeKeybindings::generate_universal_keybindings(),
@@ -1079,6 +1081,30 @@ impl ModeKeybindings {
                     modifiers: KeyModifiers::NONE,
                 }], "delete".to_string());
             }
+        }
+
+        bindings
+    }
+
+    fn generate_search_keybindings() -> HashMap<Vec<KeyEvent>, String>  {
+        let mut bindings = HashMap::new();
+        // Escape
+        {
+            bindings.insert(vec![KeyEvent {
+                key: Key::Esc,
+                modifiers: KeyModifiers::NONE,
+            }], "cancel".to_string());
+        }
+        // Backspace and Delete
+        {
+            bindings.insert(vec![KeyEvent {
+                key: Key::Backspace,
+                modifiers: KeyModifiers::NONE,
+            }], "backspace".to_string());
+            bindings.insert(vec![KeyEvent {
+                key: Key::Delete,
+                modifiers: KeyModifiers::NONE,
+            }], "delete".to_string());
         }
 
         bindings
