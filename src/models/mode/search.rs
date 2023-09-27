@@ -139,14 +139,6 @@ impl Mode for SearchMode {
 impl TextMode for SearchMode {
     fn process_keypress(&mut self, key: KeyEvent, pane: &mut dyn TextPane) {
         match key {
-            KeyEvent {
-                key: Key::Esc,
-                ..
-            } => {
-                self.key_buffer.clear();
-                pane.execute_command("change_mode Normal");
-                pane.execute_command("clear_selection");
-            },
             key => {
                 self.key_buffer.push(key);
 

@@ -638,6 +638,7 @@ impl OpenedFile {
     }
 
     pub fn display(&self) -> StyledText {
+        eprintln!("highlights: {:?}", self.highlights);
         let string = self.buffer.to_string();
         let mut acc = String::with_capacity(string.len());
         let mut output = StyledText::new();
@@ -645,16 +646,21 @@ impl OpenedFile {
         let mut highlight = false;
         for (i, c) in string.chars().enumerate() {
             if self.highlights.contains(&i) {
+                if !highlight {
+                    line.push(StyledSpan::from(acc.clone()));
+                    acc.clear();
+                }
                 highlight = true;
-                line.push(StyledSpan::from(acc.clone()));
-                acc.clear();
             } else if highlight {
+
+                if highlight {
+                    //TODO: put in a particular style
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 Style::default().bg(Color::Magenta)
+                    ));
+                    acc.clear();
+                }
                 highlight = false;
-                //TODO: put in a particular style
-                line.push(StyledSpan::styled(acc.clone(),
-                                             Style::default().bg(Color::Magenta)
-                ));
-                acc.clear();
             }
             if c == '\n' {
                 if highlight {
