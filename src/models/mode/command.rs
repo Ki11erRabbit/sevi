@@ -124,4 +124,7 @@ impl TextMode for CommandMode {
 
         (self.get_name(), first, second)
     }
+
+    fn start(&mut self, _pane: &mut dyn TextPane) {
+    }
 }

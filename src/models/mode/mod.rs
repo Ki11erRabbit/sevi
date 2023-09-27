@@ -31,5 +31,8 @@ pub trait TextMode: Mode {
     fn process_keypress(&mut self, key: KeyEvent, pane: &mut dyn TextPane);
 
     fn update_status(&self, pane: &dyn TextPane) -> (String, String, String);
+
+    /// This is called when the mode is started
+    fn start(&mut self, pane: &mut dyn TextPane);
 }
 

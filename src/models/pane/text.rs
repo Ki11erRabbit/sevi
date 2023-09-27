@@ -190,6 +190,9 @@ impl Pane for TextBuffer {
                     _ => panic!("Invalid mode"),
 
                 }
+                let mode = self.mode.clone();
+                let mut mode = mode.borrow_mut();
+                mode.start(self);
             },
             "qa!" => {
                 self.sender.send(AppEvent::ForceQuit).expect("Failed to send force quit event");

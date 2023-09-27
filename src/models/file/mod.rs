@@ -4,7 +4,7 @@ use tree_sitter::Parser;
 use crate::models::settings::Settings;
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use either::Either;
 
 use crate::models::style::{Style, StyledLine, StyledSpan, StyledText};
@@ -211,7 +211,7 @@ pub struct UnopenedFile {
     buffer: buffer::Buffer,
     language: Option<String>,
     settings: Rc<RefCell<Settings>>,
-    highlights: HashMap<usize, usize>,
+    highlights: HashSet<usize>,
 }
 
 
@@ -221,24 +221,28 @@ impl UnopenedFile {
             buffer: buffer::Buffer::new(settings.clone()),
             language: None,
             settings,
-            highlights: HashMap::new(),
+            highlights: HashSet::new(),
         }
     }
 
     pub fn add_highlight(&mut self, start: usize, end: usize) {
-        self.highlights.insert(start, end);
+        for i in start..=end {
+            self.highlights.insert(i);
+        }
     }
 
     pub fn select_row(&mut self, row: usize) {
-        let len = self.buffer.get_row(row).unwrap().len();
-        let start = self.buffer.get_byte_offset(0, row).unwrap();
-        let byte_offset = self.buffer.get_byte_offset(len, row).unwrap();
+        if let Some (line) = self.buffer.get_row(row) {
+            let len = line.len();
+            let start = self.buffer.get_byte_offset(0, row).unwrap();
+            let byte_offset = self.buffer.get_byte_offset(len, row).unwrap();
 
-        self.add_highlight(start, byte_offset);
+            self.add_highlight(start, byte_offset);
+        }
     }
 
     pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {
-        self.buffer.get_byte_offset(row, col)
+        self.buffer.get_byte_offset(col, row)
     }
 
     pub fn insert_after_current<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
@@ -280,7 +284,7 @@ impl UnopenedFile {
 
     pub fn display(&self) -> StyledText {
         let mut output = StyledText::new();
-        output.lines.push(StyledLine::from(""));
+        /*output.lines.push(StyledLine::from(""));
         let mut line_index = 0;
         let mut prev = 0;
         for (start, end) in &self.highlights {
@@ -343,7 +347,7 @@ impl UnopenedFile {
             output.lines[line_index].push(
                 StyledSpan::from(temp)
             );
-        }
+        }*/
 
         output
     }
@@ -360,7 +364,7 @@ pub struct OpenedFile {
     lsp_info: Option<String>,// TODO: make this take lsp syntax highlighting info
     language: Option<String>,
     settings: Rc<RefCell<Settings>>,
-    highlights: HashMap<usize, usize>,
+    highlights: HashSet<usize>,
 }
 
 
@@ -543,24 +547,28 @@ impl OpenedFile {
             lsp_info,
             language,
             settings,
-            highlights: HashMap::new()
+            highlights: HashSet::new()
         }
     }
 
     pub fn add_highlight(&mut self, start: usize, end: usize) {
-        self.highlights.insert(start, end);
+        for i in start..=end {
+            self.highlights.insert(i);
+        }
     }
 
     pub fn select_row(&mut self, row: usize) {
-        let len = self.buffer.get_row(row).unwrap().len();
-        let start = self.buffer.get_byte_offset(0, row).unwrap();
-        let byte_offset = self.buffer.get_byte_offset(len, row).unwrap();
+        if let Some (line) = self.buffer.get_row(row) {
+            let len = line.len();
+            let start = self.buffer.get_byte_offset(0, row).unwrap();
+            let byte_offset = self.buffer.get_byte_offset(len, row).unwrap();
 
-        self.add_highlight(start, byte_offset);
+            self.add_highlight(start, byte_offset);
+        }
     }
 
     pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {
-        self.buffer.get_byte_offset(row, col)
+        self.buffer.get_byte_offset(col, row)
     }
 
     pub fn insert_after_current<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
@@ -600,8 +608,41 @@ impl OpenedFile {
         self.path.file_name().unwrap().to_str().unwrap().to_string()
     }
 
-
     pub fn display(&self) -> StyledText {
+        let string = self.buffer.to_string();
+        let mut acc = String::with_capacity(string.len());
+        let mut output = StyledText::new();
+        let mut line = StyledLine::new();
+        let mut highlight = false;
+        for (i, c) in string.chars().enumerate() {
+            if self.highlights.contains(&i) {
+                highlight = true;
+            } else if highlight {
+                highlight = false;
+                line.push(StyledSpan::styled(acc.clone(),
+                                             Style::default().bg(Color::Magenta)
+                ));
+                acc.clear();
+            }
+            if c == '\n' {
+                if highlight {
+                    line.push(StyledSpan::styled(acc.clone(),Style::default()
+                            .bg(Color::Magenta)
+                        ));
+                } else {
+                    line.push(StyledSpan::from(acc.clone()));
+                }
+                output.lines.push(line);
+                line = StyledLine::new();
+                acc.clear();
+            } else {
+                acc.push(c);
+            }
+        }
+        output
+    }
+
+    /*pub fn display(&self) -> StyledText {
         let mut output = StyledText::new();
         output.lines.push(StyledLine::from(""));
         let mut line_index = 0;
@@ -695,7 +736,7 @@ impl OpenedFile {
         }
 
         output
-    }
+    }*/
 }
 
 

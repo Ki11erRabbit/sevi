@@ -40,15 +40,23 @@ impl SelectionMode {
     }
 
     pub fn add_selection(&mut self, pane: &mut dyn TextPane) {
-        let (row, col) = pane.get_cursor();
-        let (start_row, start_col) = self.start;
+        let (col, row) = pane.get_cursor();
+        let (start_col, start_row) = self.start;
 
+        pane.execute_command("clear_selection");
         match self.selection_type {
             SelectionType::Normal => {
-                pane.execute_command(&format!("select {},{} {},{}", start_col, start_row, col, row));
+                if row < start_row {
+                    pane.execute_command(&format!("select {},{} {},{}", col, row, start_col, start_row));
+                } else {
+                    pane.execute_command(&format!("select {},{} {},{}", start_col, start_row, col, row));
+                }
+                //pane.execute_command(&format!("select {},{} {},{}", start_col, start_row, col, row));
             },
             SelectionType::Line => {
-                if row < start_row {
+                if row == start_row {
+                    pane.execute_command(&format!("select row {}", row));
+                } else if row < start_row {
                     for i in row..=start_row {
                         pane.execute_command(&format!("select row {}", i));
                     }
@@ -162,6 +170,7 @@ impl TextMode for SelectionMode {
     }
 
     fn update_status(&self, pane: &dyn TextPane) -> (String, String, String) {
+
         let (col, row) = pane.get_cursor();
 
         let first = format!("{}:{}", row, col);
@@ -173,5 +182,18 @@ impl TextMode for SelectionMode {
         };
 
         (self.get_name(), first, second)
+    }
+
+    fn start(&mut self, pane: &mut dyn TextPane) {
+        pane.execute_command("clear_selection");
+        match self.selection_type {
+            SelectionType::Line => {
+                let (_, row) = pane.get_cursor();
+                pane.execute_command(&format!("select row {}", row));
+            }
+            _ => {}
+        }
+
+
     }
 }

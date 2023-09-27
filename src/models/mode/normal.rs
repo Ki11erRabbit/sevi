@@ -251,6 +251,9 @@ impl TextMode for NormalMode {
 
         (name, first, second)
     }
+
+    fn start(&mut self, _pane: &mut dyn TextPane) {
+    }
 }
 
 
