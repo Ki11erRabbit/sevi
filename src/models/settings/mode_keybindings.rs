@@ -1082,6 +1082,187 @@ impl ModeKeybindings {
                 }], "delete".to_string());
             }
         }
+        // Movement
+        {
+            // Axial Movement
+            {
+                // Right
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('l'),
+                        modifiers: KeyModifiers::NONE,
+                    }], "right".to_string());
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char(' '),
+                        modifiers: KeyModifiers::NONE,
+                    }], "right".to_string());
+                }
+                // Left
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('h'),
+                        modifiers: KeyModifiers::NONE,
+                    }], "left".to_string());
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Backspace,
+                        modifiers: KeyModifiers::NONE,
+                    }], "left".to_string());
+                }
+                // Down
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('j'),
+                        modifiers: KeyModifiers::NONE,
+                    }], "down".to_string());
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Enter,
+                        modifiers: KeyModifiers::NONE,
+                    }], "down".to_string());
+                }
+                // Up
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('k'),
+                        modifiers: KeyModifiers::NONE,
+                    }], "up".to_string());
+                }
+            }
+            // Line Movement
+            {
+                // Start of Line
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('0'),
+                    modifiers: KeyModifiers::NONE,
+                }], "start_of_line".to_string());
+                // End of Line
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('$'),
+                    modifiers: KeyModifiers::NONE,
+                }], "end_of_line".to_string());
+
+                // Up one Line at Start
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('+'),
+                    modifiers: KeyModifiers::NONE,
+                }], "up_line_start".to_string());
+                // Down one Line at Start
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('-'),
+                    modifiers: KeyModifiers::NONE,
+                }], "down_line_start".to_string());
+            }
+
+            // File Movement
+            {
+                // Start of File
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('g'),
+                        modifiers: KeyModifiers::NONE,
+                    }, KeyEvent {
+                        key: Key::Char('g'),
+                        modifiers: KeyModifiers::NONE,
+                    }], "start_of_file".to_string());
+                }
+                // End of File
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('G'),
+                        modifiers: KeyModifiers::NONE,
+                    }, KeyEvent {
+                        key: Key::Char('G'),
+                        modifiers: KeyModifiers::NONE,
+                    }], "end_of_file".to_string());
+                }
+                // Goto Line
+                // Requires a number to be entered otherwise it should get ignored
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('G'),
+                        modifiers: KeyModifiers::NONE,
+                    }], "goto_line".to_string());
+                }
+                // Page Up
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('b'),
+                        modifiers: KeyModifiers::CTRL,
+                    }], "page_up".to_string());
+                }
+                // Page Down
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('f'),
+                        modifiers: KeyModifiers::CTRL,
+                    }], "page_down".to_string());
+                }
+                // Half Page Up
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('u'),
+                        modifiers: KeyModifiers::CTRL,
+                    }], "half_page_up".to_string());
+                }
+                // Half Page Down
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('d'),
+                        modifiers: KeyModifiers::CTRL,
+                    }], "half_page_down".to_string());
+                }
+
+            }
+            // Word Movement
+            {
+                // Next Word
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('w'),
+                        modifiers: KeyModifiers::NONE,
+                    }], "next_word_front".to_string());
+
+                    // Next word back
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('B'),
+                        modifiers: KeyModifiers::NONE,
+                    }], "next_word_back".to_string());
+                }
+                // Previous Word
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('W'),
+                        modifiers: KeyModifiers::NONE,
+                    }], "previous_word_front".to_string());
+
+                    // Previous word back
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('b'),
+                        modifiers: KeyModifiers::NONE,
+                    }], "previous_word_back".to_string());
+                }
+            }
+            // Special Movement
+            {
+                // Goto Other Pair
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('%'),
+                    modifiers: KeyModifiers::NONE,
+                }], "goto_pair".to_string());
+
+                // Jump Paragraph
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('}'),
+                    modifiers: KeyModifiers::NONE,
+                }], "jump_paragraph".to_string());
+
+                // Jump Paragraph Back
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('{'),
+                    modifiers: KeyModifiers::NONE,
+                }], "jump_paragraph_back".to_string());
+
+            }
+        }
 
         bindings
     }

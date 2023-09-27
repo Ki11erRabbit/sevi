@@ -48,8 +48,14 @@ impl SelectionMode {
             SelectionType::Normal => {
                 if row < start_row {
                     pane.execute_command(&format!("select {},{} {},{}", col, row, start_col, start_row));
-                } else {
+                } else if row > start_row {
                     pane.execute_command(&format!("select {},{} {},{}", start_col, start_row, col, row));
+                } else {
+                    if col < start_col {
+                        pane.execute_command(&format!("select {},{} {},{}", col, row, start_col, start_row));
+                    } else {
+                        pane.execute_command(&format!("select {},{} {},{}", start_col, start_row, col, row));
+                    }
                 }
                 //pane.execute_command(&format!("select {},{} {},{}", start_col, start_row, col, row));
             },
@@ -69,13 +75,22 @@ impl SelectionMode {
             SelectionType::Block => {
                 if row < start_row {
                     for i in row..=start_row {
-                        pane.execute_command(&format!("select {},{} {},{}", start_col, i, col, i));
+                        if col < start_col {
+                            pane.execute_command(&format!("select {},{} {},{}", col, i, start_col, i));
+                        } else {
+                            pane.execute_command(&format!("select {},{} {},{}", start_col, i, col, i));
+                        }
                     }
                 } else {
                     for i in start_row..=row {
-                        pane.execute_command(&format!("select {},{} {},{}", start_col, i, col, i));
+                        if col < start_col {
+                            pane.execute_command(&format!("select {},{} {},{}", col, i, start_col, i));
+                        } else {
+                            pane.execute_command(&format!("select {},{} {},{}", start_col, i, col, i));
+                        }
                     }
                 }
+
             }
         }
     }
@@ -199,7 +214,10 @@ impl TextMode for SelectionMode {
                 let (_, row) = pane.get_cursor();
                 pane.execute_command(&format!("select row {}", row));
             }
-            _ => {}
+            SelectionType::Normal | SelectionType::Block => {
+                let (col, row) = pane.get_cursor();
+                pane.execute_command(&format!("select {},{} {},{}", col, row, col, row));
+            }
         }
 
 
