@@ -561,11 +561,11 @@ impl OpenedFile {
         }
     }
 
-    pub fn find_occurrences(&mut self, col: usize, row: usize, string: &str, down: bool) -> BTreeSet<(usize,usize)> {
+    pub fn find_occurrences(&mut self, _col: usize, row: usize, string: &str, down: bool) -> BTreeSet<(usize,usize)> {
         let range = if down {
             row..self.buffer.get_line_count()
         } else {
-            0..row
+            (0..row).rev()
         };
         let mut output = BTreeSet::new();
         for y in range {
@@ -573,21 +573,18 @@ impl OpenedFile {
                 if let Some(index) = line.to_string().find(string) {
 
                     output.insert((index, y));
-
+                    let old_index = index;
                     let index = line.get_byte_start() + index;
 
-                    let range =  self.buffer.get_byte_offset(index, y)
+                    let range =  self.buffer.get_byte_offset(old_index, y)
                         .expect("Invalid byte offset")
                         ..
-                        self.buffer.get_byte_offset(index, y)
+                        self.buffer.get_byte_offset(old_index, y)
                             .expect("Invalid byte offset") +
-                        index + string.len() + line.get_byte_start();
-                    eprintln!("range: {:?}", range);
+                        string.len();
                     for b in range {
                         self.highlights.insert(b);
-                        eprintln!("b: {}", b)
                     }
-                    eprintln!("\n{:?}", self.highlights);
                 }
             }
         }
