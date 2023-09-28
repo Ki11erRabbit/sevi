@@ -264,9 +264,10 @@ impl Pane for TextBuffer {
             }
             "copy" => {
                 if let Some(verb) = command_args.next() {
-                    let register = if let Ok(reg) = command_args.next().unwrap_or("").parse::<usize>() {
+                    let next_arg = command_args.next();
+                    let register = if let Ok(reg) = next_arg.unwrap_or("").parse::<usize>() {
                         Some(Either::Left(reg))
-                    } else if let Some(reg) = command_args.next() {
+                    } else if let Some(reg) = next_arg {
                         Some(Either::Right(reg.to_string()))
                     } else {
                         None
