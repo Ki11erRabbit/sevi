@@ -48,6 +48,13 @@ impl File {
         }
     }
 
+    pub fn get_word(&self, byte_offset: usize) -> Option<String> {
+        match self.file.as_ref().unwrap() {
+            Either::Left(file) => file.get_word(byte_offset),
+            Either::Right(file) => file.get_word(byte_offset),
+        }
+    }
+
     pub fn clear_highlights(&mut self) {
         match self.file.as_mut().unwrap() {
             Either::Left(file) => file.highlights.clear(),
@@ -263,6 +270,10 @@ impl UnopenedFile {
 
     pub fn get_line(&self, row: usize) -> Option<String> {
         self.buffer.get_row(row).map(|line| line.to_string())
+    }
+
+    pub fn get_word(&self, byte_offset: usize) -> Option<String> {
+        self.buffer.get_word(byte_offset).map(|word| word.to_string())
     }
 
     pub fn add_highlight(&mut self, start: usize, end: usize) {
@@ -633,6 +644,10 @@ impl OpenedFile {
 
     pub fn get_line(&self, row: usize) -> Option<String> {
         self.buffer.get_row(row).map(|line| line.to_string())
+    }
+
+    pub fn get_word(&self, byte_offset: usize) -> Option<String> {
+        self.buffer.get_word(byte_offset).map(|word| word.to_string())
     }
 
     pub fn add_highlight(&mut self, start: usize, end: usize) {

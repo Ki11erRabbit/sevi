@@ -290,7 +290,7 @@ impl Pane for TextBuffer {
                         "line" => {
                             let row = self.get_cursor().1;
 
-                            let line = self.file.get_line(row).expect("Invalid row in copy");
+                            let line = self.file.get_line(row).expect("Invalid row in copy").to_string();
 
                             if let Some(Either::Left(reg)) = register {
                                 RegisterMessage::AddNumbered(reg, line)
@@ -301,7 +301,25 @@ impl Pane for TextBuffer {
                             }
                         }
                         "word" => {
-                            todo!()
+                            let byte_offset = self.get_current_byte_position();
+
+                            let word = match self.file.get_word(byte_offset) {
+                                Some(word) => word.to_string(),
+                                None => {
+                                    // TODO: send message to be displayed
+                                    eprintln!("No word found at cursor position");
+
+                                    return;
+                                },
+                            };
+
+                            if let Some(Either::Left(reg)) = register {
+                                RegisterMessage::AddNumbered(reg, word)
+                            } else if let Some(Either::Right(reg)) = register {
+                                RegisterMessage::AddNamed(reg, word)
+                            } else {
+                                RegisterMessage::SetClipboard(word)
+                            }
                         }
                         "to_next_word" => {
                             todo!()
@@ -309,11 +327,20 @@ impl Pane for TextBuffer {
                         "to_prev_word" => {
                             todo!()
                         }
-                        "to_end_of_word" => {
-                            todo!()
-                        }
                         "to_end_line" => {
-                            todo!()
+                            let (col, row) = self.get_cursor();
+
+                            let line = self.file.get_line(row).expect("Invalid row in copy").to_string();
+
+                            let line = line.chars().skip(col - 1).collect::<String>();
+
+                            if let Some(Either::Left(reg)) = register {
+                                RegisterMessage::AddNumbered(reg, line)
+                            } else if let Some(Either::Right(reg)) = register {
+                                RegisterMessage::AddNamed(reg, line)
+                            } else {
+                                RegisterMessage::SetClipboard(line)
+                            }
                         }
                         "to_start_line" => {
                             todo!()
@@ -443,7 +470,7 @@ impl TextPane for TextBuffer {
     fn get_current_byte_position(&self) -> usize {
         let (col, row) = self.get_cursor();
 
-        self.file.get_byte_offset(col, row).expect("Cursor was in an invalid position")
+        self.file.get_byte_offset(row, col).expect("Cursor was in an invalid position")
     }
 
     fn borrow_current_file(&self) -> &File {

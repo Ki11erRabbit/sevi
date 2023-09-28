@@ -539,7 +539,7 @@ impl Buffer {
     }
 
 
-    pub fn get_row<'a>(&'a self, row: usize) -> Option<BufferSlice<'a>> {
+    pub fn get_row(&self, row: usize) -> Option<BufferSlice> {
         
         if row >= self.history[self.current].line_len() {
             return None;
@@ -552,7 +552,7 @@ impl Buffer {
 
     }
 
-    pub fn get_row_special<'a>(&'a self, row: usize, col_offset: usize, cols: usize) -> Option<BufferSlice<'a>> {
+    pub fn get_row_special(&self, row: usize, col_offset: usize, cols: usize) -> Option<BufferSlice> {
         
         if row >= self.history[self.current].line_len() {
             return None;
@@ -576,13 +576,53 @@ impl Buffer {
 
     }
 
-    pub fn get_slice<'a>(&'a self, start: usize, end: usize) -> Option<BufferSlice<'a>> {
+    pub fn get_slice(&self, start: usize, end: usize) -> Option<BufferSlice> {
         if start > end {
             return None;
         }
         if end > self.history[self.current].bytes().count() {
             return None;
         }
+        Some(BufferSlice::new(self.history[self.current].byte_slice(start..end), self.settings.clone()))
+    }
+
+    pub fn get_word(&self, byte_offset: usize) -> Option<BufferSlice> {
+
+        if byte_offset >= self.history[self.current].bytes().count() {
+            return None;
+        }
+
+        if !self.get_char_at(byte_offset).unwrap().is_alphanumeric() {
+            return None;
+        }
+
+        let mut start = byte_offset;
+        let mut end = byte_offset;
+
+        let mut current = self.get_char_at(byte_offset);
+        while let Some(c) = current {
+            if c.is_alphanumeric() || c == '_' {
+                start = start.saturating_sub(1);
+            } else {
+                break;
+            }
+            current = self.get_char_at(start);
+        }
+
+        current = self.get_char_at(byte_offset);
+        while let Some(c) = current {
+            if c.is_alphanumeric() || c == '_' {
+                end += 1;
+            } else {
+                break;
+            }
+            current = self.get_char_at(end);
+        }
+
+        if start == end {
+            return None;
+        }
+
         Some(BufferSlice::new(self.history[self.current].byte_slice(start..end), self.settings.clone()))
     }
 

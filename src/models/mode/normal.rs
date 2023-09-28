@@ -213,6 +213,15 @@ impl TextMode for NormalMode {
                     
                         if let Some(digit) = code.to_digit(10) {
                             if digit == 0 && self.number_buffer.is_empty() {
+                                self.key_buffer.push(KeyEvent {
+                                    key: Key::Char('0'),
+                                    modifiers: KeyModifiers::NONE,
+                                });
+                                let settings = self.settings.clone().unwrap();
+                                let mut settings = settings.borrow_mut();
+                                if let Some(command) = settings.mode_keybindings.get(&self.get_name(), &self.key_buffer) {
+                                    self.execute_command(command, pane);
+                                }
                                 return;
                             }
 
