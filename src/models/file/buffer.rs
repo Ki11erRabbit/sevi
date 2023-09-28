@@ -43,6 +43,24 @@ impl Buffer {
         self.tree_sitter_info = Some((parser, trees));
     }
 
+    pub fn get_char_at(&self, byte_offset: usize) -> Option<char> {
+        let current = &self.history[self.current];
+
+        if byte_offset >= current.byte_len() {
+            return None;
+        }
+        let mut total_bytes = 1;
+
+        while byte_offset + total_bytes < current.byte_len() && current.is_char_boundary(byte_offset + total_bytes) {
+            total_bytes += 1;
+        }
+
+        let bytes = current.byte_slice(byte_offset..byte_offset + total_bytes);
+
+        let c = bytes.chars().next().unwrap();
+        Some(c)
+    }
+
     pub fn get_byte(&self, byte_offset: usize) -> u8 {
         self.history[self.current].byte(byte_offset)
     }

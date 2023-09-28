@@ -14,10 +14,20 @@ pub mod model;
 pub mod models;
 pub mod components;
 pub mod widgets;
+pub mod threads;
 
 
 fn main() {
-    let mut model = Model::default();
+
+    let mut register = threads::registers::Registers::new();
+
+    let shared = register.get_shared();
+
+    let registers_handle = std::thread::spawn(move || {
+        register.run();
+    });
+
+    let mut model = Model::new(shared);
 
     model.initialize();
 
@@ -47,5 +57,6 @@ fn main() {
         }
             
     }
+    registers_handle.join().unwrap();
     
 }

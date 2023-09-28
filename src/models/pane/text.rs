@@ -7,6 +7,7 @@ use crate::models::cursor::Cursor;
 use crate::models::key::KeyEvent;
 use crate::models::pane::TextPane;
 use std::path::PathBuf;
+use either::Either;
 
 
 use crate::models::cursor::CursorMovement;
@@ -22,6 +23,7 @@ use crate::models::mode::Mode;
 use crate::models::mode::search::{SearchMode, SearchType};
 use crate::models::mode::selection::{SelectionMode, SelectionType};
 use crate::models::settings::editor_settings::NumberLineStyle;
+use crate::threads::registers::RegisterMessage;
 
 
 pub trait TextBufferObserver {
@@ -41,12 +43,15 @@ pub struct TextBuffer {
     settings: Rc<RefCell<Settings>>,
     sender: Sender<AppEvent>,
     //lsp_channels: (Sender<LspMessage>, Receiver<LspMessage>),
-    //register_channels: (Sender<RegisterMessage>, Receiver<RegisterMessage>),
+    register_channels: (Sender<RegisterMessage>, Rc<Receiver<RegisterMessage>>),
 }
 
 
 impl TextBuffer {
-    pub fn new(file: File, sender: Sender<AppEvent>, settings: Rc<RefCell<Settings>>) -> Self {
+    pub fn new(file: File,
+               sender: Sender<AppEvent>,
+               settings: Rc<RefCell<Settings>>,
+        register_channels: (Sender<RegisterMessage>, Rc<Receiver<RegisterMessage>>)) -> Self {
         //let file = File::new(path, settings.clone());
 
         let normal_mode = Rc::new(RefCell::new(NormalMode::new()));
@@ -81,6 +86,7 @@ impl TextBuffer {
             modes,
             settings,
             sender,
+            register_channels,
         }
     }
 
@@ -249,6 +255,84 @@ impl Pane for TextBuffer {
 
                         }
                     }
+                }
+            }
+            "paste" => {
+                if let Some(direction) = command_args.next() {
+
+                }
+            }
+            "copy" => {
+                if let Some(verb) = command_args.next() {
+                    let register = if let Ok(reg) = command_args.next().unwrap_or("").parse::<usize>() {
+                        Some(Either::Left(reg))
+                    } else if let Some(reg) = command_args.next() {
+                        Some(Either::Right(reg.to_string()))
+                    } else {
+                        None
+                    };
+
+                    let message = match verb {
+                        "char" => {
+                            let byte_offset = self.get_current_byte_position();
+
+                            let c = self.file.get_char_at(byte_offset).expect("Invalid byte position in copy");
+
+                            if let Some(Either::Left(reg)) = register {
+                                RegisterMessage::AddNumbered(reg, c.to_string())
+                            } else if let Some(Either::Right(reg)) = register {
+                                RegisterMessage::AddNamed(reg, c.to_string())
+                            } else {
+                                RegisterMessage::SetClipboard(c.to_string())
+                            }
+                        }
+                        "line" => {
+                            let row = self.get_cursor().1;
+
+                            let line = self.file.get_line(row).expect("Invalid row in copy");
+
+                            if let Some(Either::Left(reg)) = register {
+                                RegisterMessage::AddNumbered(reg, line)
+                            } else if let Some(Either::Right(reg)) = register {
+                                RegisterMessage::AddNamed(reg, line)
+                            } else {
+                                RegisterMessage::SetClipboard(line)
+                            }
+                        }
+                        "word" => {
+                            todo!()
+                        }
+                        "to_next_word" => {
+                            todo!()
+                        }
+                        "to_prev_word" => {
+                            todo!()
+                        }
+                        "to_end_of_word" => {
+                            todo!()
+                        }
+                        "to_end_line" => {
+                            todo!()
+                        }
+                        "to_start_line" => {
+                            todo!()
+                        }
+                        _ => panic!("Invalid copy verb"),
+                    };
+
+                    self.register_channels.0.send(message).expect("Failed to send register message");
+
+
+                }
+            }
+            "cut" => {
+                if let Some(verb) = command_args.next() {
+
+                }
+            }
+            "delete" => {
+                if let Some(verb) = command_args.next() {
+
                 }
             }
             _ => {},

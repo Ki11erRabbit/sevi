@@ -752,7 +752,7 @@ impl ModeKeybindings {
                     }, KeyEvent {
                         key: Key::Char('e'),
                         modifiers: KeyModifiers::NONE,
-                    }], "copy_to_end".to_string());
+                    }], "copy_to_end_line".to_string());
 
                 }
 

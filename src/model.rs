@@ -19,6 +19,7 @@ use crate::models::{AppEvent, Id, Message};
 use crate::models::file::File;
 use crate::models::pane::{Pane, TextPane};
 use crate::models::pane::text::TextBuffer;
+use crate::threads::registers::RegisterMessage;
 
 pub struct AppEventPort{
     pub receiver: Receiver<AppEvent>,
@@ -42,6 +43,7 @@ pub struct Model {
     pub sender: Sender<AppEvent>,
     pub settings: Rc<RefCell<crate::models::settings::Settings>>,
     pub files: HashMap<PathBuf, File>,
+    pub register_channels: (Sender<RegisterMessage>, Rc<Receiver<RegisterMessage>>)
 }
 
 impl Default for Model {
@@ -62,10 +64,11 @@ impl Default for Model {
 
         let file = File::new(path.clone(), settings.clone());
 
+        let (reg_sender, reg_receiver) = std::sync::mpsc::channel();
+        let reg_receiver = Rc::new(reg_receiver);
 
 
-
-        let pane = TextBuffer::new(file, sender.clone(), settings.clone());
+        let pane = TextBuffer::new(file, sender.clone(), settings.clone(), (reg_sender.clone(), reg_receiver.clone()));
         let pane = Rc::new(RefCell::new(pane));
 
 
@@ -108,6 +111,8 @@ impl Default for Model {
 
         assert!(app.active(&Id::Input).is_ok());
 
+
+
         Self {
             app,
             quit: false,
@@ -117,6 +122,8 @@ impl Default for Model {
             sender,
             settings,
             files: HashMap::new(),
+            register_channels: (reg_sender, reg_receiver),
+
 
         }
     }
@@ -134,6 +141,83 @@ impl Drop for Model {
 
 
 impl Model {
+
+    pub fn new(register_channels: (Sender<RegisterMessage>, Rc<Receiver<RegisterMessage>>)) -> Self {
+        let args: Vec<String> = env::args().collect();
+        let path = if args.len() > 1 {
+            let path = PathBuf::from(args[1].clone());
+            Some(PathBuf::from(path))
+        } else {
+            None
+        };
+
+        let (sender, receiver) = std::sync::mpsc::channel();
+
+        let settings = crate::models::settings::Settings::default();
+
+        let settings = Rc::new(RefCell::new(settings));
+
+        let file = File::new(path.clone(), settings.clone());
+
+
+
+
+        let pane = TextBuffer::new(file, sender.clone(), settings.clone(), register_channels.clone());
+        let pane = Rc::new(RefCell::new(pane));
+
+
+
+        let mut app = Application::init(
+            EventListenerCfg::default()
+                .default_input_listener(Duration::from_millis(20))
+                .poll_timeout(Duration::from_millis(10))
+                .tick_interval(Duration::from_secs(1))
+                .port(Box::new(AppEventPort {
+                    receiver,
+                }),
+                      Duration::from_millis(10)
+                ),
+        );
+
+        assert!(app.mount(
+            Id::Buffer,
+            Box::new(
+                Buffer::new(pane.clone())
+            ),
+            vec![
+                Sub::new(SubEventClause::User(AppEvent::Scroll), SubClause::Always),
+                Sub::new(SubEventClause::User(AppEvent::Edit), SubClause::Always),
+            ],
+        ).is_ok());
+
+        //assert!(app.active(&Id::Buffer).is_ok());
+
+        assert!(app.mount(
+            Id::Status,
+            Box::new(
+                StatusBar::new(pane.clone())
+            ),
+            Vec::default(),
+        ).is_ok());
+
+        assert!(app.mount(Id::Input, Box::new(
+            InputLayer::new()), Vec::default()).is_ok());
+
+        assert!(app.active(&Id::Input).is_ok());
+
+        Self {
+            app,
+            quit: false,
+            redraw: true,
+            terminal: Rc::new(RefCell::new(TerminalBridge::new().expect("Failed to create terminal bridge"))),
+            pane,
+            sender,
+            settings,
+            files: HashMap::new(),
+            register_channels,
+
+        }
+    }
     pub fn view(&mut self) {
         assert!(self
                 .terminal.borrow_mut()
@@ -194,6 +278,7 @@ impl Update<Message> for Model {
             match msg {
                 Message::AppClose => {
                     self.quit = true;
+                    self.register_channels.0.send(RegisterMessage::Quit).unwrap();
                     None
                 },
                 Message::Redraw => {
@@ -227,6 +312,7 @@ impl Update<Message> for Model {
                         let _ = self.pane.borrow_mut().change_file(file);
                     } else {
                         self.quit = true;
+                        self.register_channels.0.send(RegisterMessage::Quit).unwrap();
                     }
                     None
                 }

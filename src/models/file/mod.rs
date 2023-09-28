@@ -34,6 +34,20 @@ impl File {
         }
     }
 
+    pub fn get_char_at(&self, byte_offset: usize) -> Option<char> {
+        match self.file.as_ref().unwrap() {
+            Either::Left(file) => file.get_char_at(byte_offset),
+            Either::Right(file) => file.get_char_at(byte_offset),
+        }
+    }
+
+    pub fn get_line(&self, row: usize) -> Option<String> {
+        match self.file.as_ref().unwrap() {
+            Either::Left(file) => file.get_line(row),
+            Either::Right(file) => file.get_line(row),
+        }
+    }
+
     pub fn clear_highlights(&mut self) {
         match self.file.as_mut().unwrap() {
             Either::Left(file) => file.highlights.clear(),
@@ -241,6 +255,14 @@ impl UnopenedFile {
             settings,
             highlights: HashSet::new(),
         }
+    }
+
+    pub fn get_char_at(&self, byte_offset: usize) -> Option<char> {
+        self.buffer.get_char_at(byte_offset)
+    }
+
+    pub fn get_line(&self, row: usize) -> Option<String> {
+        self.buffer.get_row(row).map(|line| line.to_string())
     }
 
     pub fn add_highlight(&mut self, start: usize, end: usize) {
@@ -603,6 +625,14 @@ impl OpenedFile {
             settings,
             highlights: HashSet::new()
         }
+    }
+
+    pub fn get_char_at(&self, byte_offset: usize) -> Option<char> {
+        self.buffer.get_char_at(byte_offset)
+    }
+
+    pub fn get_line(&self, row: usize) -> Option<String> {
+        self.buffer.get_row(row).map(|line| line.to_string())
     }
 
     pub fn add_highlight(&mut self, start: usize, end: usize) {

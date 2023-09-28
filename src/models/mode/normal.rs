@@ -152,6 +152,24 @@ impl NormalMode {
                     return;
                 }
             }
+            "copy_char" => {
+                pane.execute_command(&format!("copy char {}", self.number_buffer));
+            }
+            "copy_line" => {
+                pane.execute_command(&format!("copy line {}", self.number_buffer));
+            }
+            "copy_word" => {
+                pane.execute_command(&format!("copy word {}", self.number_buffer));
+            }
+            "copy_to_next_word" => {
+                pane.execute_command(&format!("copy to_next_word {}", self.number_buffer));
+            }
+            "copy_to_prev_word" => {
+                pane.execute_command(&format!("copy to_prev_word {}", self.number_buffer));
+            }
+            "copy_to_end_line" => {
+                pane.execute_command(&format!("copy to_end_line {}", self.number_buffer));
+            }
             _ => {},
         }
 
