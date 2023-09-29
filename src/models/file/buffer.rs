@@ -191,6 +191,9 @@ impl Buffer {
     }
 
     pub fn insert_current<T>(&mut self, byte_offset: usize, text: T) where T: AsRef<str> {
+        if self.current == 0 {
+            self.get_new_rope();
+        }
     
         let mut tree_sitter_info = self.tree_sitter_info.take();
 
@@ -236,6 +239,9 @@ impl Buffer {
     }
 
     pub fn delete_current<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
+        if self.current == 0 {
+            self.get_new_rope();
+        }
         
         let mut tree_sitter_info = self.tree_sitter_info.take();
 
@@ -291,7 +297,10 @@ impl Buffer {
     }
 
     pub fn replace_current<R, T>(&mut self, range: R, text: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
-        
+        if self.current == 0 {
+            self.get_new_rope();
+        }
+
         let mut tree_sitter_info = self.tree_sitter_info.take();
 
         match tree_sitter_info.as_mut() {

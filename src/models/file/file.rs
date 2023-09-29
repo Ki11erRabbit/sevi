@@ -194,6 +194,7 @@ impl File {
                 };
 
                 buffer.add_new_rope();
+                buffer.add_new_rope();
 
                 let lsp_info = None;
 
@@ -208,9 +209,13 @@ impl File {
                 }
             }
             None => {
+                let mut buffer = Buffer::new(settings.clone());
+                buffer.add_new_rope();
+                buffer.add_new_rope();
+
                 Self {
                     path: None,
-                    buffer: Buffer::new(settings.clone()),
+                    buffer,
                     lsp_info: None,
                     language: None,
                     settings,
@@ -392,6 +397,16 @@ impl File {
 
     pub fn replace<R, T>(&mut self, range: R, c: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
         self.buffer.replace(range, c);
+        self.saved = false;
+    }
+
+    pub fn undo(&mut self) {
+        self.buffer.undo();
+        self.saved = false;
+    }
+
+    pub fn redo(&mut self) {
+        self.buffer.redo();
         self.saved = false;
     }
 

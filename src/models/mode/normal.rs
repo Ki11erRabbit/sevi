@@ -222,6 +222,18 @@ impl NormalMode {
                 pane.execute_command(&format!("copy to_start_line {}", self.number_buffer));
                 pane.execute_command("delete to_start_line");
             }
+            "paste_before" => {
+                pane.execute_command("paste before");
+            }
+            "paste_after" => {
+                pane.execute_command("paste after");
+            }
+            "undo" => {
+                pane.execute_command("undo");
+            }
+            "redo" => {
+                pane.execute_command("redo");
+            }
             _ => {},
         }
 

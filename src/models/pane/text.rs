@@ -259,7 +259,45 @@ impl Pane for TextBuffer {
             }
             "paste" => {
                 if let Some(direction) = command_args.next() {
+                    let next_arg = command_args.next();
+                    let register = if let Ok(reg) = next_arg.unwrap_or("").parse::<usize>() {
+                        Some(Either::Left(reg))
+                    } else if let Some(reg) = next_arg {
+                        Some(Either::Right(reg.to_string()))
+                    } else {
+                        None
+                    };
 
+                    let message = if let Some(Either::Left(reg)) = register {
+                        RegisterMessage::GetNumbered(reg)
+                    } else if let Some(Either::Right(reg)) = register {
+                        RegisterMessage::GetNamed(reg)
+                    } else {
+                        RegisterMessage::GetClipboard
+                    };
+
+                    self.register_channels.0.send(message).expect("Failed to send register message");
+
+                    let message = self.register_channels.1.recv().expect("Failed to receive register message");
+
+                    let string = match message {
+                        RegisterMessage::RegisterResult(Some(text)) => {
+                            text
+                        },
+                        _ => return,
+                    };
+
+
+                    let byte_offset = self.get_current_byte_position();
+                    match direction {
+                        "after" => {
+                            self.file.insert_after_current(byte_offset, string);
+                        },
+                        "before" => {
+                            self.file.insert_before_current(byte_offset, string);
+                        },
+                        _ => panic!("Invalid paste direction"),
+                    }
                 }
             }
             "copy" => {
@@ -444,6 +482,12 @@ impl Pane for TextBuffer {
                     }
 
                 }
+            }
+            "undo" => {
+                self.file.undo();
+            }
+            "redo" => {
+                self.file.redo();
             }
             _ => {},
         }
