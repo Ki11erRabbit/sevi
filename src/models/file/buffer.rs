@@ -457,6 +457,146 @@ impl Buffer {
         self.version += 1;
     }
 
+    /// The return value is the byte offset of the start of the deleted word
+    pub fn delete_word(&mut self, byte_offset: usize) -> usize {
+        self.get_new_rope();
+
+        let mut tree_sitter_info = self.tree_sitter_info.take();
+
+
+        let out = match tree_sitter_info.as_mut() {
+            None => {
+                let mut current = self.get_char_at(byte_offset);
+                let mut start = byte_offset;
+                while let Some(c) = current {
+                    if c.is_alphanumeric() || c == '_' {
+                        start = start.saturating_sub(1);
+                    } else {
+                        start += 1;
+                        break;
+                    }
+                    current = self.get_char_at(start);
+                }
+
+                current = self.get_char_at(byte_offset);
+                let mut end = byte_offset;
+                while let Some(c) = current {
+                    if c.is_alphanumeric() || c == '_' {
+                        end += 1;
+                    } else {
+                        break;
+                    }
+                    current = self.get_char_at(end);
+                }
+                self.history[self.current].delete(start..end);
+                start
+            },
+            Some((parser, trees)) => {
+
+                let mut current = self.get_char_at(byte_offset);
+                let mut start = byte_offset;
+                while let Some(c) = current {
+                    if c.is_alphanumeric() || c == '_' {
+                        start = start.saturating_sub(1);
+                    } else {
+                        start += 1;
+                        break;
+                    }
+                    current = self.get_char_at(start);
+                }
+
+                current = self.get_char_at(byte_offset);
+                let mut end = byte_offset;
+                while let Some(c) = current {
+                    if c.is_alphanumeric() || c == '_' {
+                        end += 1;
+                    } else {
+                        break;
+                    }
+                    current = self.get_char_at(end);
+                }
+                self.history[self.current].delete(start..end);
+
+                let line_num = self.history[self.current].line_of_byte(byte_offset);
+
+                let y = line_num;
+                let x = byte_offset - self.history[self.current].byte_of_line(y);
+
+                let end_x = x;
+                let end_y = y;
+
+                let edit = tree_sitter::InputEdit {
+                    start_byte: start,
+                    old_end_byte: start,
+                    new_end_byte: end,
+                    start_position: tree_sitter::Point::new(y, x),
+                    old_end_position: tree_sitter::Point::new(y, x),
+                    new_end_position: tree_sitter::Point::new(end_y, end_x),
+                };
+
+                trees[self.current].edit(&edit);
+                trees[self.current] = parser.parse(&self.history[self.current].to_string(), Some(&trees[self.current])).unwrap();
+                start
+            }
+        };
+
+        self.tree_sitter_info = tree_sitter_info;
+
+        self.version += 1;
+        out
+    }
+    pub fn delete_line(&mut self, row: usize) {
+        self.get_new_rope();
+
+        let mut tree_sitter_info = self.tree_sitter_info.take();
+
+        match tree_sitter_info.as_mut() {
+            None => {
+                let line_byte = self.history[self.current].byte_of_line(row);
+                let line_len = self.history[self.current].line_len();
+                let next_line_byte = if row + 1 < line_len {
+                    self.history[self.current].byte_of_line(row + 1)
+                } else {
+                    self.history[self.current].byte_len()
+                };
+                self.history[self.current].delete(line_byte..next_line_byte);
+            },
+            Some((parser, trees)) => {
+
+                let line_byte = self.history[self.current].byte_of_line(row);
+                let line_len = self.history[self.current].line_len();
+                let next_line_byte = if row + 1 < line_len {
+                    self.history[self.current].byte_of_line(row + 1)
+                } else {
+                    self.history[self.current].byte_len()
+                };
+                self.history[self.current].delete(line_byte..next_line_byte);
+
+                let y = row;
+                let x = 0;
+
+                let end_x = x;
+                let end_y = y;
+
+                let edit = tree_sitter::InputEdit {
+                    start_byte: line_byte,
+                    old_end_byte: next_line_byte,
+                    new_end_byte: line_byte,
+                    start_position: tree_sitter::Point::new(y, x),
+                    old_end_position: tree_sitter::Point::new(y, x),
+                    new_end_position: tree_sitter::Point::new(end_y, end_x),
+                };
+
+                trees[self.current].edit(&edit);
+                trees[self.current] = parser.parse(&self.history[self.current].to_string(), Some(&trees[self.current])).unwrap();
+            }
+        }
+
+        self.tree_sitter_info = tree_sitter_info;
+
+        self.version += 1;
+    }
+
     pub fn replace<R, T>(&mut self, range: R, text: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
         self.get_new_rope();
         
@@ -639,7 +779,71 @@ impl Buffer {
         Some(BufferSlice::new(self.history[self.current].byte_slice(start..end), self.settings.clone()))
     }
 
+    pub fn get_until_next_word(&self, byte_offset: usize) -> Option<BufferSlice> {
+        if byte_offset >= self.history[self.current].bytes().count() {
+            return None;
+        }
 
+        let mut end = byte_offset;
+
+
+        let mut current = self.get_char_at(byte_offset);
+
+        let mut found_break = false;
+        while let Some(c) = current {
+            if !c.is_alphanumeric() && c != '_' {
+                end += 1;
+                if found_break {
+                    break;
+                }
+            } else {
+                found_break = true;
+                end += 1;
+            }
+            current = self.get_char_at(end);
+        }
+        Some(BufferSlice::new(self.history[self.current].byte_slice(byte_offset..end), self.settings.clone()))
+    }
+
+    pub fn get_until_prev_word(&self, byte_offset: usize) -> Option<BufferSlice> {
+        if byte_offset >= self.history[self.current].bytes().count() {
+            return None;
+        }
+
+        let mut start = byte_offset;
+
+        let mut current = self.get_char_at(byte_offset);
+
+        let mut found_break = false;
+
+        while let Some(c) = current {
+            if !c.is_alphanumeric() && c != '_' {
+                if found_break {
+                    break;
+                }
+                start = start.saturating_sub(1);
+            } else {
+                found_break = true;
+                start = start.saturating_sub(1);
+            }
+            current = self.get_char_at(start);
+        }
+
+        Some(BufferSlice::new(self.history[self.current].byte_slice(start..byte_offset), self.settings.clone()))
+    }
+
+    pub fn get_cursor_from_byte_offset(&self, byte_offset: usize) -> Option<(usize, usize)> {
+        if byte_offset >= self.history[self.current].bytes().count() {
+            return None;
+        }
+
+        let line_num = self.history[self.current].line_of_byte(byte_offset);
+
+        let y = line_num;
+        let x = byte_offset - self.history[self.current].byte_of_line(y);
+
+        Some((x, y))
+    }
 
 }
 

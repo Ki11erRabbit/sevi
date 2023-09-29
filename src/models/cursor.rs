@@ -102,6 +102,11 @@ impl Cursor {
         }
     }
 
+    pub fn set_cursor(&mut self, col: usize, row: usize) {
+        self.col = col;
+        self.row = row;
+    }
+
 
     pub fn move_cursor(&mut self, direction: CursorMovement, mut n: usize, file: &File) {
         let number_of_lines = file.get_line_count();

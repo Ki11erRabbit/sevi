@@ -269,6 +269,13 @@ impl File {
     pub fn get_word(&self, byte_offset: usize) -> Option<String> {
         self.buffer.get_word(byte_offset).map(|word| word.to_string())
     }
+    pub fn get_until_next_word(&self, byte_offset: usize) -> Option<String> {
+        self.buffer.get_until_next_word(byte_offset).map(|word| word.to_string())
+    }
+
+    pub fn get_until_prev_word(&self, byte_offset: usize) -> Option<String> {
+        self.buffer.get_until_prev_word(byte_offset).map(|word| word.to_string())
+    }
 
     pub fn get_line_count(&self) -> usize {
         self.buffer.get_line_count()
@@ -333,37 +340,59 @@ impl File {
         self.buffer.get_byte_offset(col, row)
     }
 
+    pub fn get_cursor(&self, byte_offset: usize) -> Option<(usize, usize)> {
+        self.buffer.get_cursor_from_byte_offset(byte_offset)
+    }
+
     pub fn insert_after_current<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
         self.buffer.insert_current(byte_offset, c);
+        self.saved = false;
     }
     pub fn insert_before_current<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
         let byte_offset = byte_offset.saturating_sub(1);
         self.buffer.insert_current(byte_offset, c);
+        self.saved = false;
     }
 
     pub fn insert_after<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
         self.buffer.insert(byte_offset, c);
+        self.saved = false;
     }
 
     pub fn insert_before<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
         let byte_offset = byte_offset.saturating_sub(1);
         self.buffer.insert(byte_offset, c);
+        self.saved = false;
     }
 
     pub fn delete_current<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
         self.buffer.delete_current(range);
+        self.saved = false;
     }
 
     pub fn delete<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
         self.buffer.delete(range);
+        self.saved = false;
+    }
+
+    pub fn delete_word(&mut self, byte_offset: usize) -> usize {
+        let x = self.buffer.delete_word(byte_offset);
+        self.saved = false;
+        x
+    }
+    pub fn delete_line(&mut self, row: usize) {
+        self.buffer.delete_line(row);
+        self.saved = false;
     }
 
     pub fn replace_current<R, T>(&mut self, range: R, c: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
         self.buffer.replace_current(range, c);
+        self.saved = false;
     }
 
     pub fn replace<R, T>(&mut self, range: R, c: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
         self.buffer.replace(range, c);
+        self.saved = false;
     }
 
     pub fn display(&self) -> StyledText {

@@ -755,6 +755,17 @@ impl ModeKeybindings {
                     }], "copy_to_end_line".to_string());
 
                 }
+                // Copy to Start of Line
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('y'),
+                        modifiers: KeyModifiers::NONE,
+                    }, KeyEvent {
+                        key: Key::Char('s'),
+                        modifiers: KeyModifiers::NONE,
+                    }], "copy_to_start_line".to_string());
+
+                }
 
             }
 
@@ -913,6 +924,17 @@ impl ModeKeybindings {
                         key: Key::Char('e'),
                         modifiers: KeyModifiers::NONE,
                     }], "delete_to_end".to_string());
+
+                }
+                // Delete to Start of Line
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('x'),
+                        modifiers: KeyModifiers::NONE,
+                    }, KeyEvent {
+                        key: Key::Char('s'),
+                        modifiers: KeyModifiers::NONE,
+                    }], "delete_to_start".to_string());
 
                 }
 

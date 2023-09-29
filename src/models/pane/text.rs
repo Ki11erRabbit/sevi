@@ -322,10 +322,30 @@ impl Pane for TextBuffer {
                             }
                         }
                         "to_next_word" => {
-                            todo!()
+                            let byte_offset = self.get_current_byte_position();
+
+                            let text = self.file.get_until_next_word(byte_offset).expect("Invalid byte position in copy").to_string();
+
+                            if let Some(Either::Left(reg)) = register {
+                                RegisterMessage::AddNumbered(reg, text)
+                            } else if let Some(Either::Right(reg)) = register {
+                                RegisterMessage::AddNamed(reg, text)
+                            } else {
+                                RegisterMessage::SetClipboard(text)
+                            }
                         }
                         "to_prev_word" => {
-                            todo!()
+                            let byte_offset = self.get_current_byte_position();
+
+                            let text = self.file.get_until_prev_word(byte_offset).expect("Invalid byte position in copy").to_string();
+
+                            if let Some(Either::Left(reg)) = register {
+                                RegisterMessage::AddNumbered(reg, text)
+                            } else if let Some(Either::Right(reg)) = register {
+                                RegisterMessage::AddNamed(reg, text)
+                            } else {
+                                RegisterMessage::SetClipboard(text)
+                            }
                         }
                         "to_end_line" => {
                             let (col, row) = self.get_cursor();
@@ -343,14 +363,24 @@ impl Pane for TextBuffer {
                             }
                         }
                         "to_start_line" => {
-                            todo!()
+                            let (col, row) = self.get_cursor();
+
+                            let line = self.file.get_line(row).expect("Invalid row in copy").to_string();
+
+                            let line = line.chars().take(col).collect::<String>();
+
+                            if let Some(Either::Left(reg)) = register {
+                                RegisterMessage::AddNumbered(reg, line)
+                            } else if let Some(Either::Right(reg)) = register {
+                                RegisterMessage::AddNamed(reg, line)
+                            } else {
+                                RegisterMessage::SetClipboard(line)
+                            }
                         }
                         _ => panic!("Invalid copy verb"),
                     };
 
                     self.register_channels.0.send(message).expect("Failed to send register message");
-
-
                 }
             }
             "cut" => {
@@ -360,6 +390,68 @@ impl Pane for TextBuffer {
             }
             "delete" => {
                 if let Some(verb) = command_args.next() {
+
+                    match verb {
+                        "char" => {
+                            let byte_offset = self.get_current_byte_position();
+
+                            self.file.delete(byte_offset..byte_offset + 1);
+                        }
+                        "line" => {
+                            let row = self.get_cursor().1;
+
+                            self.file.delete_line(row);
+                            self.cursor.move_cursor(CursorMovement::LineStart, 1, &self.file);
+                        }
+                        "word" => {
+                            let byte_offset = self.get_current_byte_position();
+
+                            let byte_offset = self.file.delete_word(byte_offset);
+                            self.set_cursor_to_byte_position(byte_offset);
+                        }
+                        "to_next_word" => {
+                            let byte_offset = self.get_current_byte_position();
+
+                            let text = self.file.get_until_next_word(byte_offset).expect("Invalid byte position in copy").to_string();
+
+                            self.file.delete(byte_offset..byte_offset + text.len());
+                        }
+                        "to_prev_word" => {
+                            let byte_offset = self.get_current_byte_position();
+
+                            let text = self.file.get_until_prev_word(byte_offset).expect("Invalid byte position in copy").to_string();
+
+                            self.file.delete(byte_offset - text.len()..byte_offset);
+                            let byte_offset = byte_offset - text.len();
+                            self.set_cursor_to_byte_position(byte_offset);
+                        }
+                        "to_end_line" => {
+                            let (col, row) = self.get_cursor();
+
+                            let line = self.file.get_line(row).expect("Invalid row in copy").to_string();
+
+                            let byte_offset = self.get_current_byte_position();
+
+                            self.file.delete(byte_offset..byte_offset + line.len());
+                        }
+                        "to_start_line" => {
+                            let (col, row) = self.get_cursor();
+
+                            let line = self.file.get_line(row).expect("Invalid row in copy").to_string();
+
+                            let line = line.chars().take(col).collect::<String>();
+
+                            let byte_offset = self.get_current_byte_position();
+
+                            self.file.delete(byte_offset - line.len()..byte_offset);
+
+                            let byte_offset = byte_offset - line.len();
+
+                            self.set_cursor_to_byte_position(byte_offset);
+
+                        }
+                        _ => panic!("Invalid delete verb"),
+                    }
 
                 }
             }
@@ -471,6 +563,11 @@ impl TextPane for TextBuffer {
         let (col, row) = self.get_cursor();
 
         self.file.get_byte_offset(row, col).expect("Cursor was in an invalid position")
+    }
+
+    fn set_cursor_to_byte_position(&mut self, byte_index: usize) {
+        let (col, row) = self.file.get_cursor(byte_index).expect("Invalid byte position");
+        self.cursor.set_cursor(col, row);
     }
 
     fn borrow_current_file(&self) -> &File {

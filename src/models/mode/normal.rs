@@ -170,6 +170,30 @@ impl NormalMode {
             "copy_to_end_line" => {
                 pane.execute_command(&format!("copy to_end_line {}", self.number_buffer));
             }
+            "copy_to_start_line" => {
+                pane.execute_command(&format!("copy to_start_line {}", self.number_buffer));
+            }
+            "delete_char" => {
+                pane.execute_command("delete char");
+            }
+            "delete_line" => {
+                pane.execute_command("delete line");
+            }
+            "delete_word" => {
+                pane.execute_command("delete word");
+            }
+            "delete_to_next_word" => {
+                pane.execute_command("delete to_next_word");
+            }
+            "delete_to_prev_word" => {
+                pane.execute_command("delete to_prev_word");
+            }
+            "delete_to_end_line" => {
+                pane.execute_command("delete to_end_line");
+            }
+            "delete_to_start_line" => {
+                pane.execute_command("delete to_start_line");
+            }
             _ => {},
         }
 
