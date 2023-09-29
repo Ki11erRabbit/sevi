@@ -13,10 +13,12 @@ use crate::models::style::color::Color;
 use self::buffer::Buffer;
 
 pub mod buffer;
+pub mod file;
+
+pub use file::File;
 
 
-
-pub struct File {
+/*pub struct File {
     file: Option<Either<UnopenedFile, OpenedFile>>,
     saved: bool,
     output: Rc<RefCell<String>>,
@@ -841,7 +843,7 @@ impl From<(UnopenedFile, PathBuf)> for OpenedFile {
             highlights: file.highlights,
         }
     }
-}
+}*/
 
 
 

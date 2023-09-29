@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::fmt;
+use std::io::Write;
+use std::path::PathBuf;
 use crate::models::settings::Settings;
 
 use tree_sitter;
@@ -37,9 +39,20 @@ impl Buffer {
         self.version
     }
 
+    pub fn save(&mut self, file_path: &PathBuf) {
+        let file = std::fs::File::create(file_path).unwrap();
+        let mut writer = std::io::BufWriter::new(file);
+        let buffer = &self.history[self.current];
+        writer.write_all(&buffer.bytes().collect::<Vec<_>>().as_slice()).unwrap();
+        self.add_new_rope();
+    }
+
     pub fn set_tree_sitter(&mut self, mut parser: tree_sitter::Parser) {
         let mut trees = Vec::new();
-        trees.push(parser.parse(&self.history[self.current].to_string(), None).unwrap());
+        for buffer in self.history.iter() {
+            trees.push(parser.parse(&buffer.to_string(), None).unwrap());
+        }
+        //trees.push(parser.parse(&self.history[self.current].to_string(), None).unwrap());
         self.tree_sitter_info = Some((parser, trees));
     }
 
