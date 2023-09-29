@@ -774,21 +774,21 @@ impl ModeKeybindings {
                 // Cut Char
                 {
                     bindings.insert(vec![KeyEvent { 
-                        key: Key::Char('d'), 
+                        key: Key::Char('x'),
                         modifiers: KeyModifiers::NONE,
                     }, KeyEvent {
-                        key: Key::Char('d'),
+                        key: Key::Char('x'),
                         modifiers: KeyModifiers::NONE,
                     }], "cut_char".to_string());
 
                     bindings.insert(vec![KeyEvent { 
-                        key: Key::Char('D'), 
+                        key: Key::Char('X'),
                         modifiers: KeyModifiers::NONE,
                     }], "cut_char".to_string());
                 }
                 // Cut Line
                 bindings.insert(vec![KeyEvent {
-                    key: Key::Char('d'),
+                    key: Key::Char('x'),
                     modifiers: KeyModifiers::NONE,
                 }, KeyEvent {
                     key: Key::Char('l'),
@@ -797,7 +797,7 @@ impl ModeKeybindings {
 
                 // Cut Word
                 bindings.insert(vec![KeyEvent {
-                    key: Key::Char('d'),
+                    key: Key::Char('x'),
                     modifiers: KeyModifiers::NONE,
                 }, KeyEvent {
                     key: Key::Char('w'),
@@ -806,7 +806,7 @@ impl ModeKeybindings {
 
                 // Cut to Next Word
                 bindings.insert(vec![KeyEvent {
-                    key: Key::Char('d'),
+                    key: Key::Char('x'),
                     modifiers: KeyModifiers::NONE,
                 }, KeyEvent {
                     key: Key::Char('n'),
@@ -818,7 +818,7 @@ impl ModeKeybindings {
 
                 // Cut to Previous Word
                 bindings.insert(vec![KeyEvent {
-                    key: Key::Char('d'),
+                    key: Key::Char('x'),
                     modifiers: KeyModifiers::NONE,
                 }, KeyEvent {
                     key: Key::Char('p'),
@@ -831,7 +831,7 @@ impl ModeKeybindings {
                 // Cut to End of Line
                 {
                     bindings.insert(vec![KeyEvent {
-                        key: Key::Char('d'),
+                        key: Key::Char('x'),
                         modifiers: KeyModifiers::NONE,
                     }, KeyEvent {
                         key: Key::Char('$'),
@@ -849,7 +849,7 @@ impl ModeKeybindings {
                 // Cut to Start of Line
                 {
                     bindings.insert(vec![KeyEvent {
-                        key: Key::Char('d'),
+                        key: Key::Char('x'),
                         modifiers: KeyModifiers::NONE,
                     }, KeyEvent {
                         key: Key::Char('s'),
@@ -865,21 +865,21 @@ impl ModeKeybindings {
                 // Delete Char
                 {
                     bindings.insert(vec![KeyEvent { 
-                        key: Key::Char('x'),  
+                        key: Key::Char('d'),
                         modifiers: KeyModifiers::NONE, 
                     }, KeyEvent {
-                        key: Key::Char('x'),
+                        key: Key::Char('d'),
                         modifiers: KeyModifiers::NONE,
                     }], "delete_char".to_string());
 
                     bindings.insert(vec![KeyEvent { 
-                        key: Key::Char('X'),  
+                        key: Key::Char('D'),
                         modifiers: KeyModifiers::NONE, 
                     }], "delete_char".to_string());
                 }
                 // Delete Line
                 bindings.insert(vec![KeyEvent {
-                    key: Key::Char('x'),
+                    key: Key::Char('d'),
                     modifiers: KeyModifiers::NONE,
                 }, KeyEvent {
                     key: Key::Char('l'),
@@ -888,7 +888,7 @@ impl ModeKeybindings {
 
                 // Delete Word
                 bindings.insert(vec![KeyEvent {
-                    key: Key::Char('x'),
+                    key: Key::Char('d'),
                     modifiers: KeyModifiers::NONE,
                 }, KeyEvent {
                     key: Key::Char('w'),
@@ -897,7 +897,7 @@ impl ModeKeybindings {
 
                 // Delete to Next Word
                 bindings.insert(vec![KeyEvent {
-                    key: Key::Char('x'),
+                    key: Key::Char('d'),
                     modifiers: KeyModifiers::NONE,
                 }, KeyEvent {
                     key: Key::Char('n'),
@@ -909,7 +909,7 @@ impl ModeKeybindings {
 
                 // Delete to Previous Word
                 bindings.insert(vec![KeyEvent {
-                    key: Key::Char('x'),
+                    key: Key::Char('d'),
                     modifiers: KeyModifiers::NONE,
                 }, KeyEvent {
                     key: Key::Char('p'),
@@ -922,14 +922,14 @@ impl ModeKeybindings {
                 // Delete to End of Line
                 {
                     bindings.insert(vec![KeyEvent {
-                        key: Key::Char('x'),
+                        key: Key::Char('d'),
                         modifiers: KeyModifiers::NONE,
                     }, KeyEvent {
                         key: Key::Char('$'),
                         modifiers: KeyModifiers::NONE,
                     }], "delete_to_end_line".to_string());
                     bindings.insert(vec![KeyEvent {
-                        key: Key::Char('x'),
+                        key: Key::Char('d'),
                         modifiers: KeyModifiers::NONE,
                     }, KeyEvent {
                         key: Key::Char('e'),
@@ -940,7 +940,7 @@ impl ModeKeybindings {
                 // Delete to Start of Line
                 {
                     bindings.insert(vec![KeyEvent {
-                        key: Key::Char('x'),
+                        key: Key::Char('d'),
                         modifiers: KeyModifiers::NONE,
                     }, KeyEvent {
                         key: Key::Char('s'),
