@@ -846,6 +846,17 @@ impl ModeKeybindings {
                     }], "cut_to_end".to_string());
 
                 }
+                // Cut to Start of Line
+                {
+                    bindings.insert(vec![KeyEvent {
+                        key: Key::Char('d'),
+                        modifiers: KeyModifiers::NONE,
+                    }, KeyEvent {
+                        key: Key::Char('s'),
+                        modifiers: KeyModifiers::NONE,
+                    }], "cut_to_end".to_string());
+
+                }
 
             }
 

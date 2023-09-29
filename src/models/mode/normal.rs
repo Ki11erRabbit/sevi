@@ -194,6 +194,27 @@ impl NormalMode {
             "delete_to_start_line" => {
                 pane.execute_command("delete to_start_line");
             }
+            "cut_char" => {
+                pane.execute_command(&format!("cut char {}", self.number_buffer));
+            }
+            "cut_line" => {
+                pane.execute_command(&format!("cut line {}", self.number_buffer));
+            }
+            "cut_word" => {
+                pane.execute_command(&format!("cut word {}", self.number_buffer));
+            }
+            "cut_to_next_word" => {
+                pane.execute_command(&format!("cut to_next_word {}", self.number_buffer));
+            }
+            "cut_to_prev_word" => {
+                pane.execute_command(&format!("cut to_prev_word {}", self.number_buffer));
+            }
+            "cut_to_end_line" => {
+                pane.execute_command(&format!("cut to_end_line {}", self.number_buffer));
+            }
+            "cut_to_start_line" => {
+                pane.execute_command(&format!("cut to_start_line {}", self.number_buffer));
+            }
             _ => {},
         }
 
