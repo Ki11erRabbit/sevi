@@ -195,25 +195,32 @@ impl NormalMode {
                 pane.execute_command("delete to_start_line");
             }
             "cut_char" => {
-                pane.execute_command(&format!("cut char {}", self.number_buffer));
+                pane.execute_command(&format!("copy char {}", self.number_buffer));
+                pane.execute_command("delete char");
             }
             "cut_line" => {
-                pane.execute_command(&format!("cut line {}", self.number_buffer));
+                pane.execute_command(&format!("copy line {}", self.number_buffer));
+                pane.execute_command("delete line");
             }
             "cut_word" => {
-                pane.execute_command(&format!("cut word {}", self.number_buffer));
+                pane.execute_command(&format!("copy word {}", self.number_buffer));
+                pane.execute_command("delete word");
             }
             "cut_to_next_word" => {
-                pane.execute_command(&format!("cut to_next_word {}", self.number_buffer));
+                pane.execute_command(&format!("copy to_next_word {}", self.number_buffer));
+                pane.execute_command("delete to_next_word");
             }
             "cut_to_prev_word" => {
-                pane.execute_command(&format!("cut to_prev_word {}", self.number_buffer));
+                pane.execute_command(&format!("copy to_prev_word {}", self.number_buffer));
+                pane.execute_command("delete to_prev_word");
             }
             "cut_to_end_line" => {
-                pane.execute_command(&format!("cut to_end_line {}", self.number_buffer));
+                pane.execute_command(&format!("copy to_end_line {}", self.number_buffer));
+                pane.execute_command("delete to_end_line");
             }
             "cut_to_start_line" => {
-                pane.execute_command(&format!("cut to_start_line {}", self.number_buffer));
+                pane.execute_command(&format!("copy to_start_line {}", self.number_buffer));
+                pane.execute_command("delete to_start_line");
             }
             _ => {},
         }
