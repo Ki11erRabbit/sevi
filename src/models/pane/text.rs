@@ -248,10 +248,12 @@ impl Pane for TextBuffer {
                             let start = start.map(|x| x.parse::<usize>().unwrap()).collect::<Vec<usize>>();
                             let end = end.map(|x| x.parse::<usize>().unwrap()).collect::<Vec<usize>>();
 
-                            let start = self.file.get_byte_offset(start[1], start[0]).unwrap();
-                            let end = self.file.get_byte_offset(end[1], end[0]).unwrap();
+                            if let Some(start) = self.file.get_byte_offset(start[1], start[0]) {
+                                if let Some(end) = self.file.get_byte_offset(end[1], end[0]) {
+                                    self.file.add_highlight(start, end);
+                                }
+                            }
 
-                            self.file.add_highlight(start, end);
 
                         }
                     }
