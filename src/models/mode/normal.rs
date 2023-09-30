@@ -127,26 +127,30 @@ impl NormalMode {
             },
             "selection_mode" => {
                 pane.execute_command("change_mode selection_normal");
+                return;
             },
             "selection_mode_line" => {
                 pane.execute_command("change_mode selection_line");
+                return;
             },
             "selection_mode_block" => {
                 pane.execute_command("change_mode selection_block");
+                return;
             },
             "search_mode_down" => {
                 pane.execute_command("change_mode search_down");
+                return;
             },
             "search_mode_up" => {
                 pane.execute_command("change_mode search_up");
+                return;
             },
             "replace_mode" => {
                 pane.execute_command("change_mode replace");
             },
             "goto_line" => {
                 if !self.number_buffer.is_empty() {
-                    //TODO: add cursor movement to a particular line
-                    //pane.execute_command(&format!("goto_line {}", self.number_buffer));
+                    pane.execute_command(&format!("goto_line {}", self.number_buffer));
                     self.number_buffer.clear();
                 } else {
                     return;
@@ -259,6 +263,10 @@ impl Mode for NormalMode {
     fn add_special(&mut self, _something: &dyn Any) {
 
     }
+
+    fn get_special(&self) -> Option<&dyn Any> {
+        Some(&self.number_buffer)
+    }
 }
 
 
@@ -344,6 +352,8 @@ impl TextMode for NormalMode {
     }
 
     fn start(&mut self, _pane: &mut dyn TextPane) {
+        self.key_buffer.clear();
+        self.number_buffer.clear();
     }
 }
 

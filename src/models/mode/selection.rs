@@ -21,6 +21,7 @@ pub struct SelectionMode {
     start: (usize, usize),
     settings: Option<Rc<RefCell<Settings>>>,
     key_buffer: Vec<KeyEvent>,
+    number_buffer: String,
 }
 
 impl SelectionMode {
@@ -30,6 +31,7 @@ impl SelectionMode {
             start: (0, 0),
             settings: None,
             key_buffer: Vec::new(),
+            number_buffer: String::new(),
         }
     }
 
@@ -159,6 +161,7 @@ impl SelectionMode {
         }
 
         self.key_buffer.clear();
+        self.number_buffer.clear();
     }
 }
 
@@ -183,6 +186,13 @@ impl Mode for SelectionMode {
         if let Some(selection_type) = something.downcast_ref::<SelectionType>() {
             self.set_selection_type(*selection_type);
         }
+        if let Some(number_buffer) = something.downcast_ref::<String>() {
+            self.number_buffer = number_buffer.clone();
+        }
+    }
+
+    fn get_special(&self) -> Option<&dyn Any> {
+        None
     }
 }
 
@@ -215,7 +225,11 @@ impl TextMode for SelectionMode {
 
         let (col, row) = pane.get_cursor();
 
-        let first = format!("{}:{}", row, col);
+        let first = if self.number_buffer.is_empty() {
+            format!("{}:{}", row, col)
+        } else {
+            format!("{}:{} {}", row, col, self.number_buffer)
+        };
 
         let second = match self.selection_type {
             SelectionType::Normal => String::from("Normal"),

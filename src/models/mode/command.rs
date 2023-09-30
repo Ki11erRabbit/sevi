@@ -88,6 +88,10 @@ impl Mode for CommandMode {
     fn add_special(&mut self, _something: &dyn Any) {
 
     }
+
+    fn get_special(&self) -> Option<&dyn Any> {
+        None
+    }
 }
 
 impl TextMode for CommandMode {

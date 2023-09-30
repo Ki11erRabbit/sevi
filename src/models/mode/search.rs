@@ -31,6 +31,7 @@ pub struct SearchMode {
     settings: Option<Rc<RefCell<Settings>>>,
     key_buffer: Vec<KeyEvent>,
     found_pos: BTreeSet<(usize, usize)>,
+    number_buffer: String,
 }
 
 
@@ -43,6 +44,7 @@ impl SearchMode {
             settings: None,
             key_buffer: Vec::new(),
             found_pos: BTreeSet::new(),
+            number_buffer: String::new(),
         }
     }
 
@@ -91,7 +93,7 @@ impl SearchMode {
                 }
             }
             "copy" => {
-                pane.execute_command(&format!("copy selection"));
+                pane.execute_command(&format!("copy selection {}", self.number_buffer));
                 pane.execute_command("change_mode Normal");
                 pane.execute_command("clear_selection");
                 self.search_string.clear();
@@ -114,6 +116,7 @@ impl SearchMode {
             }
             _ => {}
         }
+        self.number_buffer.clear();
     }
 
     fn try_search(&mut self, pane: &mut dyn TextPane) {
@@ -155,6 +158,10 @@ impl Mode for SearchMode {
         if let Some(search_type) = something.downcast_ref::<SearchType>() {
             self.search_type = *search_type;
         }
+    }
+
+    fn get_special(&self) -> Option<&dyn Any> {
+        None
     }
 }
 

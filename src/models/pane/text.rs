@@ -519,6 +519,14 @@ impl Pane for TextBuffer {
             "redo" => {
                 self.file.redo();
             }
+            "goto_line" => {
+                if let Some(line) = command_args.next() {
+                    if let Ok(line) = line.parse::<usize>() {
+                        let (col, _) = self.get_cursor();
+                        self.cursor.set_cursor(col, line);
+                    }
+                }
+            }
             _ => {},
         }
     }

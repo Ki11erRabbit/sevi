@@ -23,6 +23,8 @@ pub trait Mode {
 
     fn add_special(&mut self, something: &dyn Any);
 
+    fn get_special(&self) -> Option<&dyn Any>;
+
 }
 
 
