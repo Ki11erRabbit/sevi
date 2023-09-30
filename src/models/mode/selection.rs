@@ -1,5 +1,7 @@
 use std::any::Any;
 use std::cell::RefCell;
+use std::fmt::format;
+use std::mem::forget;
 use std::rc::Rc;
 use crate::models::key::{Key, KeyEvent};
 use crate::models::mode::{Mode, TextMode};
@@ -137,6 +139,22 @@ impl SelectionMode {
                 pane.execute_command(&format!("move page_down 1"));
                 self.add_selection(pane);
             },
+            "copy" => {
+                pane.execute_command(&format!("copy selection"));
+                pane.execute_command("change_mode Normal");
+                pane.execute_command("clear_selection");
+            }
+            "delete" => {
+                pane.execute_command("delete selection");
+                pane.execute_command("change_mode Normal");
+                pane.execute_command("clear_selection");
+            }
+            "cut" => {
+                pane.execute_command(&format!("copy selection"));
+                pane.execute_command("delete selection");
+                pane.execute_command("change_mode Normal");
+                pane.execute_command("clear_selection");
+            }
             _ => {}
         }
 
@@ -157,6 +175,7 @@ impl Mode for SelectionMode {
 
     }
 
+    //todo: also get the number buffer from normal mode
     fn add_special(&mut self, something: &dyn Any) {
         if let Some((col, row)) = something.downcast_ref::<(usize, usize)>() {
             self.set_start((*col, *row));

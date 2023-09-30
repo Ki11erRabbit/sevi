@@ -90,6 +90,28 @@ impl SearchMode {
                     self.search_string.remove(self.edit_pos);
                 }
             }
+            "copy" => {
+                pane.execute_command(&format!("copy selection"));
+                pane.execute_command("change_mode Normal");
+                pane.execute_command("clear_selection");
+                self.search_string.clear();
+                self.edit_pos = 0;
+            }
+            "delete_search" => {
+                pane.execute_command("delete selection");
+                pane.execute_command("change_mode Normal");
+                pane.execute_command("clear_selection");
+                self.search_string.clear();
+                self.edit_pos = 0;
+            }
+            "cut" => {
+                pane.execute_command(&format!("copy selection"));
+                pane.execute_command("delete selection");
+                pane.execute_command("change_mode Normal");
+                pane.execute_command("clear_selection");
+                self.search_string.clear();
+                self.edit_pos = 0;
+            }
             _ => {}
         }
     }

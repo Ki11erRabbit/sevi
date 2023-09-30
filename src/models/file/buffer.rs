@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::fmt;
 use std::io::Write;
+use std::ops::RangeInclusive;
 use std::path::PathBuf;
 use crate::models::settings::Settings;
 
@@ -19,6 +20,7 @@ pub struct Buffer {
     settings: Rc<RefCell<Settings>>,
     version: usize,
 }
+
 
 impl Buffer {
     pub fn new(settings: Rc<RefCell<Settings>>) -> Self {
@@ -238,16 +240,23 @@ impl Buffer {
         self.version += 1;
     }
 
-    pub fn delete_current<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
+    pub fn bulk_delete<R>(&mut self, ranges: Vec<R>) where R: std::ops::RangeBounds<usize> {
         if self.current == 0 {
             self.get_new_rope();
         }
-        
+
+        for range in ranges {
+            self.delete_internal(range);
+        }
+        self.version += 1;
+    }
+
+    fn delete_internal<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
         let mut tree_sitter_info = self.tree_sitter_info.take();
 
         match tree_sitter_info.as_mut() {
             Some((parser, trees)) => {
-                
+
                 let start;
                 match range.start_bound() {
                     std::ops::Bound::Included(n) => {
@@ -266,7 +275,7 @@ impl Buffer {
 
                 let y = line_num;
                 let x = start - self.history[self.current].byte_of_line(y);
-                
+
 
                 self.history[self.current].delete(range);
 
@@ -292,6 +301,15 @@ impl Buffer {
         }
 
         self.tree_sitter_info = tree_sitter_info;
+
+    }
+    pub fn delete_current<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
+        if self.current == 0 {
+            self.get_new_rope();
+        }
+
+        self.delete_internal(range);
+
 
         self.version += 1;
     }
@@ -400,68 +418,7 @@ impl Buffer {
     pub fn delete<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
         self.get_new_rope();
 
-        let mut tree_sitter_info = self.tree_sitter_info.take();
-            
-        match tree_sitter_info.as_mut() {
-            None => {
-                match range.end_bound() {
-                    std::ops::Bound::Included(n) => {
-                        if *n >= self.history[self.current].byte_len() {
-                            return;
-                        }
-                    },
-                    std::ops::Bound::Excluded(n) => {
-                        if *n >= self.history[self.current].byte_len() {
-                            return;
-                        }
-                    },
-                    std::ops::Bound::Unbounded => {
-                        return;
-                    },
-                }
-                self.history[self.current].delete(range);
-            },
-            Some((parser, trees)) => {
-                
-                let start;
-                match range.start_bound() {
-                    std::ops::Bound::Included(n) => {
-                        start = *n;
-                    },
-                    std::ops::Bound::Excluded(n) => {
-                        start = *n + 1;
-                    },
-                    std::ops::Bound::Unbounded => {
-                        start = 0;
-                    },
-                }
-    
-                let line_num = self.history[self.current].line_of_byte(start);
-
-                let y = line_num;
-                let x = start - self.history[self.current].byte_of_line(y);
-
-                self.history[self.current].delete(range);
-                
-                let end_x = x;
-                let end_y = y;
-
-                let edit = tree_sitter::InputEdit {
-                    start_byte: start,
-                    old_end_byte: start + 1,
-                    new_end_byte: start,
-                    start_position: tree_sitter::Point::new(y, x),
-                    old_end_position: tree_sitter::Point::new(y, x + 1),
-                    new_end_position: tree_sitter::Point::new(end_y, end_x),
-                };
-
-                trees[self.current].edit(&edit);
-                trees[self.current] = parser.parse(&self.history[self.current].to_string(), Some(&trees[self.current])).unwrap();
-            }
-        }
-
-
-        self.tree_sitter_info = tree_sitter_info;
+        self.delete_internal(range);
 
         self.version += 1;
     }

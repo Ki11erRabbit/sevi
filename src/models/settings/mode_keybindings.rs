@@ -1102,7 +1102,7 @@ impl ModeKeybindings {
             // Cut
             {
                 bindings.insert(vec![KeyEvent {
-                    key: Key::Char('d'),
+                    key: Key::Char('x'),
                     modifiers: KeyModifiers::NONE,
                 }], "cut".to_string());
             }
@@ -1110,7 +1110,7 @@ impl ModeKeybindings {
             // Delete
             {
                 bindings.insert(vec![KeyEvent {
-                    key: Key::Char('x'),
+                    key: Key::Char('d'),
                     modifiers: KeyModifiers::NONE,
                 }], "delete".to_string());
             }
@@ -1319,6 +1319,40 @@ impl ModeKeybindings {
                 key: Key::Delete,
                 modifiers: KeyModifiers::NONE,
             }], "delete".to_string());
+        }
+        // Copy, Cut, Delete, Paste
+        {
+            // Paste
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('p'),
+                    modifiers: KeyModifiers::CTRL,
+                }], "paste".to_string());
+            }
+
+            // Copy
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('y'),
+                    modifiers: KeyModifiers::CTRL,
+                }], "copy".to_string());
+            }
+
+            // Cut
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('x'),
+                    modifiers: KeyModifiers::CTRL,
+                }], "cut".to_string());
+            }
+
+            // Delete
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('d'),
+                    modifiers: KeyModifiers::CTRL,
+                }], "delete_search".to_string());
+            }
         }
 
         bindings

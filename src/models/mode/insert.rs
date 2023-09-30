@@ -108,7 +108,7 @@ impl TextMode for InsertMode {
                     match key.key {
                         Key::Char(c) => {
                             let index = pane.get_current_byte_position();
-                            pane.insert_str_after(index, &c.to_string());
+                            pane.insert_char(index, c);
 
                             self.key_buffer.clear();
                         }

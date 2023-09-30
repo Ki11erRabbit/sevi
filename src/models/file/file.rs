@@ -281,6 +281,117 @@ impl File {
     pub fn get_until_prev_word(&self, byte_offset: usize) -> Option<String> {
         self.buffer.get_until_prev_word(byte_offset).map(|word| word.to_string())
     }
+    pub fn get_highlighted(&self) -> Option<Vec<String>> {
+        if self.highlights.is_empty() {
+            return None;
+        }
+
+
+        let mut output = Vec::new();
+        let mut string = String::new();
+
+        let mut iter = self.highlights.iter();
+        let byte = iter.next();
+
+        let mut start = *byte.unwrap();
+        let mut end = *byte.unwrap();
+        let mut last_end = *byte.unwrap();
+
+        while let Some(byte) = iter.next() {
+            if *byte == last_end + 1 {
+                end = *byte;
+                last_end = *byte;
+            } else {
+
+                for i in start..=end {
+                    string.push(self.buffer.get_nth_byte(i).unwrap() as char);
+                }
+                output.push(string.clone());
+                string.clear();
+
+                start = *byte;
+                end = *byte;
+                last_end = *byte;
+            }
+
+            while let Some(byte) = iter.next() {
+                if *byte == last_end + 1 {
+                    end = *byte;
+                    last_end = *byte;
+                } else {
+
+                    for i in start..=end {
+                        string.push(self.buffer.get_nth_byte(i).unwrap() as char);
+                    }
+                    output.push(string.clone());
+                    string.clear();
+
+                    start = *byte;
+                    end = *byte;
+                    last_end = *byte;
+                    break
+                }
+
+            }
+        }
+        if start != end {
+
+            for i in start..=end {
+                string.push(self.buffer.get_nth_byte(i).unwrap() as char);
+            }
+            output.push(string.clone());
+            string.clear();
+        }
+        Some(output)
+    }
+
+    pub fn delete_highlighted(&mut self) -> usize {
+        let mut iter = self.highlights.iter().rev();
+        let byte = iter.next();
+
+        let mut ranges = Vec::new();
+
+        let mut start = *byte.unwrap();
+        let mut end = *byte.unwrap();
+        let mut start_end = *byte.unwrap();
+
+        while let Some(byte) = iter.next() {
+            if *byte == start_end - 1 {
+                start = *byte;
+                start_end = *byte;
+            } else {
+                //self.buffer.delete(start..=end);
+                ranges.push(start..=end);
+
+                start = *byte;
+                end = *byte;
+                start_end = *byte;
+            }
+
+            while let Some(byte) = iter.next() {
+                if *byte == start_end - 1 {
+                    start = *byte;
+                    start_end = *byte;
+                } else {
+                    //self.buffer.delete(start..=end);
+                    ranges.push(start..=end);
+
+                    start = *byte;
+                    end = *byte;
+                    start_end = *byte;
+                }
+
+            }
+        }
+        if start != end {
+            //self.buffer.delete(start..=end);
+            ranges.push(start..=end);
+        }
+
+        self.buffer.bulk_delete(ranges);
+
+        start
+    }
 
     pub fn get_line_count(&self) -> usize {
         self.buffer.get_line_count()
@@ -349,13 +460,18 @@ impl File {
         self.buffer.get_cursor_from_byte_offset(byte_offset)
     }
 
+    pub fn insert_char(&mut self, byte_offset: usize, c: char) {
+        self.buffer.insert_current(byte_offset, c.to_string());
+        self.saved = false;
+    }
+
     pub fn insert_after_current<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
-        self.buffer.insert_current(byte_offset, c);
+        self.buffer.insert(byte_offset, c);
         self.saved = false;
     }
     pub fn insert_before_current<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
         let byte_offset = byte_offset.saturating_sub(1);
-        self.buffer.insert_current(byte_offset, c);
+        self.buffer.insert(byte_offset, c);
         self.saved = false;
     }
 
@@ -374,7 +490,6 @@ impl File {
         self.buffer.delete_current(range);
         self.saved = false;
     }
-
     pub fn delete<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
         self.buffer.delete(range);
         self.saved = false;

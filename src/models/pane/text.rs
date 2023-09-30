@@ -415,6 +415,30 @@ impl Pane for TextBuffer {
                                 RegisterMessage::SetClipboard(line)
                             }
                         }
+                        "selection" => {
+                            let selections = self.file.get_highlighted();
+
+                            if let Some(selections) = selections {
+
+                                if selections.len() == 1 {
+                                    let text = selections[0].clone();
+
+                                    if let Some(Either::Left(reg)) = register {
+                                        RegisterMessage::AddNumbered(reg, text)
+                                    } else if let Some(Either::Right(reg)) = register {
+                                        RegisterMessage::AddNamed(reg, text)
+                                    } else {
+                                        RegisterMessage::SetClipboard(text)
+                                    }
+                                } else {
+                                    // TODO: for a vec of size greater than 1, we need to have a special selection system
+                                    todo!("Handle multiple selections");
+                                }
+
+                            } else {
+                                return;
+                            }
+                        }
                         _ => panic!("Invalid copy verb"),
                     };
 
@@ -477,6 +501,10 @@ impl Pane for TextBuffer {
                             let byte_offset = byte_offset - line.len();
                             self.set_cursor_to_byte_position(byte_offset);
 
+                        }
+                        "selection" => {
+                            let byte_offset =self.file.delete_highlighted();
+                            self.set_cursor_to_byte_position(byte_offset);
                         }
                         _ => panic!("Invalid delete verb"),
                     }
@@ -576,11 +604,14 @@ impl TextPane for TextBuffer {
 
     fn newline(&mut self) {
         let index = self.get_current_byte_position();
-        self.file.insert_after(index, '\n'.to_string());
+        self.insert_char(index, '\n');
         self.cursor.move_cursor(CursorMovement::Down, 1, &self.file);
         self.cursor.move_cursor(CursorMovement::LineStart, 1, &self.file);
     }
 
+    fn insert_char(&mut self, index: usize, c: char) {
+        self.file.insert_char(index, c);
+    }
     fn insert_str_after(&mut self, index: usize, string: &str) {
         self.file.insert_after_current(index, string);
     }
