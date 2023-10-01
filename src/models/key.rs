@@ -156,6 +156,26 @@ bitflags! {
 
 }
 
+impl fmt::Display for KeyModifiers {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut modifiers = Vec::new();
+        if self.contains(KeyModifiers::SHIFT) {
+            modifiers.push("\"Shift\"");
+        }
+        if self.contains(KeyModifiers::CTRL) {
+            modifiers.push("\"Ctrl\"");
+        }
+        if self.contains(KeyModifiers::ALT) {
+            modifiers.push("\"Alt\"");
+        }
+        if modifiers.is_empty() {
+            write!(f, "")
+        } else {
+            write!(f, "{}", modifiers.join(","))
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct KeyEvent {
     pub key: Key,
@@ -191,6 +211,10 @@ impl fmt::Display for KeyEvent {
         }
         write!(f, "{}", self.key)
     }
+}
+
+pub fn key_event_to_string(key_event: &KeyEvent) -> String {
+    format!("{{ key = \"{}\", mod = [{}] }}", key_event.key, key_event.modifiers)
 }
 
 

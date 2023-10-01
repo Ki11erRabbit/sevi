@@ -1,11 +1,89 @@
 
 use std::collections::HashMap;
+use std::fs::File;
+use std::{fmt, io};
+use std::fmt::Formatter;
+use std::io::{Read, Write};
+use std::ptr::write;
 
-use crate::models::key::{Key, KeyEvent, KeyModifiers};
+use crate::models::key::{Key, key_event_to_string, KeyEvent, KeyModifiers};
 
 
+impl fmt::Display for ModeKeybindings {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "[Universal]\n")?;
+
+        {
+            let mut grouped_bindings: HashMap<&String, Vec<&Vec<KeyEvent>>> = HashMap::new();
+            for (keys, command) in &self.universal_bindings {
+                match grouped_bindings.get_mut(command) {
+                    Some(keys_vec) => {
+                        keys_vec.push(keys);
+                    },
+                    None => {
+                        grouped_bindings.insert(command, vec![keys]);
+                    },
+                }
+            }
+
+            for (command, keys_vec) in grouped_bindings {
+                write!(f, "{} = ", command)?;
+
+                if keys_vec.len() == 1 {
+                    write!(f, "{}\n", keys_to_string(&keys_vec[0]))?;
+                } else if keys_vec.len() > 1 {
+                    write!(f, "[")?;
+
+                    let output = keys_vec.iter().map(|keys| keys_to_string(keys)).collect::<Vec<String>>().join(", ");
+
+                    write!(f, "{}]\n", output)?;
+                }
+            }
 
 
+        }
+
+
+        for (mode, bindings) in &self.bindings {
+            write!(f, "\n[{}]\n", mode)?;
+
+            let mut grouped_bindings: HashMap<&String, Vec<&Vec<KeyEvent>>> = HashMap::new();
+
+            for (keys, command) in bindings {
+                match grouped_bindings.get_mut(command) {
+                    Some(keys_vec) => {
+                        keys_vec.push(keys);
+                    },
+                    None => {
+                        grouped_bindings.insert(command, vec![keys]);
+                    },
+                }
+
+                //write!(f, "{} = {}\n", command, keys_to_string(keys))?;
+            }
+
+            for (command, keys_vec) in grouped_bindings {
+                write!(f, "{} = ", command)?;
+
+                if keys_vec.len() == 1 {
+                    write!(f, "{}\n", keys_to_string(&keys_vec[0]))?;
+                } else if keys_vec.len() > 1 {
+                    write!(f, "[")?;
+
+                    let output = keys_vec.iter().map(|keys| keys_to_string(keys)).collect::<Vec<String>>().join(", ");
+
+
+                    write!(f, "{}]\n", output)?;
+                }
+            }
+        }
+        Ok(())
+
+    }
+}
+
+
+pub type Keys= Vec<KeyEvent>;
 
 #[derive(Debug)]
 pub struct ModeKeybindings {
@@ -16,7 +94,6 @@ pub struct ModeKeybindings {
 
 impl Default for ModeKeybindings {
     fn default() -> ModeKeybindings {
-        //TODO: add a way to load keybindings from a file
         let mut bindings = HashMap::new();
 
         bindings.insert("Normal".to_string(), ModeKeybindings::generate_normal_keybindings());
@@ -37,19 +114,32 @@ impl Default for ModeKeybindings {
 impl ModeKeybindings {
 
     pub fn new() -> ModeKeybindings {
-        //TODO: add a way to load keybindings from a file
-        let mut bindings = HashMap::new();
+        let mut bindings = ModeKeybindings::default();
 
-        bindings.insert("Normal".to_string(), ModeKeybindings::generate_normal_keybindings());
-        bindings.insert("Insert".to_string(), ModeKeybindings::generate_insert_keybindings());
-        bindings.insert("Command".to_string(), ModeKeybindings::generate_command_keybindings());
-        bindings.insert("Selection".to_string(), ModeKeybindings::generate_selection_keybindings());
-        bindings.insert("Search".to_string(), ModeKeybindings::generate_search_keybindings());
+        let xdg_dirs = xdg::BaseDirectories::with_prefix("sevi").unwrap();
+        let user_bindings_path = xdg_dirs.place_config_file("keybindings.toml").expect("Failed to create user keybindings file");
+        match File::open(user_bindings_path) {
+            Err(_) => {},
+            Ok(mut user_bindings) => {
+                let mut string = String::new();
+                user_bindings.read_to_string(&mut string).expect("Failed to read user keybindings file");
 
-        ModeKeybindings {
-            universal_bindings: ModeKeybindings::generate_universal_keybindings(),
-            bindings,
+                let user_bindings = ModeKeybindings::load_user_bindings(&string);
+
+                bindings.merge_bindings(user_bindings);
+            },
         }
+        bindings
+    }
+
+    pub fn create_default_config_file() -> io::Result<()> {
+        let mut bindings = ModeKeybindings::default();
+
+        let xdg_dirs = xdg::BaseDirectories::with_prefix("sevi").unwrap();
+        let user_bindings_path = xdg_dirs.place_config_file("keybindings.toml").expect("Failed to create user keybindings file");
+
+        let mut file = File::create(user_bindings_path)?;
+        file.write_all(bindings.to_string().as_bytes())
     }
 
 
@@ -102,6 +192,26 @@ impl ModeKeybindings {
             },
         }
     }
+
+    fn merge_bindings(&mut self, other: Self) {
+        for (keys, command) in other.universal_bindings {
+            self.universal_bindings.insert(keys, command);
+        }
+
+        for (mode, bindings) in other.bindings {
+            match self.bindings.get_mut(&mode) {
+                Some(mode_bindings) => {
+                    for (keys, command) in bindings {
+                        mode_bindings.insert(keys, command);
+                    }
+                },
+                None => {
+                    self.bindings.insert(mode, bindings);
+                },
+            }
+        }
+    }
+
 
     fn generate_universal_keybindings() -> HashMap<Vec<KeyEvent>, String> {
         let mut bindings = HashMap::new();
@@ -224,14 +334,14 @@ impl ModeKeybindings {
             {
                 bindings.insert(vec![KeyEvent {
                     key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
+                    modifiers: KeyModifiers::CTRL,
                 }, KeyEvent {
                     key: Key::Char('h'),
                     modifiers: KeyModifiers::NONE,
                 }], "pane_left".to_string());
                 bindings.insert(vec![KeyEvent {
                     key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
+                    modifiers: KeyModifiers::CTRL,
                 }, KeyEvent {
                     key: Key::Left,
                     modifiers: KeyModifiers::NONE,
@@ -241,14 +351,14 @@ impl ModeKeybindings {
             {
                 bindings.insert(vec![KeyEvent {
                     key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
+                    modifiers: KeyModifiers::CTRL,
                 }, KeyEvent {
                     key: Key::Char('l'),
                     modifiers: KeyModifiers::NONE,
                 }], "pane_right".to_string());
                 bindings.insert(vec![KeyEvent {
                     key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
+                    modifiers: KeyModifiers::CTRL,
                 }, KeyEvent {
                     key: Key::Right,
                     modifiers: KeyModifiers::NONE,
@@ -258,14 +368,14 @@ impl ModeKeybindings {
             {
                 bindings.insert(vec![KeyEvent {
                     key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
+                    modifiers: KeyModifiers::CTRL,
                 }, KeyEvent {
                     key: Key::Char('k'),
                     modifiers: KeyModifiers::NONE,
                 }], "pane_up".to_string());
                 bindings.insert(vec![KeyEvent {
                     key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
+                    modifiers: KeyModifiers::CTRL,
                 }, KeyEvent {
                     key: Key::Up,
                     modifiers: KeyModifiers::NONE,
@@ -275,14 +385,14 @@ impl ModeKeybindings {
             {
                 bindings.insert(vec![KeyEvent {
                     key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
+                    modifiers: KeyModifiers::CTRL,
                 }, KeyEvent {
                     key: Key::Char('j'),
                     modifiers: KeyModifiers::NONE,
                 }], "pane_down".to_string());
                 bindings.insert(vec![KeyEvent {
                     key: Key::Char('w'),
-                    modifiers: KeyModifiers::NONE,
+                    modifiers: KeyModifiers::CTRL,
                 }, KeyEvent {
                     key: Key::Down,
                     modifiers: KeyModifiers::NONE,
@@ -1408,8 +1518,365 @@ impl ModeKeybindings {
         bindings
     }
 
+    fn load_user_bindings(file_string: &str) -> ModeKeybindings {
+        let table: toml::Value = toml::from_str(file_string).expect("failed to parse user keybindings");
 
+        let possible_bindings = [
+            "right",
+            "left",
+            "up",
+            "down",
+            "start_of_file",
+            "end_of_file",
+            "page_up",
+            "page_down",
+            "half_page_up",
+            "half_page_down",
+            "split_horizontal",
+            "split_vertical",
+            "pane_left",
+            "pane_right",
+            "pane_up",
+            "pane_down",
+            "new_tab",
+            "new_tab_current_pane",
+            "tab_left",
+            "tab_right",
+            "jump_forwards",
+            "jump_backwards",
+            "cancel",
+            "start_of_line",
+            "end_of_line",
+            "up_line_start",
+            "down_line_start",
+            "goto_line",
+            "next_word_front",
+            "next_word_back",
+            "previous_word_front",
+            "previous_word_back",
+            "goto_pair",
+            "jump_paragraph",
+            "jump_paragraph_back",
+            "insert_before",
+            "insert_after",
+            "insert_start",
+            "insert_end",
+            "insert_below",
+            "insert_above",
+            "command_mode",
+            "selection_mode",
+            "selection_mode_line",
+            "selection_mode_block",
+            "search_mode_down",
+            "search_mode_up",
+            "replace_mode",
+            "paste_before",
+            "paste_after",
+            "copy_char",
+            "copy_line",
+            "copy_word",
+            "copy_to_next_word",
+            "copy_to_prev_word",
+            "copy_to_end_line",
+            "copy_to_start_line",
+            "cut_char",
+            "cut_line",
+            "cut_word",
+            "cut_to_next_word",
+            "cut_to_prev_word",
+            "cut_to_end_line",
+            "cut_to_start_line",
+            "delete_char",
+            "delete_line",
+            "delete_word",
+            "delete_to_next_word",
+            "delete_to_prev_word",
+            "delete_to_end_line",
+            "delete_to_start_line",
+            "open_completion",
+            "undo",
+            "redo",
+            "replace",
+            "backspace",
+            "delete",
+            "newline",
+            "start",
+            "end",
+            "execute",
+            "paste",
+            "copy",
+            "cut",
+            "next_match",
+            "previous_match",
+            "delete_search",
+        ];
+
+        let universal_bindings = match table.get("Universal") {
+            Some(value) => {
+                parse_keybindings(value, &possible_bindings)
+            },
+            None => {
+                HashMap::new()
+            },
+        };
+
+        let normal_bindings= match table.get("Normal") {
+            Some(value) => {
+                parse_keybindings(value, &possible_bindings)
+            },
+            None => {
+                HashMap::new()
+            },
+        };
+
+        let insert_bindings = match table.get("Insert") {
+            Some(value) => {
+                parse_keybindings(value, &possible_bindings)
+            },
+            None => {
+                HashMap::new()
+            },
+        };
+
+        let command_bindings = match table.get("Command") {
+            Some(value) => {
+                parse_keybindings(value, &possible_bindings)
+            },
+            None => {
+                HashMap::new()
+            },
+        };
+
+        let selection_bindings = match table.get("Selection") {
+            Some(value) => {
+                parse_keybindings(value, &possible_bindings)
+            },
+            None => {
+                HashMap::new()
+            },
+        };
+
+        let search_bindings = match table.get("Search") {
+            Some(value) => {
+                parse_keybindings(value, &possible_bindings)
+            },
+            None => {
+                HashMap::new()
+            },
+        };
+
+        let replace_bindings = match table.get("Replace") {
+            Some(value) => {
+                parse_keybindings(value, &possible_bindings)
+            },
+            None => {
+                HashMap::new()
+            },
+        };
+
+        let mut bindings = HashMap::new();
+
+        bindings.insert("Normal".to_string(), normal_bindings);
+        bindings.insert("Insert".to_string(), insert_bindings);
+        bindings.insert("Command".to_string(), command_bindings);
+        bindings.insert("Selection".to_string(), selection_bindings);
+        bindings.insert("Search".to_string(), search_bindings);
+        bindings.insert("Replace".to_string(), replace_bindings);
+
+        ModeKeybindings {
+            universal_bindings,
+            bindings,
+        }
+    }
 
 }
 
+fn keys_to_string(keys: &Keys) -> String {
+    let mut string = String::new();
 
+
+    if keys.len() == 1 {
+        let key = &keys[0];
+        string.push_str(&key_event_to_string(key));
+    } else {
+
+        string.push_str("{ keys = [");
+
+        string.push_str(&keys.iter().map(|key| {
+            key_event_to_string(key)
+        }).collect::<Vec<String>>().join(", "));
+
+        string.push_str("] }");
+    }
+
+
+    string
+}
+
+
+fn parse_key(value: &toml::Value) -> Vec<KeyEvent> {
+    match value {
+        toml::Value::String(string) => {
+            if string.len() == 1 {
+                let key = string.chars().next().unwrap();
+                vec![KeyEvent {
+                    key: Key::Char(key),
+                    modifiers: KeyModifiers::NONE,
+                }]
+            } else {
+                let key = match string.as_str() {
+                    "Space" => Key::Char(' '),
+                    "Backspace" => Key::Backspace,
+                    "Enter" => Key::Enter,
+                    "Left" => Key::Left,
+                    "Right" => Key::Right,
+                    "Up" => Key::Up,
+                    "Down" => Key::Down,
+                    "Home" => Key::Home,
+                    "End" => Key::End,
+                    "PageUp" => Key::PageUp,
+                    "PageDown" => Key::PageDown,
+                    "Tab" => Key::Tab,
+                    "BackTab" => Key::BackTab,
+                    "Delete" => Key::Delete,
+                    "Insert" => Key::Insert,
+                    "Esc" => Key::Esc,
+                    "CapsLock" => Key::CapsLock,
+                    "ScrollLock" => Key::ScrollLock,
+                    "NumLock" => Key::NumLock,
+                    "PrintScreen" => Key::PrintScreen,
+                    "Pause" => Key::Pause,
+                    "Menu" => Key::Menu,
+                    "KeypadBegin" => Key::KeypadBegin,
+                    "F1" => Key::F(1),
+                    "F2" => Key::F(2),
+                    "F3" => Key::F(3),
+                    "F4" => Key::F(4),
+                    "F5" => Key::F(5),
+                    "F6" => Key::F(6),
+                    "F7" => Key::F(7),
+                    "F8" => Key::F(8),
+                    "F9" => Key::F(9),
+                    "F10" => Key::F(10),
+                    "F11" => Key::F(11),
+                    "F12" => Key::F(12),
+                    "F13" => Key::F(13),
+                    "F14" => Key::F(14),
+                    "F15" => Key::F(15),
+                    "F16" => Key::F(16),
+                    "F17" => Key::F(17),
+                    "F18" => Key::F(18),
+                    "F19" => Key::F(19),
+                    "F20" => Key::F(20),
+                    "F21" => Key::F(21),
+                    "F22" => Key::F(22),
+                    "F23" => Key::F(23),
+                    "F24" => Key::F(24),
+                    x => {
+                        println!("unimplemented key: {}", x);
+                        unimplemented!()},
+                };
+
+                vec![KeyEvent {
+                    key,
+                    modifiers: KeyModifiers::NONE,
+                }]
+            }
+        },
+        toml::Value::Table(table) => {
+
+            if let Some(key) = table.get("key") {
+                let key = parse_key(key);
+                let mod_keys = table["mod"].as_array().expect("modifier keys were not an array").iter().map(|value| {
+                    match value.as_str().unwrap() {
+                        "Ctrl" => KeyModifiers::CTRL,
+                        "Alt" => KeyModifiers::ALT,
+                        "Shift" => KeyModifiers::SHIFT,
+                        _ => unimplemented!(),
+                    }
+                }).fold(KeyModifiers::NONE, |acc, modifier| {
+                    acc | modifier
+                });
+
+                vec![KeyEvent {
+                    key: key[0].key,
+                    modifiers: mod_keys,
+                }]
+            }
+            else if let Some(keys) = table.get("keys") {
+                let keys = keys.as_array().expect("keys were not an array").iter().map(|value| {
+                    parse_key(value).remove(0)
+                }).collect();
+
+                keys
+            }
+            else {
+                unreachable!()
+            }
+
+        },
+        _ => unreachable!(),
+    }
+}
+
+fn parse_keys(value: &toml::Value) -> Vec<Keys> {
+    match value {
+        toml::Value::String(_) => {
+            let key = parse_key(value);
+            vec![key]
+        },
+        toml::Value::Table(_) => {
+            let key = parse_key(value);
+            vec![key]
+        },
+        toml::Value::Array(array) => {
+            array.iter().map(|value| {
+                parse_key(value)
+            }).collect()
+        },
+        _ => unreachable!(),
+    }
+}
+
+fn parse_custom_binding(value: &toml::Value) -> (Keys, String) {
+    let keys = parse_keys(&value["binding"]);
+
+    let command = value["command"].as_str().unwrap().to_string();
+
+    (keys[0].clone(), command)
+}
+
+fn parse_custom(value: &toml::Value) -> Vec<(Keys, String)> {
+    let mut custom = Vec::new();
+
+    let array = value.as_array().expect("custom keybindings were not an array");
+
+    for value in array {
+        custom.push(parse_custom_binding(value));
+    }
+
+    custom
+}
+
+fn parse_keybindings(table: &toml::Value, commands: &[&str]) -> HashMap<Keys, String> {
+    let mut keybindings = HashMap::new();
+
+    for command in commands.iter() {
+        if let Some(value) = table.get(command) {
+            let keys = parse_keys(value);
+
+            for key in keys {
+                keybindings.insert(key, command.to_string());
+            }
+        }
+    }
+    if let Some(value) = table.get("custom") {
+        let custom = parse_custom(value);
+
+        for (keys, command) in custom {
+            keybindings.insert(keys, command);
+        }
+    }
+
+    keybindings
+}

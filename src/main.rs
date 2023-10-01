@@ -15,6 +15,8 @@ pub mod threads;
 
 fn main() {
 
+
+
     let mut register = threads::registers::Registers::new();
 
     let shared = register.get_shared();
@@ -54,5 +56,6 @@ fn main() {
             
     }
     registers_handle.join().unwrap();
+    crate::models::settings::mode_keybindings::ModeKeybindings::create_default_config_file().expect("Could not create default config file");
     
 }
