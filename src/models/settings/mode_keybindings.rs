@@ -1302,6 +1302,56 @@ impl ModeKeybindings {
 
     fn generate_search_keybindings() -> HashMap<Vec<KeyEvent>, String>  {
         let mut bindings = HashMap::new();
+
+        // Movement between matches
+        {
+            // Next Match
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('n'),
+                    modifiers: KeyModifiers::CTRL,
+                }], "next_match".to_string());
+
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Enter,
+                    modifiers: KeyModifiers::NONE,
+                }], "next_match".to_string());
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('l'),
+                    modifiers: KeyModifiers::CTRL,
+                }], "next_match".to_string());
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('j'),
+                    modifiers: KeyModifiers::CTRL,
+                }], "next_match".to_string());
+            }
+            // Previous Match
+            {
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('N'),
+                    modifiers: KeyModifiers::CTRL,
+                }], "previous_match".to_string());
+
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Backspace,
+                    modifiers: KeyModifiers::NONE,
+                }], "previous_match".to_string());
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('k'),
+                    modifiers: KeyModifiers::CTRL,
+                }], "previous_match".to_string());
+                bindings.insert(vec![KeyEvent {
+                    key: Key::Char('h'),
+                    modifiers: KeyModifiers::CTRL,
+                }], "previous_match".to_string());
+            }
+
+
+
+        }
+
+
+
         // Escape
         {
             bindings.insert(vec![KeyEvent {

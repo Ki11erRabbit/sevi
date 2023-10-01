@@ -424,13 +424,12 @@ impl File {
         }
     }
 
-    pub fn find(&mut self, _col: usize, row: usize, string: &str, down: bool) -> BTreeSet<(usize,usize)> {
+    pub fn find(&mut self, _col: usize, row: usize, string: &str, down: bool) -> BTreeSet<usize> {
         let range = if down {
             row..self.buffer.get_line_count()
         } else {
             0..row
         };
-        let mut output = BTreeSet::new();
         for y in range {
             if let Some(line) = self.buffer.get_row(y) {
                 let mut line = line.to_string();
@@ -439,7 +438,6 @@ impl File {
 
                     let index = index + split_bits;
 
-                    output.insert((index, y));
 
                     let range =  self.buffer.get_byte_offset(index, y)
                         .expect("Invalid byte offset")
@@ -455,7 +453,7 @@ impl File {
                 }
             }
         }
-        output
+        self.highlights.clone()
     }
 
     pub fn get_byte_offset(&self, row: usize, col: usize) -> Option<usize> {

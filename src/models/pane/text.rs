@@ -125,6 +125,20 @@ impl Pane for TextBuffer {
         match command {
             "move" => {
                 let direction = command_args.next();
+                if let Some("to") = direction {
+                    if let Some(set) = command_args.next() {
+                        let set = set.split(',').map(|x| x.parse::<usize>().unwrap()).collect::<Vec<usize>>();
+                        self.cursor.set_cursor(set[0], set[1]);
+                    }
+                    return;
+                } else if let Some("to_byte") = direction {
+                    if let Some(byte) = command_args.next() {
+                        if let Ok(byte) = byte.parse::<usize>() {
+                            self.set_cursor_to_byte_position(byte);
+                        }
+                    }
+                    return;
+                }
                 let direction = match direction {
                     Some("up") => CursorMovement::Up,
                     Some("down") => CursorMovement::Down,

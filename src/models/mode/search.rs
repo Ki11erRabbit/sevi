@@ -29,8 +29,9 @@ pub struct SearchMode {
     edit_pos: usize,
     settings: Option<Rc<RefCell<Settings>>>,
     key_buffer: Vec<KeyEvent>,
-    found_pos: BTreeSet<(usize, usize)>,
+    found_pos: BTreeSet<usize>,
     number_buffer: String,
+    searched_whole_file: bool,
 }
 
 
@@ -44,6 +45,7 @@ impl SearchMode {
             key_buffer: Vec::new(),
             found_pos: BTreeSet::new(),
             number_buffer: String::new(),
+            searched_whole_file: false,
         }
     }
 
@@ -120,6 +122,14 @@ impl SearchMode {
                 self.search_string.clear();
                 self.edit_pos = 0;
             }
+            "next_match" => {
+                self.next_match(pane);
+                self.key_buffer.clear();
+            }
+            "previous_match" => {
+                self.previous_match(pane);
+                self.key_buffer.clear();
+            }
             _ => {}
         }
         self.number_buffer.clear();
@@ -143,6 +153,93 @@ impl SearchMode {
 
         } else {
             self.found_pos.clear();
+        }
+    }
+
+    fn search_rest(&mut self, pane: &mut dyn TextPane) -> bool {
+        if self.search_string.len() > 0 {
+
+            let (col, row) = pane.get_cursor();
+
+            let file = pane.borrow_current_file_mut();
+
+            let down = match self.search_type {
+                SearchType::Forward => false,
+                SearchType::Backward => true,
+            };
+
+
+            let found = file.find(col, row, &self.search_string, down);
+
+            self.found_pos.extend(found);
+
+        } else {
+            self.found_pos.clear();
+        }
+        let out = self.searched_whole_file;
+
+        self.searched_whole_file = true;
+
+        out
+    }
+
+    fn next_match(&mut self, pane: &mut dyn TextPane) {
+        if self.found_pos.len() > 0 {
+
+            let mut iter = self.found_pos.iter();
+
+
+            let mut counter = 0;
+            while let Some(byte) = iter.next() {
+                eprintln!("{} {}", *byte, pane.get_current_byte_position());
+
+                if *byte < pane.get_current_byte_position() {
+                    continue
+                } else if *byte >= pane.get_current_byte_position() && *byte - counter == pane.get_current_byte_position() {
+                    counter += 1;
+                } else {
+                    pane.execute_command(&format!("move to_byte {}", *byte));
+                    return;
+                }
+            }
+            self.search_rest(pane);
+
+            let mut iter = self.found_pos.iter();
+            let byte = iter.next().unwrap();
+            pane.execute_command(&format!("move to_byte {}", *byte));
+
+        }
+    }
+
+    fn previous_match(&mut self, pane: &mut dyn TextPane) {
+        if self.found_pos.len() > 0 {
+
+            loop {
+                let mut iter = self.found_pos.iter().rev();
+
+                let mut counter = 0;
+                while let Some(byte) = iter.next() {
+                    eprintln!("{} {}", *byte, pane.get_current_byte_position());
+
+                    if *byte > pane.get_current_byte_position() {
+                        continue
+                    } else if *byte <= pane.get_current_byte_position() && *byte + counter == pane.get_current_byte_position() {
+                        counter += 1;
+                    } else {
+                        pane.execute_command(&format!("move to_byte {}", *byte));
+                        return;
+                    }
+                }
+
+                if self.search_rest(pane) {
+                    let mut iter = self.found_pos.iter().rev();
+                    let byte = iter.next().unwrap();
+                    pane.execute_command(&format!("move to_byte {}", *byte));
+                    return;
+                }
+            }
+
+
         }
     }
 }

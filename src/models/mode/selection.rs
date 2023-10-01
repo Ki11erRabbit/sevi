@@ -147,11 +147,15 @@ impl SelectionMode {
             "delete" => {
                 pane.execute_command("delete selection");
                 pane.execute_command("change_mode Normal");
-                pane.execute_command("clear_selection");
-            }
+                pane.execute_command("clear_selection");    }
             "cut" => {
                 pane.execute_command(&format!("copy selection"));
                 pane.execute_command("delete selection");
+                pane.execute_command("change_mode Normal");
+                pane.execute_command("clear_selection");
+            }
+            "paste" => {
+                pane.execute_command("paste selection");
                 pane.execute_command("change_mode Normal");
                 pane.execute_command("clear_selection");
             }
