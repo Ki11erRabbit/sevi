@@ -1,6 +1,5 @@
 use std::cell::RefCell;
-use std::collections::{BTreeSet, HashSet};
-use std::fs;
+use std::collections::BTreeSet;
 use std::path::PathBuf;
 use std::rc::Rc;
 use tree_sitter::Parser;
@@ -31,7 +30,6 @@ impl File {
     pub fn new(path: Option<PathBuf>, settings: Rc<RefCell<Settings>>) -> Self {
         match path {
             Some(path) => {
-                let file = fs::File::open(&path).unwrap();
                 let string = std::fs::read_to_string(&path).unwrap();
 
                 let file_type = path.extension().and_then(|ext| ext.to_str()).unwrap_or("txt").to_string();
@@ -435,7 +433,6 @@ impl File {
         let mut output = BTreeSet::new();
         for y in range {
             if let Some(line) = self.buffer.get_row(y) {
-                let byte_start = line.get_byte_start();
                 let mut line = line.to_string();
                 let mut split_bits = 0;
                 while let Some(index) = line.find(string) {
@@ -443,13 +440,11 @@ impl File {
                     let index = index + split_bits;
 
                     output.insert((index, y));
-                    let old_index = index;
-                    let index = byte_start + index;
 
-                    let range =  self.buffer.get_byte_offset(old_index, y)
+                    let range =  self.buffer.get_byte_offset(index, y)
                         .expect("Invalid byte offset")
                         ..
-                        self.buffer.get_byte_offset(old_index, y)
+                        self.buffer.get_byte_offset(index, y)
                             .expect("Invalid byte offset") +
                             string.len();
                     for b in range {

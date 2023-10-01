@@ -1,15 +1,11 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use tuirealm::{Attribute, AttrValue, Component, Event, Frame, MockComponent, NoUserEvent, Props, State};
+use tuirealm::{Attribute, AttrValue, Component, Event, Frame, MockComponent, Props, State};
 use tuirealm::command::{Cmd, CmdResult};
 use tuirealm::tui::layout::Rect;
-use tuirealm::tui::text::Text;
-use tuirealm::tui::widgets::{Paragraph, Wrap};
 use crate::models::{AppEvent, Message};
 use crate::models::pane::{Pane, TextPane};
 use crate::models::pane::text::TextBuffer;
-use crate::models::settings::editor_settings::NumberLineStyle;
-use crate::models::style::StyledText;
 use crate::widgets::editor::Editor;
 
 pub struct Buffer {
@@ -48,7 +44,7 @@ impl MockComponent for Buffer {
             self.update_scroll(area);
 
             let pane = self.pane.clone();
-            let mut pane = pane.borrow_mut();
+            let pane = pane.borrow_mut();
             /*let (_, offset) = pane.get_scroll_amount().unwrap_or((0, 0));
             let text = pane.draw_section(offset, offset + area.height as usize);*/
             let text = pane.draw();
@@ -80,7 +76,7 @@ impl MockComponent for Buffer {
         State::None
     }
 
-    fn perform(&mut self, cmd: Cmd) -> CmdResult {
+    fn perform(&mut self, _cmd: Cmd) -> CmdResult {
         CmdResult::None
     }
 }

@@ -4,7 +4,6 @@ use std::rc::Rc;
 use crate::models::key::KeyEvent;
 use crate::models::pane::TextPane;
 use crate::models::settings::Settings;
-use crate::models::style::StyledText;
 
 
 pub mod normal;

@@ -1,4 +1,4 @@
-use std::fmt::format;
+
 use tuirealm::props::{Alignment, Style};
 use tuirealm::tui::buffer::Buffer;
 use tuirealm::tui::prelude::Rect;

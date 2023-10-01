@@ -1,7 +1,5 @@
 use std::any::Any;
 use std::cell::RefCell;
-use std::fmt::format;
-use std::mem::forget;
 use std::rc::Rc;
 use crate::models::key::{Key, KeyEvent};
 use crate::models::mode::{Mode, TextMode};

@@ -1,8 +1,6 @@
 use std::any::Any;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::rc::Rc;
-use crate::models::settings::mode_keybindings::ModeKeybindings;
 
 
 use crate::models::key::KeyEvent;
@@ -10,7 +8,6 @@ use crate::models::key::Key;
 use crate::models::key::KeyModifiers;
 use crate::models::pane::TextPane;
 use crate::models::settings::Settings;
-use crate::models::style::StyledText;
 
 use super::{Mode, TextMode};
 

@@ -1,7 +1,7 @@
 
 use std::time::Duration;
 
-use tuirealm::{Application, NoUserEvent, terminal::TerminalBridge, tui::prelude::{Layout, Direction, Constraint}, EventListenerCfg, Update, Event, SubEventClause, SubClause, Sub};
+use tuirealm::{Application, terminal::TerminalBridge, tui::prelude::{Layout, Direction, Constraint}, EventListenerCfg, Update, Event, SubEventClause, SubClause, Sub};
 
 use std::rc::Rc;
 use std::cell::RefCell;

@@ -6,14 +6,13 @@ use crate::models::style::StyledText;
 use crate::models::cursor::Cursor;
 use crate::models::key::KeyEvent;
 use crate::models::pane::TextPane;
-use std::path::PathBuf;
 use either::Either;
 
 
 use crate::models::cursor::CursorMovement;
 use crate::models::pane::Pane;
 use crate::models::file::File;
-use crate::models::{AppEvent, Message, Rect};
+use crate::models::{AppEvent, Rect};
 use crate::models::file::file::ReplaceSelections;
 use crate::models::mode::command::CommandMode;
 use crate::models::mode::insert::InsertMode;
@@ -92,7 +91,7 @@ impl TextBuffer {
     }
 
     fn get_number_line_width(&self) -> usize {
-        let mut line_count = self.file.get_line_count();
+        let line_count = self.file.get_line_count();
         match self.settings.borrow().editor_settings.number_line {
             NumberLineStyle::None => 0,
             NumberLineStyle::Relative => {

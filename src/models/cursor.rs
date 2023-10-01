@@ -108,7 +108,7 @@ impl Cursor {
     }
 
 
-    pub fn move_cursor(&mut self, direction: CursorMovement, mut n: usize, file: &File) {
+    pub fn move_cursor(&mut self, direction: CursorMovement, n: usize, file: &File) {
         let number_of_lines = file.get_line_count();
 
         let number_of_cols = if let Some(cols) = file.get_row_len(self.row) {

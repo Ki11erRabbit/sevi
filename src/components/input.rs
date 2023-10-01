@@ -32,7 +32,7 @@ impl MockComponent for InputLayer {
         State::None
     }
 
-    fn perform(&mut self, cmd: Cmd) -> CmdResult {
+    fn perform(&mut self, _cmd: Cmd) -> CmdResult {
         CmdResult::None
     }
 }

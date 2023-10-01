@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::fmt;
 use std::io::Write;
-use std::ops::{RangeBounds, RangeInclusive};
+use std::ops::{RangeBounds};
 use std::path::PathBuf;
 use crate::models::settings::Settings;
 
@@ -356,6 +356,8 @@ impl Buffer {
                 self.history[self.current].replace(range, text.as_ref());
 
                 trees[self.current].edit(&edit);
+
+                trees[self.current] = parser.parse(&self.history[self.current].to_string(), Some(&trees[self.current])).unwrap();
 
             },
             None => {

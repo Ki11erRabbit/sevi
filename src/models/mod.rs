@@ -1,5 +1,4 @@
 use std::cmp;
-use crate::models::style::StyledText;
 
 pub mod key;
 

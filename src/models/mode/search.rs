@@ -1,10 +1,9 @@
 use std::any::Any;
 use std::cell::RefCell;
-use std::collections::{BTreeSet, HashSet};
+use std::collections::BTreeSet;
 use std::fmt;
 use std::rc::Rc;
 use crate::models::key::{Key, KeyEvent};
-use crate::models::mode::command::CommandMode;
 use crate::models::mode::{Mode, TextMode};
 use crate::models::pane::TextPane;
 use crate::models::settings::Settings;
@@ -201,7 +200,7 @@ impl TextMode for SearchMode {
         }
     }
 
-    fn update_status(&self, pane: &dyn TextPane) -> (String, String, String) {
+    fn update_status(&self, _pane: &dyn TextPane) -> (String, String, String) {
         let first = format!("{}{} ", self.search_type ,self.search_string);
         let second = String::new();
 

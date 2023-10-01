@@ -1,10 +1,6 @@
 use model::Model;
-use tuirealm::{PollStrategy, Update, Attribute, AttrValue};
-use tuirealm::Sub;
-use tuirealm::SubEventClause;
-use tuirealm::SubClause;
+use tuirealm::{PollStrategy, Update};
 
-use std::env;
 use crate::models::Message;
 
 pub mod model;

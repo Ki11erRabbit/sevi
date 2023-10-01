@@ -5,7 +5,7 @@ use tuirealm::command::{Cmd, CmdResult};
 
 use tuirealm::tui::layout::Rect;
 use tuirealm::tui::text::Text;
-use tuirealm::tui::widgets::{Cell, Paragraph};
+use tuirealm::tui::widgets::Paragraph;
 use crate::models::{AppEvent, Message};
 use crate::models::pane::Pane;
 use crate::models::pane::text::TextBuffer;
@@ -42,7 +42,7 @@ impl MockComponent for StatusBar {
 
     }
 
-    fn query(&self, attr: Attribute) -> Option<AttrValue> {
+    fn query(&self, _attr: Attribute) -> Option<AttrValue> {
         None
     }
 
@@ -54,7 +54,7 @@ impl MockComponent for StatusBar {
         State::None
     }
 
-    fn perform(&mut self, cmd: Cmd) -> CmdResult {
+    fn perform(&mut self, _cmd: Cmd) -> CmdResult {
         CmdResult::None
     }
 }
