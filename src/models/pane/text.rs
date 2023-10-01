@@ -65,16 +65,26 @@ impl TextBuffer {
 
 
         let mut modes = HashMap::new();
-        modes.insert("Normal".to_string(), normal_mode.clone());
+        modes.insert("Normal".to_string(), normal_mode);
         modes.insert("Command".to_string(), command_mode);
         modes.insert("Insert".to_string(), insert_mode);
         modes.insert("Selection".to_string(), selection_mode);
         modes.insert("Search".to_string(), search_mode);
 
+
+        let mode = {
+            let settings = settings.clone();
+            let settings = settings.borrow();
+            let mode = &settings.editor_settings.default_mode;
+            eprintln!("Mode: {}", mode);
+            modes.get(mode).unwrap().clone()
+        };
+
+
         Self {
             file,
             cursor: Cursor::new(),
-            mode: normal_mode,
+            mode,
             modes,
             settings,
             sender,
@@ -155,10 +165,16 @@ impl Pane for TextBuffer {
 
             },
             "change_mode" => {
-                let mode = command_args.next().unwrap_or("Normal");
-                match mode {
+
+                //let mode = command_args.next().unwrap_or("Normal");
+                let mode = match command_args.next() {
+                    Some(mode) => mode.to_string(),
+                    None => self.settings.borrow().editor_settings.default_mode.clone(),
+                };
+
+                match mode.as_str() {
                     "Normal" | "Insert" | "Command" => {
-                        self.mode = self.modes.get(mode).unwrap().clone();
+                        self.mode = self.modes.get(&mode).unwrap().clone();
                     },
                     "insert_before" => {
                         self.mode = self.modes.get("Insert").unwrap().clone();

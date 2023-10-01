@@ -104,7 +104,9 @@ impl SelectionMode {
         match command_name {
             "cancel" => {
                 self.key_buffer.clear();
-                pane.execute_command("change_mode Normal");
+                let settings = self.settings.clone().unwrap();
+                let mut settings = settings.borrow();
+                pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             },
             "left" => {
@@ -141,22 +143,30 @@ impl SelectionMode {
             },
             "copy" => {
                 pane.execute_command(&format!("copy selection"));
-                pane.execute_command("change_mode Normal");
+                let settings = self.settings.clone().unwrap();
+                let mut settings = settings.borrow();
+                pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             }
             "delete" => {
                 pane.execute_command("delete selection");
-                pane.execute_command("change_mode Normal");
+                let settings = self.settings.clone().unwrap();
+                let mut settings = settings.borrow();
+                pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");    }
             "cut" => {
                 pane.execute_command(&format!("copy selection"));
                 pane.execute_command("delete selection");
-                pane.execute_command("change_mode Normal");
+                let settings = self.settings.clone().unwrap();
+                let mut settings = settings.borrow();
+                pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             }
             "paste" => {
                 pane.execute_command("paste selection");
-                pane.execute_command("change_mode Normal");
+                let settings = self.settings.clone().unwrap();
+                let mut settings = settings.borrow();
+                pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             }
             _ => {}
@@ -211,7 +221,9 @@ impl TextMode for SelectionMode {
                 ..
             } => {
                 self.key_buffer.clear();
-                pane.execute_command("change_mode Normal");
+                let settings = self.settings.clone().unwrap();
+                let mut settings = settings.borrow();
+                pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             },
             key => {
@@ -221,7 +233,9 @@ impl TextMode for SelectionMode {
                 let settings = self.settings.clone().unwrap();
                 let mut settings = settings.borrow_mut();
                 if let Some(command) = settings.mode_keybindings.get(&self.get_name(), &self.key_buffer) {
-                    self.execute_command(command, pane);
+                    let command = command.clone();
+                    drop(settings);
+                    self.execute_command(&command, pane);
                 }
             }
         }

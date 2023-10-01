@@ -31,7 +31,9 @@ impl CommandMode {
             "cancel" => {
                 self.command_buffer.clear();
                 self.edit_pos = 0;
-                pane.execute_command("change_mode Normal");
+                let settings = self.settings.clone().unwrap();
+                let mut settings = settings.borrow();
+                pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
             }
             "left" => {
                 //Todo: make sure that we move by the right byte size
@@ -65,7 +67,10 @@ impl CommandMode {
                 pane.execute_command(&self.command_buffer);
                 self.command_buffer.clear();
                 self.edit_pos = 0;
-                pane.execute_command("change_mode Normal");
+
+                let settings = self.settings.clone().unwrap();
+                let mut settings = settings.borrow();
+                pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
             }
             _ => {}
         }
@@ -109,9 +114,12 @@ impl TextMode for CommandMode {
                 let mut settings = settings.borrow_mut();
 
                 if let Some(command) = settings.mode_keybindings.get(&self.get_name(), &self.key_buffer) {
-                    self.execute_command(command, pane);
+                    let command = command.clone();
+                    drop(settings);
+                    self.execute_command(&command, pane);
                     self.key_buffer.clear();
                 } else {
+                    drop(settings);
                     match key.key {
                         Key::Char(c) => {
                             self.command_buffer.insert(self.edit_pos, c);

@@ -8,6 +8,7 @@ use crate::models::settings::Settings;
 
 pub struct InsertMode {
     key_buffer: Vec<KeyEvent>,
+    number_buffer: String,
     settings: Option<Rc<RefCell<Settings>>>,
 }
 
@@ -15,6 +16,7 @@ impl InsertMode {
     pub fn new() -> InsertMode {
         InsertMode {
             key_buffer: Vec::new(),
+            number_buffer: String::new(),
             settings: None,
         }
     }
@@ -24,9 +26,13 @@ impl InsertMode {
             "cancel" => {
 
                 self.key_buffer.clear();
-                pane.execute_command("change_mode Normal");
-                pane.execute_command("move right 1");
 
+                let settings = self.settings.clone().unwrap();
+                let mut settings = settings.borrow_mut();
+                if self.get_name() != settings.editor_settings.default_mode {
+                    pane.execute_command("change_mode Normal");
+                    pane.execute_command("move right 1");
+                }
             }
             "tab" => {
                 pane.tab();
@@ -70,10 +76,154 @@ impl InsertMode {
             "half_page_down" => {
                 pane.execute_command(&format!("move half_page_down 1"));
             },
+            // These are not bound to any keybindings by default, these are just to allow for custom keybindings.
+            // Say you want to have Emacs style keybindings, this allows it.
+            "start_of_line" => {
+                pane.execute_command("move start_of_line");
+            },
+            "end_of_line" => {
+                pane.execute_command("move end_of_line");
+            },
+            "up_line_start" => {
+                pane.execute_command("move up_line_start");
+            },
+            "down_line_end" => {
+                pane.execute_command("move down_line_end");
+            },
+            "next_word_front" => {
+                pane.execute_command("move next_word_front");
+            },
+            "next_word_back" => {
+                pane.execute_command("move next_word_back");
+            },
+            "previous_word_front" => {
+                pane.execute_command("move previous_word_front");
+            },
+            "previous_word_back" => {
+                pane.execute_command("move previous_word_back");
+            },
+            "command_mode" => {
+                pane.execute_command("change_mode Command");
+            },
+            "selection_mode" => {
+                pane.execute_command("change_mode selection_normal");
+                return;
+            },
+            "selection_mode_line" => {
+                pane.execute_command("change_mode selection_line");
+                return;
+            },
+            "selection_mode_block" => {
+                pane.execute_command("change_mode selection_block");
+                return;
+            },
+            "search_mode_down" => {
+                pane.execute_command("change_mode search_down");
+                return;
+            },
+            "search_mode_up" => {
+                pane.execute_command("change_mode search_up");
+                return;
+            },
+            "replace_mode" => {
+                pane.execute_command("change_mode replace");
+            },
+            "goto_line" => {
+                if !self.number_buffer.is_empty() {
+                    pane.execute_command(&format!("goto_line {}", self.number_buffer));
+                    self.number_buffer.clear();
+                } else {
+                    return;
+                }
+            }
+            "copy_char" => {
+                pane.execute_command(&format!("copy char {}", self.number_buffer));
+            }
+            "copy_line" => {
+                pane.execute_command(&format!("copy line {}", self.number_buffer));
+            }
+            "copy_word" => {
+                pane.execute_command(&format!("copy word {}", self.number_buffer));
+            }
+            "copy_to_next_word" => {
+                pane.execute_command(&format!("copy to_next_word {}", self.number_buffer));
+            }
+            "copy_to_prev_word" => {
+                pane.execute_command(&format!("copy to_prev_word {}", self.number_buffer));
+            }
+            "copy_to_end_line" => {
+                pane.execute_command(&format!("copy to_end_line {}", self.number_buffer));
+            }
+            "copy_to_start_line" => {
+                pane.execute_command(&format!("copy to_start_line {}", self.number_buffer));
+            }
+            "delete_char" => {
+                pane.execute_command("delete char");
+            }
+            "delete_line" => {
+                pane.execute_command("delete line");
+            }
+            "delete_word" => {
+                pane.execute_command("delete word");
+            }
+            "delete_to_next_word" => {
+                pane.execute_command("delete to_next_word");
+            }
+            "delete_to_prev_word" => {
+                pane.execute_command("delete to_prev_word");
+            }
+            "delete_to_end_line" => {
+                pane.execute_command("delete to_end_line");
+            }
+            "delete_to_start_line" => {
+                pane.execute_command("delete to_start_line");
+            }
+            "cut_char" => {
+                pane.execute_command(&format!("copy char {}", self.number_buffer));
+                pane.execute_command("delete char");
+            }
+            "cut_line" => {
+                pane.execute_command(&format!("copy line {}", self.number_buffer));
+                pane.execute_command("delete line");
+            }
+            "cut_word" => {
+                pane.execute_command(&format!("copy word {}", self.number_buffer));
+                pane.execute_command("delete word");
+            }
+            "cut_to_next_word" => {
+                pane.execute_command(&format!("copy to_next_word {}", self.number_buffer));
+                pane.execute_command("delete to_next_word");
+            }
+            "cut_to_prev_word" => {
+                pane.execute_command(&format!("copy to_prev_word {}", self.number_buffer));
+                pane.execute_command("delete to_prev_word");
+            }
+            "cut_to_end_line" => {
+                pane.execute_command(&format!("copy to_end_line {}", self.number_buffer));
+                pane.execute_command("delete to_end_line");
+            }
+            "cut_to_start_line" => {
+                pane.execute_command(&format!("copy to_start_line {}", self.number_buffer));
+                pane.execute_command("delete to_start_line");
+            }
+            "paste_before" => {
+                pane.execute_command(&format!("paste before {}", self.number_buffer));
+            }
+            "paste_after" => {
+                pane.execute_command(&format!("paste after {}", self.number_buffer));
+            }
+            "undo" => {
+                pane.execute_command("undo");
+            }
+            "redo" => {
+                pane.execute_command("redo");
+            }
             _ => {
-                self.key_buffer.clear();
+
             }
         }
+        self.key_buffer.clear();
+        self.number_buffer.clear();
     }
 }
 
@@ -111,8 +261,12 @@ impl TextMode for InsertMode {
                 ..
             } => {
                 self.key_buffer.clear();
-                pane.execute_command("change_mode Normal");
-                pane.execute_command("move right 1");
+                let settings = self.settings.clone().unwrap();
+                let mut settings = settings.borrow_mut();
+                if self.get_name() != settings.editor_settings.default_mode {
+                    pane.execute_command("change_mode Normal");
+                    pane.execute_command("move right 1");
+                }
             }
             key => {
                 self.key_buffer.push(key);

@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::{fmt, io};
-use std::fmt::Formatter;
+use std::fmt::{Formatter, write};
 use std::io::{Read, Write};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -31,7 +31,8 @@ impl fmt::Display for EditorSettings {
         write!(f, "\nnumber_line = \"{}\"", self.number_line)?;
         write!(f, "\ntab_size = {}", self.tab_size)?;
         write!(f, "\nuse_spaces = {}", self.use_spaces)?;
-        write!(f, "\nrainbow_delimiters = {}", self.rainbow_delimiters)
+        write!(f, "\nrainbow_delimiters = {}", self.rainbow_delimiters)?;
+        write!(f, "\ndefault_mode = \"{}\"", self.default_mode)
     }
 }
 
@@ -49,6 +50,10 @@ pub struct EditorSettings {
     /// The font settings
     /// This is only used in the GUI not the TUI.
     pub font_settings: Option<FontSettings>,
+    /// The default mode
+    /// This is the mode that the editor will start in.
+    /// The value should be either "Normal" or "Insert".
+    pub default_mode: String,
 }
 
 
@@ -60,6 +65,7 @@ impl Default for EditorSettings {
             use_spaces: true,
             rainbow_delimiters: false,
             font_settings: None,
+            default_mode: String::from("Normal"),
         }
     }
 }
@@ -108,6 +114,7 @@ impl EditorSettings {
             "use_spaces",
             "rainbow_delimiters",
             "font_settings",
+            "default_mode",
         ];
 
         match table.get("EditorSettings") {
@@ -132,6 +139,9 @@ impl EditorSettings {
         if user_settings.font_settings.is_some() {
             self.font_settings = user_settings.font_settings;
         }
+        if user_settings.default_mode != "Normal" {
+            self.default_mode = user_settings.default_mode;
+        }
     }
 
 }
@@ -153,6 +163,7 @@ fn parse_settings(table: &toml::Value, values: &[&str]) -> EditorSettings {
     let use_spaces: bool;
     let rainbow_delimiters: bool;
     let font_settings: Option<FontSettings>;
+    let default_mode: String;
 
     if let Some(number_line_str) = table.get(values[0]) {
         number_line = match number_line_str.as_str().unwrap() {
@@ -207,12 +218,19 @@ fn parse_settings(table: &toml::Value, values: &[&str]) -> EditorSettings {
         font_settings = None;
     }
 
+    if let Some(default_mode_str) = table.get(values[5]) {
+        default_mode = default_mode_str.as_str().unwrap().to_string();
+    } else {
+        default_mode = "Normal".to_string();
+    }
+
     EditorSettings {
         number_line,
         tab_size,
         use_spaces,
         rainbow_delimiters,
         font_settings,
+        default_mode,
     }
 }
 

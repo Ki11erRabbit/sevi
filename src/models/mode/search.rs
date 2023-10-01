@@ -57,7 +57,9 @@ impl SearchMode {
             "cancel" => {
                 self.search_string.clear();
                 self.edit_pos = 0;
-                pane.execute_command("change_mode Normal");
+                let settings = self.settings.clone().unwrap();
+                let mut settings = settings.borrow();
+                pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             }
             "left" => {
@@ -283,9 +285,12 @@ impl TextMode for SearchMode {
                 let mut settings = settings.borrow_mut();
 
                 if let Some(command) = settings.mode_keybindings.get(&self.get_name(), &self.key_buffer) {
-                    self.execute_command(command, pane);
+                    let command = command.clone();
+                    drop(settings);
+                    self.execute_command(&command, pane);
                     self.key_buffer.clear();
                 } else {
+                    drop(settings);
                     match key.key {
                         Key::Char(c) => {
                             self.search_string.insert(self.edit_pos, c);
