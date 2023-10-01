@@ -82,8 +82,8 @@ impl Cursor {
     pub fn scroll(&mut self, rect: Rect) {
 
         match self.col_movement {
-            ColMovement::Right if rect.width != 0 && ((self.col) - self.col_offset) >= rect.width => {
-                self.col_offset = (self.col).saturating_sub(rect.width) + 1;
+            ColMovement::Right if rect.width != 0 && ((self.col + self.number_line_width - self.gutter_width) - self.col_offset) >= rect.width => {
+                self.col_offset = (self.col + self.number_line_width - self.gutter_width).saturating_sub(rect.width) + 1;
             }
             ColMovement::Left if (self.col.saturating_sub(self.col_offset)) == 0 => {
                 self.col_offset = self.col;
