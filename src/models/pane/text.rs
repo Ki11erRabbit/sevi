@@ -14,6 +14,7 @@ use crate::models::cursor::CursorMovement;
 use crate::models::pane::Pane;
 use crate::models::file::File;
 use crate::models::{AppEvent, Message, Rect};
+use crate::models::file::file::ReplaceSelections;
 use crate::models::mode::command::CommandMode;
 use crate::models::mode::insert::InsertMode;
 use crate::models::settings::Settings;
@@ -282,8 +283,14 @@ impl Pane for TextBuffer {
 
                     let message = self.register_channels.1.recv().expect("Failed to receive register message");
 
+                    let multi;
                     let string = match message {
-                        RegisterMessage::RegisterResult(Some(text)) => {
+                        RegisterMessage::RegisterResult(Some(text),None) => {
+                            multi = None;
+                            text
+                        },
+                        RegisterMessage::RegisterResult(Some(text), Some(multii)) => {
+                            multi = Some(multii);
                             text
                         },
                         _ => return,
@@ -298,6 +305,17 @@ impl Pane for TextBuffer {
                         "before" => {
                             self.file.insert_before_current(byte_offset, string);
                         },
+                        "selection" => {
+                            match multi {
+                                Some(multi) => {
+                                    self.file.replace_selections(multi);
+                                }
+                                None => {
+                                    self.file.replace_selections(string.as_str());
+                                }
+                            }
+
+                        }
                         _ => panic!("Invalid paste direction"),
                     }
                 }
@@ -433,8 +451,7 @@ impl Pane for TextBuffer {
                                         RegisterMessage::SetClipboard(text)
                                     }
                                 } else {
-                                    // TODO: for a vec of size greater than 1, we need to have a special selection system
-                                    todo!("Handle multiple selections");
+                                    RegisterMessage::SetMulti(selections)
                                 }
 
                             } else {

@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::fmt;
 use std::io::Write;
-use std::ops::RangeInclusive;
+use std::ops::{RangeBounds, RangeInclusive};
 use std::path::PathBuf;
 use crate::models::settings::Settings;
 
@@ -314,16 +314,12 @@ impl Buffer {
         self.version += 1;
     }
 
-    pub fn replace_current<R, T>(&mut self, range: R, text: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
-        if self.current == 0 {
-            self.get_new_rope();
-        }
-
+    fn replace_internal<R, T>(&mut self, range:R, text: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
         let mut tree_sitter_info = self.tree_sitter_info.take();
 
         match tree_sitter_info.as_mut() {
             Some((parser, trees)) => {
-                
+
                 let start;
                 match range.start_bound() {
                     std::ops::Bound::Included(n) => {
@@ -342,12 +338,12 @@ impl Buffer {
 
                 let y = line_num;
                 let x = start - self.history[self.current].byte_of_line(y);
-                
+
 
                 let end_x = x + text.as_ref().bytes().count();
                 let end_y = self.history[self.current].line_of_byte(start + text.as_ref().bytes().count());
 
-                
+
                 let edit = tree_sitter::InputEdit {
                     start_byte: start,
                     old_end_byte: start + text.as_ref().len(),
@@ -369,6 +365,128 @@ impl Buffer {
         }
 
         self.tree_sitter_info = tree_sitter_info;
+    }
+
+    pub fn replace_bulk<R, T>(&mut self, mut ranges: Vec<R>, mut texts: Vec<T>) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
+        self.get_new_rope();
+
+        if ranges.len() < texts.len() {
+            texts.truncate(ranges.len());
+        } else if ranges.len() > texts.len() {
+            ranges.truncate(texts.len());
+        }
+
+
+        for (range, text) in ranges.iter().rev().zip(texts.iter().rev()) {
+            eprintln!("text: {:?}",  text.as_ref());
+            let start;
+            match range.start_bound() {
+                std::ops::Bound::Included(n) => {
+                    start = *n;
+                },
+                std::ops::Bound::Excluded(n) => {
+                    start = *n + 1;
+                },
+                std::ops::Bound::Unbounded => {
+                    start = 0;
+                },
+            }
+
+            let end;
+            match range.end_bound() {
+                std::ops::Bound::Included(n) => {
+                    end = *n;
+                },
+                std::ops::Bound::Excluded(n) => {
+                    end = *n - 1;
+                },
+                std::ops::Bound::Unbounded => {
+                    end = self.history[self.current].byte_len();
+                },
+            }
+            if end - start < text.as_ref().len() {
+                let range = start..=(start + end - start);
+                self.replace_internal(range.clone(), text.as_ref()[..(end - start)].to_string());
+
+                match range.end_bound() {
+                    std::ops::Bound::Included(n) => {
+                        self.insert_current(*n, &text.as_ref()[(end - start)..]);
+                    },
+                    std::ops::Bound::Excluded(n) => {
+                        self.insert_current(*n, &text.as_ref()[(end - start)..]);
+                    },
+                    std::ops::Bound::Unbounded => {
+                        self.insert_current(self.history[self.current].byte_len(), &text.as_ref()[(end - start)..]);
+                    },
+                }
+            } else {
+                let range = start..=end;
+                self.delete_internal(range.clone());
+                match range.start_bound() {
+                    std::ops::Bound::Included(n) => {
+                        self.insert_current(*n, text.as_ref());
+                    },
+                    std::ops::Bound::Excluded(n) => {
+                        self.insert_current(*n, text.as_ref());
+                    },
+                    std::ops::Bound::Unbounded => {
+                        self.insert_current(self.history[self.current].byte_len(), text.as_ref());
+                    },
+                }
+            }
+        }
+
+        self.version += 1;
+    }
+
+    pub fn replace_current<R, T>(&mut self, range: R, text: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
+        if self.current == 0 {
+            self.get_new_rope();
+        }
+
+        let start;
+        match range.start_bound() {
+            std::ops::Bound::Included(n) => {
+                start = *n;
+            },
+            std::ops::Bound::Excluded(n) => {
+                start = *n + 1;
+            },
+            std::ops::Bound::Unbounded => {
+                start = 0;
+            },
+        }
+
+        let end;
+        match range.end_bound() {
+            std::ops::Bound::Included(n) => {
+                end = *n;
+            },
+            std::ops::Bound::Excluded(n) => {
+                end = *n - 1;
+            },
+            std::ops::Bound::Unbounded => {
+                end = self.history[self.current].byte_len();
+            },
+        }
+        if end - start < text.as_ref().len() {
+            let range = start..(start + end - start);
+            self.replace_internal(range.clone(), text.as_ref()[..(end - start)].to_string());
+
+            match range.end_bound() {
+                std::ops::Bound::Included(n) => {
+                    self.insert_current(*n, &text.as_ref()[(end - start)..]);
+                },
+                std::ops::Bound::Excluded(n) => {
+                    self.insert_current(*n, &text.as_ref()[(end - start)..]);
+                },
+                std::ops::Bound::Unbounded => {
+                    self.insert_current(self.history[self.current].byte_len(), &text.as_ref()[(end - start)..]);
+                },
+            }
+        }
+
+
 
         self.version += 1;
     }
@@ -565,55 +683,48 @@ impl Buffer {
 
     pub fn replace<R, T>(&mut self, range: R, text: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
         self.get_new_rope();
-        
-        let mut tree_sitter_info = self.tree_sitter_info.take();    
 
-        match tree_sitter_info.as_mut() {
-            None => {
-                self.history[self.current].replace(range, text.as_ref());
+        let start;
+        match range.start_bound() {
+            std::ops::Bound::Included(n) => {
+                start = *n;
             },
-            Some((parser, trees)) => {
-                
-                let start;
-                match range.start_bound() {
-                    std::ops::Bound::Included(n) => {
-                        start = *n;
-                    },
-                    std::ops::Bound::Excluded(n) => {
-                        start = *n + 1;
-                    },
-                    std::ops::Bound::Unbounded => {
-                        start = 0;
-                    },
-                }
-    
-                let line_num = self.history[self.current].line_of_byte(start);
-
-                let y = line_num;
-                let x = start - self.history[self.current].byte_of_line(y);
-
-                let end_x = x + text.as_ref().bytes().count();
-                let end_y = self.history[self.current].line_of_byte(start + text.as_ref().bytes().count());
-
-                
-                let edit = tree_sitter::InputEdit {
-                    start_byte: start,
-                    old_end_byte: start + text.as_ref().len(),
-                    new_end_byte: start + text.as_ref().len(),
-                    start_position: tree_sitter::Point::new(y, x),
-                    old_end_position: tree_sitter::Point::new(y, x),
-                    new_end_position: tree_sitter::Point::new(end_y, end_x),
-                };
-
-                self.history[self.current].replace(range, text.as_ref());
-
-                trees[self.current].edit(&edit);
-                trees[self.current] = parser.parse(&self.history[self.current].to_string(), Some(&trees[self.current])).unwrap();
-            }
+            std::ops::Bound::Excluded(n) => {
+                start = *n + 1;
+            },
+            std::ops::Bound::Unbounded => {
+                start = 0;
+            },
         }
 
-        self.tree_sitter_info = tree_sitter_info;
+        let end;
+        match range.end_bound() {
+            std::ops::Bound::Included(n) => {
+                end = *n;
+            },
+            std::ops::Bound::Excluded(n) => {
+                end = *n - 1;
+            },
+            std::ops::Bound::Unbounded => {
+                end = self.history[self.current].byte_len();
+            },
+        }
+        if end - start < text.as_ref().len() {
+            let range = start..(start + end - start);
+            self.replace_internal(range.clone(), text.as_ref()[..(end - start)].to_string());
 
+            match range.end_bound() {
+                std::ops::Bound::Included(n) => {
+                    self.insert_current(*n, &text.as_ref()[(end - start)..]);
+                },
+                std::ops::Bound::Excluded(n) => {
+                    self.insert_current(*n, &text.as_ref()[(end - start)..]);
+                },
+                std::ops::Bound::Unbounded => {
+                    self.insert_current(self.history[self.current].byte_len(), &text.as_ref()[(end - start)..]);
+                },
+            }
+        }
 
         self.version += 1;
     }

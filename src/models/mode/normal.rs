@@ -227,10 +227,10 @@ impl NormalMode {
                 pane.execute_command("delete to_start_line");
             }
             "paste_before" => {
-                pane.execute_command("paste before");
+                pane.execute_command(&format!("paste before {}", self.number_buffer));
             }
             "paste_after" => {
-                pane.execute_command("paste after");
+                pane.execute_command(&format!("paste after {}", self.number_buffer));
             }
             "undo" => {
                 pane.execute_command("undo");

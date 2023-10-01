@@ -20,8 +20,9 @@ pub enum RegisterMessage {
     GetNamed(String),
     GetNumbered(usize),
     SetClipboard(String),
+    SetMulti(Vec<String>),
     GetClipboard,
-    RegisterResult(Option<String>),
+    RegisterResult(Option<String>, Option<Vec<String>>),
     Quit,
 }
 pub struct RegisterMailbox {
@@ -74,6 +75,7 @@ pub struct Registers {
     clipboard: Either<RefCell<Clipboard>, Option<String>>,
     named: HashMap<String, String>,
     numbered: HashMap<usize, String>,
+    multi: Option<Vec<String>>,
     quit: bool,
 }
 
@@ -95,6 +97,7 @@ impl Registers {
             named: HashMap::new(),
             numbered: HashMap::new(),
             quit: false,
+            multi: None,
         }
     }
 
@@ -111,26 +114,36 @@ impl Registers {
                 self.set(name, value);
             },
             RegisterMessage::GetNamed(name) => {
-                let message = RegisterMessage::RegisterResult(self.get(name).cloned());
+                let message = RegisterMessage::RegisterResult(self.get(name).cloned(), None);
                 self.mailbox.send(message).expect("Failed to send message");
             },
             RegisterMessage::GetNumbered(name) => {
-                let message = RegisterMessage::RegisterResult(self.get(name).cloned());
+                let message = RegisterMessage::RegisterResult(self.get(name).cloned(), None);
                 self.mailbox.send(message).expect("Failed to send message");
             },
             RegisterMessage::SetClipboard(value) => {
                 self.set_clipboard(value);
             },
             RegisterMessage::GetClipboard => {
-                let message = RegisterMessage::RegisterResult(self.get_clipboard());
+                let message= if self.multi.is_some() {
+                    let message = RegisterMessage::RegisterResult(self.get_clipboard(), self.multi.take());
+                    message
+                } else {
+                    let message = RegisterMessage::RegisterResult(self.get_clipboard(), None);
+                    message
+                };
                 self.mailbox.send(message).expect("Failed to send message");
             },
-            RegisterMessage::RegisterResult(_) => {
+            RegisterMessage::RegisterResult(_, _) => {
                 // This should never happen
             }
             RegisterMessage::Quit => {
                 eprintln!("Register thread received quit message");
                 self.quit = true;
+            }
+            RegisterMessage::SetMulti(multi) => {
+                self.set_clipboard(multi.join("\n"));
+                self.multi = Some(multi);
             }
         }
     }

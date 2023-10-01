@@ -114,6 +114,13 @@ impl SearchMode {
                 self.search_string.clear();
                 self.edit_pos = 0;
             }
+            "paste" => {
+                pane.execute_command(&format!("paste selection {}", self.number_buffer));
+                pane.execute_command("change_mode Normal");
+                pane.execute_command("clear_selection");
+                self.search_string.clear();
+                self.edit_pos = 0;
+            }
             _ => {}
         }
         self.number_buffer.clear();

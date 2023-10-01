@@ -10,6 +10,10 @@ use crate::models::style::{Style, StyledLine, StyledSpan, StyledText};
 use crate::models::style::color::Color;
 
 
+pub trait ReplaceSelections<S> {
+    fn replace_selections(&mut self, selections: S);
+}
+
 pub struct LSPInfo {
 
 }
@@ -609,4 +613,107 @@ impl File {
 
     }
 
+}
+
+impl ReplaceSelections<&str> for File {
+    fn replace_selections(&mut self, selection: &str) {
+
+        let mut ranges = Vec::new();
+
+        let mut iter = self.highlights.iter();
+        let byte = iter.next();
+
+        let mut start = *byte.unwrap();
+        let mut end = *byte.unwrap();
+        let mut last_end = *byte.unwrap();
+
+        while let Some(byte) = iter.next() {
+            if *byte == last_end + 1 {
+                end = *byte;
+                last_end = *byte;
+            } else {
+
+                ranges.push(start..=end);
+
+                start = *byte;
+                end = *byte;
+                last_end = *byte;
+            }
+
+            while let Some(byte) = iter.next() {
+                if *byte == last_end + 1 {
+                    end = *byte;
+                    last_end = *byte;
+                } else {
+
+                    ranges.push(start..=end);
+
+                    start = *byte;
+                    end = *byte;
+                    last_end = *byte;
+                    break
+                }
+
+            }
+        }
+        if start != end {
+            ranges.push(start..=end);
+        }
+
+        let strings = vec![selection.to_string(); ranges.len()];
+
+        self.buffer.replace_bulk(ranges, strings);
+
+    }
+}
+
+impl ReplaceSelections<Vec<String>> for File {
+    fn replace_selections(&mut self, selection: Vec<String>) {
+
+        let mut ranges = Vec::new();
+
+        let mut iter = self.highlights.iter();
+        let byte = iter.next();
+
+        let mut start = *byte.unwrap();
+        let mut end = *byte.unwrap();
+        let mut last_end = *byte.unwrap();
+
+        while let Some(byte) = iter.next() {
+            if *byte == last_end + 1 {
+                end = *byte;
+                last_end = *byte;
+            } else {
+
+                ranges.push(start..=end);
+
+                start = *byte;
+                end = *byte;
+                last_end = *byte;
+            }
+
+            while let Some(byte) = iter.next() {
+                if *byte == last_end + 1 {
+                    end = *byte;
+                    last_end = *byte;
+                } else {
+
+                    ranges.push(start..=end);
+
+                    start = *byte;
+                    end = *byte;
+                    last_end = *byte;
+                    break
+                }
+
+            }
+        }
+        if start != end {
+            ranges.push(start..=end);
+        }
+
+
+        self.buffer.replace_bulk(ranges, selection);
+
+    }
 }
