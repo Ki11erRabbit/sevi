@@ -28,6 +28,9 @@ impl InsertMode {
                 pane.execute_command("move right 1");
 
             }
+            "tab" => {
+                pane.tab();
+            }
             "backspace" => {
                 pane.backspace();
             }
@@ -103,16 +106,26 @@ impl Mode for InsertMode {
 impl TextMode for InsertMode {
     fn process_keypress(&mut self, key: KeyEvent, pane: &mut dyn TextPane) {
         match key {
+            KeyEvent {
+                key: Key::Esc,
+                ..
+            } => {
+                self.key_buffer.clear();
+                pane.execute_command("change_mode Normal");
+                pane.execute_command("move right 1");
+            }
             key => {
                 self.key_buffer.push(key);
 
                 let settings = self.settings.clone().unwrap();
                 let mut settings = settings.borrow_mut();
 
-                if let Some(command) = settings.mode_keybindings.get(&self.get_name(), &self.key_buffer) {
-                    self.execute_command(command, pane);
-                    self.key_buffer.clear();
+                let command = if let Some(command) = settings.mode_keybindings.get(&self.get_name(), &self.key_buffer) {
+                    let command = command.clone();
+                    drop(settings);
+                    Some(command)
                 } else {
+                    drop(settings);
                     match key.key {
                         Key::Char(c) => {
                             let index = pane.get_current_byte_position();
@@ -122,6 +135,14 @@ impl TextMode for InsertMode {
                         }
                         _ => {}
                     }
+                    None
+                };
+                match command {
+                    Some(command) => {
+                        self.execute_command(&command, pane);
+                        self.key_buffer.clear();
+                    }
+                    None => {}
                 }
 
             }

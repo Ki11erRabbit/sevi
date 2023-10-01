@@ -46,6 +46,7 @@ pub trait TextPane: Pane {
     fn backspace(&mut self);
     fn delete(&mut self);
     fn newline(&mut self);
+    fn tab(&mut self);
 
     fn insert_char(&mut self, index: usize, c: char);
     fn insert_str_after(&mut self, index: usize, string: &str);

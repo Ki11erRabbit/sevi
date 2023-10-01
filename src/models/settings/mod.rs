@@ -29,7 +29,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
-            editor_settings: EditorSettings::default(),
+            editor_settings: EditorSettings::new(),
             mode_keybindings: ModeKeybindings::new(),
             /*language_formats: LanguageFormats::default(),
             colors: Colors::default(),*/

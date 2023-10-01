@@ -554,7 +554,7 @@ impl Pane for TextBuffer {
     }
 
     fn get_cursor_position(&self) -> Option<(usize, usize)> {
-        Some(self.cursor.get_relative_cursor())
+        Some(self.cursor.get_relative_cursor(self))
     }
 
     fn draw(&self) -> StyledText {
@@ -651,8 +651,26 @@ impl TextPane for TextBuffer {
         self.cursor.move_cursor(CursorMovement::LineStart, 1, &self.file);
     }
 
+    fn tab(&mut self) {
+        let index = self.get_current_byte_position();
+
+        let settings = self.settings.clone();
+        let settings = settings.borrow();
+        let tab_size = settings.editor_settings.tab_size;
+        let use_spaces = settings.editor_settings.use_spaces;
+
+        if use_spaces {
+            self.insert_str_after(index, " ".repeat(tab_size as usize).as_str());
+            self.cursor.move_cursor(CursorMovement::Right, tab_size as usize, &self.file)
+        } else {
+            self.insert_str_after(index, "\t");
+            self.cursor.move_cursor(CursorMovement::Right, 1, &self.file)
+        }
+    }
+
     fn insert_char(&mut self, index: usize, c: char) {
         self.file.insert_char(index, c);
+        self.cursor.move_cursor(CursorMovement::Right, 1, &self.file)
     }
     fn insert_str_after(&mut self, index: usize, string: &str) {
         self.file.insert_after_current(index, string);

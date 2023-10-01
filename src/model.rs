@@ -142,14 +142,14 @@ impl Drop for Model {
 
 impl Model {
 
-    pub fn new(register_channels: (Sender<RegisterMessage>, Rc<Receiver<RegisterMessage>>)) -> Self {
-        let args: Vec<String> = env::args().collect();
+    pub fn new(path: Option<PathBuf>, register_channels: (Sender<RegisterMessage>, Rc<Receiver<RegisterMessage>>)) -> Self {
+        /*let args: Vec<String> = env::args().collect();
         let path = if args.len() > 1 {
             let path = PathBuf::from(args[1].clone());
             Some(PathBuf::from(path))
         } else {
             None
-        };
+        };*/
 
         let (sender, receiver) = std::sync::mpsc::channel();
 

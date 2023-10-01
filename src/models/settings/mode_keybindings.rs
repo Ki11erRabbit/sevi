@@ -115,6 +115,10 @@ impl ModeKeybindings {
     pub fn new() -> ModeKeybindings {
         let mut bindings = ModeKeybindings::default();
 
+        if crate::arg_parser::IGNORE_USER_SETTINGS.load(std::sync::atomic::Ordering::Relaxed) {
+            return bindings;
+        }
+
         let xdg_dirs = xdg::BaseDirectories::with_prefix("sevi").unwrap();
         let user_bindings_path = xdg_dirs.place_config_file("keybindings.toml").expect("Failed to create user keybindings file");
         match File::open(user_bindings_path) {
@@ -1143,6 +1147,13 @@ impl ModeKeybindings {
                 modifiers: KeyModifiers::NONE,
             }], "newline".to_string());
         }
+        // Tab
+        {
+            bindings.insert(vec![KeyEvent {
+                key: Key::Tab,
+                modifiers: KeyModifiers::NONE,
+            }], "tab".to_string());
+        }
 
         bindings
     }
@@ -1599,6 +1610,7 @@ impl ModeKeybindings {
             "backspace",
             "delete",
             "newline",
+            "tab",
             "start",
             "end",
             "execute",

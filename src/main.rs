@@ -1,5 +1,7 @@
+use clap::Parser;
 use model::Model;
 use tuirealm::{PollStrategy, Update};
+
 
 use crate::models::Message;
 
@@ -11,11 +13,14 @@ pub mod models;
 pub mod components;
 pub mod widgets;
 pub mod threads;
+mod arg_parser;
 
 
 fn main() {
 
+    let args = arg_parser::Args::parse();
 
+    args.perform_commands();
 
     let mut register = threads::registers::Registers::new();
 
@@ -25,7 +30,9 @@ fn main() {
         register.run();
     });
 
-    let mut model = Model::new(shared);
+    let path = args.get_path();
+
+    let mut model = Model::new(path,shared);
 
     model.initialize();
 
@@ -56,6 +63,4 @@ fn main() {
             
     }
     registers_handle.join().unwrap();
-    crate::models::settings::mode_keybindings::ModeKeybindings::create_default_config_file().expect("Could not create default config file");
-    
 }

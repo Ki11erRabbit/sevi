@@ -1,6 +1,7 @@
 
 use crate::models::Rect;
 use crate::models::file::File;
+use crate::models::pane::TextPane;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ColMovement {
@@ -71,8 +72,29 @@ impl Cursor {
         (self.col, self.row)
     }
 
-    pub fn get_relative_cursor(self) -> (usize, usize) {
-        (self.col - self.col_offset + self.number_line_width + self.gutter_width, self.row - self.row_offset)
+    pub fn get_relative_cursor(self, pane: &dyn TextPane) -> (usize, usize) {
+        let settings = pane.get_settings();
+        let settings = settings.borrow();
+        let tab_size = if !settings.editor_settings.use_spaces {
+            let file = pane.borrow_current_file();
+            match file.get_line(self.row) {
+                Some(line) => {
+                    let mut tab_size = 0;
+                    for c in line.chars().take(self.col) {
+                        if c == '\t' {
+                            tab_size += 1;
+                        }
+                    }
+                    tab_size * (settings.editor_settings.tab_size as usize - 1)
+                }
+                None => 0,
+            }
+        } else {
+            0
+        };
+
+
+        (self.col - self.col_offset + self.number_line_width + self.gutter_width + tab_size, self.row - self.row_offset)
     }
 
     pub fn get_scroll_amount(self) -> (usize, usize) {
@@ -135,8 +157,8 @@ impl Cursor {
 
             }
             CursorMovement::Left => {
-                self.col_movement = ColMovement::Left;
                 self.col = self.col.saturating_sub(n);
+                self.col_movement = ColMovement::Left;
             }
             CursorMovement::Right => {
                 self.col_movement = ColMovement::Right;
@@ -201,6 +223,8 @@ impl Cursor {
             }*/
             _ => {}
         }
+
+
 
 
     }

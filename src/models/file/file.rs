@@ -254,6 +254,10 @@ impl File {
         }
     }
 
+    pub fn get_settings(&self) -> Rc<RefCell<Settings>> {
+        self.settings.clone()
+    }
+
     pub fn get_path(&self) -> Option<PathBuf> {
         self.path.clone()
     }
@@ -565,7 +569,15 @@ impl File {
                 line = StyledLine::new();
                 acc.clear();
             } else {
-                acc.push(c as char);
+                if c == b'\t' {
+                    let settings = self.settings.borrow();
+                    let tab_size = settings.editor_settings.tab_size;
+                    for _ in 0..tab_size {
+                        acc.push(' ');
+                    }
+                } else {
+                    acc.push(c as char);
+                }
             }
         }
         output
