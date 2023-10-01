@@ -435,11 +435,16 @@ impl File {
         let mut output = BTreeSet::new();
         for y in range {
             if let Some(line) = self.buffer.get_row(y) {
-                if let Some(index) = line.to_string().find(string) {
+                let byte_start = line.get_byte_start();
+                let mut line = line.to_string();
+                let mut split_bits = 0;
+                while let Some(index) = line.find(string) {
+
+                    let index = index + split_bits;
 
                     output.insert((index, y));
                     let old_index = index;
-                    let index = line.get_byte_start() + index;
+                    let index = byte_start + index;
 
                     let range =  self.buffer.get_byte_offset(old_index, y)
                         .expect("Invalid byte offset")
@@ -450,6 +455,8 @@ impl File {
                     for b in range {
                         self.highlights.insert(b);
                     }
+                    split_bits += string.len();
+                    line = line.split_off(string.len());
                 }
             }
         }
