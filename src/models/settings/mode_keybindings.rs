@@ -4,7 +4,6 @@ use std::fs::File;
 use std::{fmt, io};
 use std::fmt::Formatter;
 use std::io::{Read, Write};
-use std::ptr::write;
 
 use crate::models::key::{Key, key_event_to_string, KeyEvent, KeyModifiers};
 
@@ -133,7 +132,7 @@ impl ModeKeybindings {
     }
 
     pub fn create_default_config_file() -> io::Result<()> {
-        let mut bindings = ModeKeybindings::default();
+        let bindings = ModeKeybindings::default();
 
         let xdg_dirs = xdg::BaseDirectories::with_prefix("sevi").unwrap();
         let user_bindings_path = xdg_dirs.place_config_file("keybindings.toml").expect("Failed to create user keybindings file");
