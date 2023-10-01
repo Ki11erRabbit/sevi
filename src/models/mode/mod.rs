@@ -24,6 +24,9 @@ pub trait Mode {
 
     fn get_special(&self) -> Option<&dyn Any>;
 
+    fn influence_cursor(&self) -> Option<usize>;
+
+
 }
 
 

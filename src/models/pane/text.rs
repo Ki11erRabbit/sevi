@@ -26,14 +26,6 @@ use crate::models::settings::editor_settings::NumberLineStyle;
 use crate::threads::registers::RegisterMessage;
 
 
-pub trait TextBufferObserver {
-}
-
-
-
-
-
-
 
 pub struct TextBuffer {
     file: File,
@@ -599,6 +591,16 @@ impl Pane for TextBuffer {
 
     fn draw_section(&self, start_row: usize, end_row: usize) -> StyledText {
         self.file.display_section(start_row, end_row)
+    }
+
+    fn get_bottom_cursor_position(&self) -> Option<usize> {
+        let mode = self.mode.clone();
+        let mode = mode.borrow();
+        if let Some(index) = mode.influence_cursor() {
+            Some(index)
+        } else {
+            None
+        }
     }
 }
 

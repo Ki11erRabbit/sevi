@@ -14,6 +14,7 @@ pub trait Pane {
     fn execute_command(&mut self, command: &str);
 
     fn get_cursor_position(&self) -> Option<(usize, usize)>;
+    fn get_bottom_cursor_position(&self) -> Option<usize>;
 
     fn get_scroll_amount(&self) -> Option<(usize, usize)>;
 

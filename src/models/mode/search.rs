@@ -266,6 +266,11 @@ impl Mode for SearchMode {
     fn get_special(&self) -> Option<&dyn Any> {
         None
     }
+
+    fn influence_cursor(&self) -> Option<usize> {
+        let offset = self.get_name().chars().count() + 2 + self.edit_pos;
+        Some(offset)
+    }
 }
 
 impl TextMode for SearchMode {

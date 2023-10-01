@@ -264,6 +264,10 @@ impl Mode for NormalMode {
     fn get_special(&self) -> Option<&dyn Any> {
         Some(&self.number_buffer)
     }
+
+    fn influence_cursor(&self) -> Option<usize> {
+        None
+    }
 }
 
 

@@ -196,6 +196,10 @@ impl Mode for SelectionMode {
     fn get_special(&self) -> Option<&dyn Any> {
         None
     }
+
+    fn influence_cursor(&self) -> Option<usize> {
+        None
+    }
 }
 
 impl TextMode for SelectionMode {

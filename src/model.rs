@@ -258,6 +258,18 @@ impl Model {
             },
         }
 
+        match self.pane.borrow().get_bottom_cursor_position() {
+            None => {},
+            Some(index) => {
+                let terminal = self.terminal.clone();
+                let mut terminal = terminal.borrow_mut();
+                let term = terminal.raw_mut();
+                let height= term.size().unwrap().height;
+                let _ = term.set_cursor(index as u16, height);
+                let _ = term.show_cursor();
+            }
+        }
+
         self.pane.borrow_mut().refresh();
 
     }
