@@ -138,7 +138,6 @@ impl Registers {
                 // This should never happen
             }
             RegisterMessage::Quit => {
-                eprintln!("Register thread received quit message");
                 self.quit = true;
             }
             RegisterMessage::SetMulti(multi) => {

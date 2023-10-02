@@ -552,7 +552,6 @@ impl File {
 
     pub fn display(&self) -> StyledText {
         let string = self.buffer.to_string();
-        eprintln!("String: {}", string);
         let mut acc = String::with_capacity(string.len());
         let mut output = StyledText::new();
         let mut line = StyledLine::new();
@@ -567,9 +566,11 @@ impl File {
             } else if highlight {
 
                 if highlight {
-                    //TODO: put in a particular style
+                    let settings = self.settings.borrow();
+                    let selection_color = settings.colors.selected;
+
                     line.push(StyledSpan::styled(acc.clone(),
-                                                 Style::default().bg(Color::Magenta)
+                                                 selection_color
                     ));
                     acc.clear();
                 }
@@ -578,8 +579,11 @@ impl File {
             if c == b'\n' {
                 acc.push(' ');
                 if highlight {
-                    line.push(StyledSpan::styled(acc.clone(),Style::default()
-                        .bg(Color::Magenta)
+                    let settings = self.settings.borrow();
+                    let selection_color = settings.colors.selected;
+
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 selection_color
                     ));
                 } else {
                     line.push(StyledSpan::from(acc.clone()));
@@ -603,8 +607,11 @@ impl File {
         }
         if !acc.is_empty() {
             if highlight {
-                line.push(StyledSpan::styled(acc.clone(),Style::default()
-                    .bg(Color::Magenta)
+                let settings = self.settings.borrow();
+                let selection_color = settings.colors.selected;
+
+                line.push(StyledSpan::styled(acc.clone(),
+                                             selection_color
                 ));
             } else {
                 line.push(StyledSpan::from(acc.clone()));

@@ -139,7 +139,6 @@ impl Buffer {
             }
             i += 1;
         }
-        eprintln!("line_byte: {}, col_byte: {}", line_byte, col_byte);
         Some(line_byte + col_byte)
     }
 
@@ -383,7 +382,6 @@ impl Buffer {
 
 
         for (range, text) in ranges.iter().rev().zip(texts.iter().rev()) {
-            eprintln!("text: {:?}",  text.as_ref());
             let start;
             match range.start_bound() {
                 std::ops::Bound::Included(n) => {

@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::path::PathBuf;
 use std::str::SplitWhitespace;
 use std::sync::mpsc::{Sender, Receiver};
-use crate::models::style::StyledText;
+use crate::models::style::{StyledLine, StyledSpan, StyledText};
 use crate::models::cursor::Cursor;
 use crate::models::key::KeyEvent;
 use crate::models::pane::TextPane;
@@ -14,7 +14,7 @@ use either::Either;
 use crate::models::cursor::CursorMovement;
 use crate::models::pane::Pane;
 use crate::models::file::File;
-use crate::models::{AppEvent, Rect};
+use crate::models::{AppEvent, Rect, settings};
 use crate::models::file::file::ReplaceSelections;
 use crate::models::mode::command::CommandMode;
 use crate::models::mode::insert::InsertMode;
@@ -386,8 +386,7 @@ impl TextBuffer {
                             let word = match self.file.get_word(byte_offset) {
                                 Some(word) => word.to_string(),
                                 None => {
-                                    // TODO: send message to be displayed
-                                    eprintln!("No word found at cursor position");
+                                    self.send_info_message("No word found at cursor position");
 
                                     return;
                                 },
@@ -754,8 +753,16 @@ impl Pane for TextBuffer {
         let mode = mode.borrow();
         let (name, first, second) = mode.update_status(self);
 
+        let settings = self.settings.clone();
+        let settings = settings.borrow();
 
-        (StyledText::from(name),StyledText::from(first), StyledText::from(second))
+        let name = StyledText::from(vec![StyledLine::from(vec![StyledSpan::styled(name, settings.colors.status_bar.mode.get(&mode.get_name()).unwrap().clone())])]);
+
+        let first = StyledText::from(vec![StyledLine::from(vec![StyledSpan::styled(first, settings.colors.status_bar.first)])]);
+        let second = StyledText::from(vec![StyledLine::from(vec![StyledSpan::styled(second, settings.colors.status_bar.second)])]);
+
+
+        (name,first, second)
     }
 
     fn get_scroll_amount(&self) -> Option<(usize, usize)> {

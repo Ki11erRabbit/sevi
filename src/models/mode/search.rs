@@ -226,7 +226,6 @@ impl SearchMode {
 
             let mut counter = 0;
             while let Some(byte) = iter.next() {
-                eprintln!("{} {}", *byte, pane.get_current_byte_position());
 
                 if *byte < pane.get_current_byte_position() {
                     continue
@@ -254,7 +253,6 @@ impl SearchMode {
 
                 let mut counter = 0;
                 while let Some(byte) = iter.next() {
-                    eprintln!("{} {}", *byte, pane.get_current_byte_position());
 
                     if *byte > pane.get_current_byte_position() {
                         continue
