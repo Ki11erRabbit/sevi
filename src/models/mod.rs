@@ -33,6 +33,8 @@ pub enum AppEvent {
     Close,
     ForceClose,
     ForceQuit,
+    InfoMessage,
+    Message(Box<str>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,6 +47,7 @@ pub enum Message {
     MoveCursor(Option<(u16, u16)>),
     Scroll(Option<(u16, u16)>),
     Key(key::KeyEvent),
+    InfoMessage(Box<str>),
     Tick,
 }
 

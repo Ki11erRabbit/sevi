@@ -617,6 +617,11 @@ impl Pane for TextBuffer {
             None
         }
     }
+
+    fn send_info_message(&self, message: &str) {
+        let message = AppEvent::Message(message.to_string().into_boxed_str());
+        self.sender.send(message).expect("Failed to send info message");
+    }
 }
 
 impl TextPane for TextBuffer {

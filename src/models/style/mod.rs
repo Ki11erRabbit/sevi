@@ -341,6 +341,7 @@ impl<'a> Into<Vec<StyledSpan<'a>>> for StyledText<'a> {
     }
 }
 
+
 //TODO: Add conditional Compilation for TUI
 
 impl<'a> Into<tuirealm::tui::prelude::Text<'a>> for StyledText<'a> {

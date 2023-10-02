@@ -59,6 +59,9 @@ impl Component<Message, AppEvent> for InputLayer {
             Event::WindowResize(_, _) => {
                 Some(Message::Redraw)
             }
+            Event::User(AppEvent::Message(msg)) => {
+                Some(Message::InfoMessage(msg))
+            }
             _ => None,
         }
     }

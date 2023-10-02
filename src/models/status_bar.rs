@@ -27,4 +27,19 @@ impl Status {
 
         bar.into()
     }
+
+    pub fn bar_message<'a>(self, name: StyledText<'a>, message: StyledText<'a>) -> StyledText<'a> {
+        let mut bar = StyledLine::new();
+
+        let total = name.len() + message.len() + 1;
+        bar.extend(name.into());
+        bar.push(StyledSpan::from(" "));
+        bar.extend(message.into());
+
+        let remaining = self.rect.width.saturating_sub(total);
+
+        bar.push(StyledSpan::from(" ".repeat(remaining)));
+
+        bar.into()
+    }
 }

@@ -43,7 +43,8 @@ pub struct Model {
     pub sender: Sender<AppEvent>,
     pub settings: Rc<RefCell<crate::models::settings::Settings>>,
     pub files: HashMap<PathBuf, File>,
-    pub register_channels: (Sender<RegisterMessage>, Rc<Receiver<RegisterMessage>>)
+    pub register_channels: (Sender<RegisterMessage>, Rc<Receiver<RegisterMessage>>),
+    pub component_channels: (Sender<Message>, Rc<Receiver<Message>>),
 }
 
 impl Default for Model {
@@ -98,12 +99,17 @@ impl Default for Model {
 
         //assert!(app.active(&Id::Buffer).is_ok());
 
+        let (component_sender, component_receiver) = std::sync::mpsc::channel();
+        let component_receiver = Rc::new(component_receiver);
+
         assert!(app.mount(
             Id::Status,
             Box::new(
-                StatusBar::new(pane.clone())
+                StatusBar::new(pane.clone(), component_receiver.clone())
             ),
-            Vec::default(),
+            vec![
+                Sub::new(SubEventClause::User(AppEvent::InfoMessage), SubClause::Always),
+            ],
             ).is_ok());
 
         assert!(app.mount(Id::Input, Box::new(
@@ -123,6 +129,8 @@ impl Default for Model {
             settings,
             files: HashMap::new(),
             register_channels: (reg_sender, reg_receiver),
+            component_channels: (component_sender, component_receiver),
+
 
 
         }
@@ -192,12 +200,17 @@ impl Model {
 
         //assert!(app.active(&Id::Buffer).is_ok());
 
+        let (component_sender, component_receiver) = std::sync::mpsc::channel();
+        let component_receiver = Rc::new(component_receiver);
+
         assert!(app.mount(
             Id::Status,
             Box::new(
-                StatusBar::new(pane.clone())
+                StatusBar::new(pane.clone(), component_receiver.clone())
             ),
-            Vec::default(),
+            vec![
+                Sub::new(SubEventClause::User(AppEvent::InfoMessage), SubClause::Always),
+            ],
         ).is_ok());
 
         assert!(app.mount(Id::Input, Box::new(
@@ -215,6 +228,7 @@ impl Model {
             settings,
             files: HashMap::new(),
             register_channels,
+            component_channels: (component_sender, component_receiver),
 
         }
     }
@@ -313,7 +327,7 @@ impl Update<Message> for Model {
                 Message::Close => {
 
                     if !self.pane.borrow().can_close() {
-                        //TODO: Send Error Message
+                        self.pane.borrow().send_info_message("File has unsaved changes. `q!` to forcibly close the file or `wq` to save and quit.");
                         return None;
                     }
 
@@ -334,6 +348,11 @@ impl Update<Message> for Model {
                 }
                 Message::Tick => {
                     self.pane.borrow_mut().refresh();
+                    None
+                }
+                Message::InfoMessage(msg) => {
+                    self.component_channels.0.send(Message::InfoMessage(msg)).unwrap();
+                    self.sender.send(AppEvent::InfoMessage).unwrap();
                     None
                 }
                 _ => None,

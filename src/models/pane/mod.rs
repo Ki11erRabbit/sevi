@@ -30,6 +30,8 @@ pub trait Pane {
 
     fn get_settings(&self) -> Rc<RefCell<Settings>>;
 
+    fn send_info_message(&self, message: &str);
+
 }
 
 
