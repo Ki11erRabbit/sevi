@@ -229,27 +229,44 @@ impl File {
     }
 
 
-    pub fn save(&mut self, file_path: Option<PathBuf>) {
+    pub fn save(&mut self, file_path: Option<PathBuf>, force: bool) -> Result<(), String> {
         match file_path {
             Some(path) => {
                 match &mut self.path {
-                    Some(_) => {
+                    Some(path) => {
+                        if path.is_dir() {
+                            return Err("Cannot save over a directory".to_string());
+                        }
+                        if path.is_file() && !force {
+                            return Err("File already exists".to_string());
+                        }
+
                         self.buffer.save(&path);
                         self.saved = true;
                     }
                     None => {
+                        if path.is_dir() {
+                            return Err("Cannot save over a directory".to_string());
+                        }
+                        if path.is_file() && !force {
+                            return Err("File already exists".to_string());
+                        }
+
                         self.buffer.save(&path);
                         self.saved = true;
                     }
                 }
                 self.path = Some(path);
+                return Ok(());
             }
             None => {
                 if let Some(path) = &self.path {
                     self.buffer.save(path);
                     self.saved = true;
+                    return Ok(());
+                } else {
+                    return Err("No file path bound to file".to_string());
                 }
-                //todo: put in message for not having a bound file path
             }
         }
     }
@@ -535,6 +552,7 @@ impl File {
 
     pub fn display(&self) -> StyledText {
         let string = self.buffer.to_string();
+        eprintln!("String: {}", string);
         let mut acc = String::with_capacity(string.len());
         let mut output = StyledText::new();
         let mut line = StyledLine::new();
@@ -582,6 +600,16 @@ impl File {
                     acc.push(c as char);
                 }
             }
+        }
+        if !acc.is_empty() {
+            if highlight {
+                line.push(StyledSpan::styled(acc.clone(),Style::default()
+                    .bg(Color::Magenta)
+                ));
+            } else {
+                line.push(StyledSpan::from(acc.clone()));
+            }
+            output.lines.push(line);
         }
         output
     }

@@ -121,8 +121,10 @@ impl Buffer {
 
     pub fn get_byte_offset(&self, x: usize, y: usize) -> Option<usize> {
         if y >= self.history[self.current].line_len() {
-            return None;
+            return Some(self.history[self.current].byte_len());
         }
+
+
         let line_byte = self.history[self.current].byte_of_line(y);
 
         let line = self.history[self.current].line(y);
@@ -137,6 +139,7 @@ impl Buffer {
             }
             i += 1;
         }
+        eprintln!("line_byte: {}, col_byte: {}", line_byte, col_byte);
         Some(line_byte + col_byte)
     }
 

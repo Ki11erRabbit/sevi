@@ -342,6 +342,18 @@ impl Update<Message> for Model {
                     }
                     None
                 }
+                Message::ForceClose => {
+                    let key = self.files.keys().last().clone();
+                    if let Some(key) = key {
+                        let key = key.clone();
+                        let file = self.files.remove(&key).unwrap();
+                        let _ = self.pane.borrow_mut().change_file(file);
+                    } else {
+                        self.quit = true;
+                        self.register_channels.0.send(RegisterMessage::Quit).unwrap();
+                    }
+                    None
+                }
                 Message::Key(key) => {
                     self.pane.borrow_mut().process_keypress(key);
                     None
