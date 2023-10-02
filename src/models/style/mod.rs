@@ -79,6 +79,29 @@ impl Style {
 
         self
     }
+
+    pub fn config_file(&self) -> String {
+        let mut output = String::new();
+
+        if let Some(fg) = self.fg {
+            output.push_str(&format!("fg = {}\n", fg.config_file()));
+        }
+
+        if let Some(bg) = self.bg {
+            output.push_str(&format!("bg = {}\n", bg.config_file()));
+        }
+
+        if let Some(underline_color) = self.underline_color {
+            output.push_str(&format!("underline_color = {}\n", underline_color.config_file()));
+        }
+
+        if !self.add_modifier.is_empty() {
+            output.push_str(&format!("modifiers = {}\n", self.add_modifier.config_file()));
+        }
+
+
+        output
+    }
 }
 
 impl Default for Style {
@@ -86,6 +109,46 @@ impl Default for Style {
         Style::new()
     }
 }
+
+pub fn parse_style(table: &toml::Value) -> Result<Style,String> {
+    let table = table.as_table().ok_or("style was not a table".to_string())?;
+    let mut style = Style::new();
+
+    match table.get("fg") {
+        Some(value) => {
+            let value = color::parse_color(value)?;
+            style = style.fg(value);
+        },
+        None => {},
+    }
+
+    match table.get("bg") {
+        Some(value) => {
+            let value = color::parse_color(value)?;
+            style = style.bg(value);
+        },
+        None => {},
+    }
+
+    match table.get("underline_color") {
+        Some(value) => {
+            let value = color::parse_color(value)?;
+            style = style.underline_color(value);
+        },
+        None => {},
+    }
+
+    match table.get("modifiers") {
+        Some(value) => {
+            let value = text_modifier::parse_modifier(value)?;
+            style = style.add_modifier(value);
+        },
+        None => {},
+    }
+
+    Ok(style)
+}
+
 
 //TODO: Add conditional Compilation for TUI
 impl Into<tuirealm::tui::style::Style> for Style {

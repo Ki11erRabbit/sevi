@@ -43,6 +43,32 @@ pub enum Color {
     Indexed(u8),
 }
 
+impl Color {
+    pub fn config_file(&self) -> String {
+        match self {
+            Color::Reset => "\"reset\"".to_string(),
+            Color::Black => "\"black\"".to_string(),
+            Color::Red => "\"red\"".to_string(),
+            Color::Green => "\"green\"".to_string(),
+            Color::Yellow => "\"yellow\"".to_string(),
+            Color::Blue => "\"blue\"".to_string(),
+            Color::Magenta => "\"magenta\"".to_string(),
+            Color::Cyan => "\"cyan\"".to_string(),
+            Color::Gray => "\"gray\"".to_string(),
+            Color::DarkGray => "\"dark-gray\"".to_string(),
+            Color::LightRed => "\"light-red\"".to_string(),
+            Color::LightGreen => "\"light-green\"".to_string(),
+            Color::LightYellow => "\"light-yellow\"".to_string(),
+            Color::LightBlue => "\"light-blue\"".to_string(),
+            Color::LightMagenta => "\"light-magenta\"".to_string(),
+            Color::LightCyan => "\"light-cyan\"".to_string(),
+            Color::White => "\"white\"".to_string(),
+            Color::Rgb(r, g, b) => format!("[{}, {}, {}]", r, g, b),
+            Color::Indexed(color) => format!("{}", color),
+        }
+    }
+}
+
 impl FromStr for Color {
     type Err = ();
 
@@ -123,3 +149,53 @@ impl Into<tuirealm::tui::style::Color> for Color {
         }
     }
 }
+
+
+pub fn parse_color(value: &toml::Value) -> Result<Color, String> {
+
+    if value.is_str() {
+        let value = value.as_str().expect("color was not a string");
+
+        let color = match value {
+            "reset" => Color::Reset,
+            "black" => Color::Black,
+            "red" => Color::Red,
+            "green" => Color::Green,
+            "yellow" => Color::Yellow,
+            "blue" => Color::Blue,
+            "magenta" => Color::Magenta,
+            "cyan" => Color::Cyan,
+            "white" => Color::White,
+            "dark-grey" => Color::DarkGray,
+            "light-red" => Color::LightRed,
+            "light-green" => Color::LightGreen,
+            "light-yellow" => Color::LightYellow,
+            "light-blue" => Color::LightBlue,
+            "light-magenta" => Color::LightMagenta,
+            "light-cyan" => Color::LightCyan,
+            "grey" => Color::Gray,
+            _ => unreachable!(),
+        };
+        Ok(color)
+    }
+    else if value.is_array() {
+        let value = value.as_array().expect("color was not an array");
+
+        if value.len() != 3 {
+            return Err("color array was not of length 3".to_string());
+        }
+
+        Ok(Color::Rgb(
+            value[0].as_integer().expect("color array value was not an integer") as u8,
+            value[1].as_integer().expect("color array value was not an integer") as u8,
+            value[2].as_integer().expect("color array value was not an integer") as u8,
+        ))
+    } else if value.is_integer() {
+        let value = value.as_integer().ok_or("color was not an integer".to_string())? as u8;
+        Ok(Color::Indexed(value))
+    } else {
+        Err("color was not a string or array".to_string())
+    }
+
+}
+
