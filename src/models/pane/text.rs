@@ -76,7 +76,6 @@ impl TextBuffer {
             let settings = settings.clone();
             let settings = settings.borrow();
             let mode = &settings.editor_settings.default_mode;
-            eprintln!("Mode: {}", mode);
             modes.get(mode).unwrap().clone()
         };
 

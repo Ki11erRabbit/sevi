@@ -49,6 +49,17 @@ impl SearchMode {
         }
     }
 
+    fn get_search_query(&self) -> String {
+        // Remove the escape characters
+        let mut out = self.search_string.clone();
+        out = out.replace("\\n", "\n");
+        out = out.replace("\\t", "\t");
+        out = out.replace("\\r", "\r");
+        out = out.replace("\\\\", "\\");
+
+        out
+    }
+
     fn execute_command(&mut self, command: &str, pane: &mut dyn TextPane) {
         let mut command_args = command.split_whitespace();
         let command_name = command_args.next().unwrap_or("");
@@ -150,8 +161,9 @@ impl SearchMode {
                 SearchType::Backward => false,
             };
 
+            let search_string = self.get_search_query();
 
-            self.found_pos = file.find(col, row, &self.search_string, down);
+            self.found_pos = file.find(col, row, &search_string, down);
 
         } else {
             self.found_pos.clear();
@@ -170,8 +182,9 @@ impl SearchMode {
                 SearchType::Backward => true,
             };
 
+            let search_string = self.get_search_query();
 
-            let found = file.find(col, row, &self.search_string, down);
+            let found = file.find(col, row, &search_string, down);
 
             self.found_pos.extend(found);
 

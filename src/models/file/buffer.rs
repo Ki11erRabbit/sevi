@@ -772,16 +772,12 @@ impl Buffer {
 
 
     pub fn get_row(&self, row: usize) -> Option<BufferSlice> {
-        
         if row >= self.history[self.current].line_len() {
             return None;
         }
-        
 
-
-        let line = self.history[self.current].line(row);
+        let line = self.history[self.current].line_slice(row..row + 1);
         Some(BufferSlice::new(line, self.settings.clone()))
-
     }
 
     pub fn get_row_special(&self, row: usize, col_offset: usize, cols: usize) -> Option<BufferSlice> {

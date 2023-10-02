@@ -558,6 +558,7 @@ impl File {
                 highlight = false;
             }
             if c == b'\n' {
+                acc.push(' ');
                 if highlight {
                     line.push(StyledSpan::styled(acc.clone(),Style::default()
                         .bg(Color::Magenta)
@@ -575,6 +576,8 @@ impl File {
                     for _ in 0..tab_size {
                         acc.push(' ');
                     }
+                } else if c == b'\r' {
+                    acc.push(' ');
                 } else {
                     acc.push(c as char);
                 }
