@@ -72,13 +72,26 @@ impl Component<Message, AppEvent> for StatusBar {
     fn on(&mut self, ev: Event<AppEvent>) -> Option<Message> {
         match ev {
             Event::User(AppEvent::InfoMessage) => {
-                match self.receiver.try_recv() {
-                    Ok(Message::InfoMessage(msg)) => {
-                        self.status_message = Some(msg);
-                        Some(Message::Redraw)
+                let mut new_message = false;
+                loop {
+                    match self.receiver.try_recv() {
+                        Ok(Message::InfoMessage(msg)) => {
+                            self.status_message = Some(msg);
+                            new_message = true;
+                        }
+                        Err(std::sync::mpsc::TryRecvError::Empty) => {
+                            break;
+                        }
+                        _ => return None
                     }
-                    _ => None,
+
                 }
+                if new_message {
+                    Some(Message::Redraw)
+                } else {
+                    None
+                }
+
             }
             _ => None,
         }
