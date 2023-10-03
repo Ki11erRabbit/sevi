@@ -17,6 +17,7 @@ use crate::components::input::InputLayer;
 
 use crate::models::{AppEvent, Id, Message};
 use crate::models::file::File;
+use crate::models::file::file::FileError;
 use crate::models::pane::{Pane, TextPane};
 use crate::models::pane::text::TextBuffer;
 use crate::threads::registers::RegisterMessage;
@@ -63,7 +64,20 @@ impl Default for Model {
 
         let settings = Rc::new(RefCell::new(settings));
 
-        let file = File::new(path.clone(), settings.clone());
+
+        let file = match File::new(path.clone(), settings.clone()) {
+            Ok(file) => file,
+            Err(FileError::FileDoesNotExist) => {
+                let mut file = File::new(None, settings.clone()).unwrap();
+                file.set_path(path.clone().unwrap());
+                file
+            }
+            Err(FileError::Directory) => {
+                sender.send(AppEvent::Message("Cannot open directory yet".to_string().into())).unwrap();
+                let file = File::new(None, settings.clone()).unwrap();
+                file
+            }
+        };
 
         let (reg_sender, reg_receiver) = std::sync::mpsc::channel();
         let reg_receiver = Rc::new(reg_receiver);
@@ -165,9 +179,19 @@ impl Model {
 
         let settings = Rc::new(RefCell::new(settings));
 
-        let file = File::new(path.clone(), settings.clone());
-
-
+        let file = match File::new(path.clone(), settings.clone()) {
+            Ok(file) => file,
+            Err(FileError::FileDoesNotExist) => {
+                let mut file = File::new(None, settings.clone()).unwrap();
+                file.set_path(path.clone().unwrap());
+                file
+            }
+            Err(FileError::Directory) => {
+                sender.send(AppEvent::Message("Cannot open directory yet".to_string().into())).unwrap();
+                let file = File::new(None, settings.clone()).unwrap();
+                file
+            }
+        };
 
 
         let pane = TextBuffer::new(file, sender.clone(), settings.clone(), register_channels.clone());
@@ -314,9 +338,23 @@ impl Update<Message> for Model {
                 },
                 Message::OpenFile(file) => {
                     let path = PathBuf::from(file.as_ref());
-                    let file = File::new(Some(path), self.settings.clone());
+                    let file = match File::new(Some(path.clone()), self.settings.clone()) {
+                        Ok(file) => file,
+                        Err(FileError::FileDoesNotExist) => {
+                            let mut file = File::new(None, self.settings.clone()).unwrap();
+                            file.set_path(path);
+                            file
+                        }
+                        Err(FileError::Directory) => {
+                            self.sender.send(AppEvent::Message("Cannot open directory yet".to_string().into())).unwrap();
+                            let file = File::new(None, self.settings.clone()).unwrap();
+                            file
+                        }
+                    };
+
 
                     let file = self.pane.borrow_mut().change_file(file);
+
 
                     let path = file.get_path().unwrap_or(PathBuf::from(""));
 

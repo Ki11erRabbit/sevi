@@ -880,7 +880,6 @@ impl TextPane for TextBuffer {
 
     fn get_current_byte_position(&self) -> usize {
         let (col, row) = self.get_cursor();
-        eprintln!("Cursor: {}, {}", col, row);
 
         self.file.get_byte_offset(row, col).expect("Cursor was in an invalid position")
     }

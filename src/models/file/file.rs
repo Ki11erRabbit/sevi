@@ -8,7 +8,11 @@ use crate::models::settings::Settings;
 use crate::models::style::{Style, StyledLine, StyledSpan, StyledText};
 use crate::models::style::color::Color;
 
-
+#[derive(Debug)]
+pub enum FileError {
+    FileDoesNotExist,
+    Directory,
+}
 pub trait ReplaceSelections<S> {
     fn replace_selections(&mut self, selections: S);
 }
@@ -27,9 +31,16 @@ pub struct File {
 }
 
 impl File {
-    pub fn new(path: Option<PathBuf>, settings: Rc<RefCell<Settings>>) -> Self {
+    pub fn new(path: Option<PathBuf>, settings: Rc<RefCell<Settings>>) -> Result<Self,FileError> {
         match path {
             Some(path) => {
+                if path.is_dir() {
+                    return Err(FileError::Directory);
+                }
+                if !path.is_file() {
+                    return Err(FileError::FileDoesNotExist);
+                }
+
                 let string = std::fs::read_to_string(&path).unwrap();
 
                 let file_type = path.extension().and_then(|ext| ext.to_str()).unwrap_or("txt").to_string();
@@ -200,7 +211,7 @@ impl File {
 
                 let lsp_info = None;
 
-                Self {
+                Ok(Self {
                     path: Some(path),
                     buffer,
                     lsp_info,
@@ -208,14 +219,14 @@ impl File {
                     settings,
                     highlights: BTreeSet::new(),
                     saved: true,
-                }
+                })
             }
             None => {
                 let mut buffer = Buffer::new(settings.clone());
                 buffer.add_new_rope();
                 buffer.add_new_rope();
 
-                Self {
+                Ok(Self {
                     path: None,
                     buffer,
                     lsp_info: None,
@@ -223,11 +234,14 @@ impl File {
                     settings,
                     highlights: BTreeSet::new(),
                     saved: true,
-                }
+                })
             }
         }
     }
 
+    pub fn set_path(&mut self, path: PathBuf) {
+        self.path = Some(path);
+    }
 
     pub fn save(&mut self, file_path: Option<PathBuf>, force: bool) -> Result<(), String> {
         match file_path {
