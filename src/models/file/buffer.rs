@@ -58,7 +58,7 @@ impl Buffer {
         self.tree_sitter_info = Some((parser, trees));
     }
 
-    pub fn get_char_at(&self, byte_offset: usize) -> Option<char> {
+    pub fn get_char_at(&self, mut byte_offset: usize) -> Option<char> {
         let current = &self.history[self.current];
 
         if byte_offset >= current.byte_len() {
@@ -66,9 +66,19 @@ impl Buffer {
         }
         let mut total_bytes = 1;
 
-        while byte_offset + total_bytes < current.byte_len() && current.is_char_boundary(byte_offset + total_bytes) {
-            total_bytes += 1;
+        if current.is_char_boundary(byte_offset) {
+            while byte_offset + total_bytes < current.byte_len() && !current.is_char_boundary(byte_offset + total_bytes) {
+                total_bytes += 1;
+            }
+        } else if !current.is_char_boundary(byte_offset) {
+            while !current.is_char_boundary(byte_offset) && byte_offset > 0 {
+                byte_offset -= 1;
+            }
+            while byte_offset + total_bytes < current.byte_len() && !current.is_char_boundary(byte_offset + total_bytes) {
+                total_bytes += 1;
+            }
         }
+
 
         let bytes = current.byte_slice(byte_offset..byte_offset + total_bytes);
 
@@ -130,7 +140,12 @@ impl Buffer {
         let line = self.history[self.current].line(y);
         let mut i = 0;
         let mut col_byte = 0;
-        while i < line.byte_len() {
+
+        let line = line.chars().take(x).collect::<String>();
+
+        return Some(line_byte + line.len());
+
+        /*while i < line.byte_len() {
             if line.is_char_boundary(i) {
                 if col_byte == x {
                     break;
@@ -139,7 +154,7 @@ impl Buffer {
             }
             i += 1;
         }
-        Some(line_byte + col_byte)
+        Some(line_byte + col_byte)*/
     }
 
     fn get_new_rope(&mut self) -> &mut Rope {

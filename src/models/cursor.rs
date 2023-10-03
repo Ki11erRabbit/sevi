@@ -1,4 +1,5 @@
-
+use serde::de::Unexpected::Unit;
+use unicode_width::UnicodeWidthStr;
 use crate::models::Rect;
 use crate::models::file::File;
 use crate::models::pane::TextPane;
@@ -80,7 +81,7 @@ impl Cursor {
             match file.get_line(self.row) {
                 Some(line) => {
                     let mut tab_size = 0;
-                    for c in line.chars().take(self.col) {
+                    for c in line.chars().take(self.col + 1) {
                         if c == '\t' {
                             tab_size += 1;
                         }
@@ -92,23 +93,42 @@ impl Cursor {
         } else {
             0
         };
+        let file = pane.borrow_current_file();
+        let col = match file.get_line(self.row) {
+            None => self.col,
+            Some(line) => {
+                let line = line.chars().take(self.col).collect::<String>();
+                let col = UnicodeWidthStr::width(line.as_str());
+                col
+            }
+        };
 
 
-        (self.col - self.col_offset + self.number_line_width + self.gutter_width + tab_size, self.row - self.row_offset)
+        (col.saturating_sub(self.col_offset) + self.number_line_width + self.gutter_width + tab_size, self.row.saturating_sub(self.row_offset))
     }
 
     pub fn get_scroll_amount(self) -> (usize, usize) {
         (self.col_offset, self.row_offset)
     }
 
-    pub fn scroll(&mut self, rect: Rect) {
+    pub fn scroll(&mut self, pane: &mut dyn TextPane, rect: Rect) {
+
+        let file = pane.borrow_current_file();
+        let col = match file.get_line(self.row) {
+            None => self.col,
+            Some(line) => {
+                let line = line.chars().take(self.col + 1).collect::<String>();
+                let col = UnicodeWidthStr::width(line.as_str());
+                col
+            }
+        };
 
         match self.col_movement {
-            ColMovement::Right if rect.width != 0 && ((self.col + self.number_line_width - self.gutter_width) - self.col_offset) >= rect.width => {
-                self.col_offset = (self.col + self.number_line_width - self.gutter_width).saturating_sub(rect.width) + 1;
+            ColMovement::Right if rect.width != 0 && ((col + self.number_line_width - self.gutter_width).saturating_sub(self.col_offset)) >= rect.width => {
+                self.col_offset = (col + self.number_line_width - self.gutter_width).saturating_sub(rect.width) + 1;
             }
-            ColMovement::Left if (self.col.saturating_sub(self.col_offset)) == 0 => {
-                self.col_offset = self.col;
+            ColMovement::Left if (col.saturating_sub(self.col_offset)) == 0 => {
+                self.col_offset = col;
             }
             _ => {}
         }

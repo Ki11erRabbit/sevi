@@ -564,13 +564,239 @@ impl File {
         self.saved = false;
     }
 
+    fn is_delimiter(&self, b: usize) -> bool {
+        if let Some(c) = self.buffer.get_char_at(b) {
+            match c {
+                '(' => true,
+                ')' => true,
+                '[' => true,
+                ']' => true,
+                '{' => true,
+                '}' => true,
+                // Despite looking similar, they are different characters
+                '｛' => true,
+                '｝' => true,
+                '（' => true,
+                '）' => true,
+                '［' => true,
+                '］' => true,
+                '【' => true,
+                '】' => true,
+                '「' => true,
+                '」' => true,
+                '『' => true,
+                '』' => true,
+                '〝' => true,
+                '〞' => true,
+                '〈' => true,
+                '〉' => true,
+                '《' => true,
+                '》' => true,
+                '〔' => true,
+                '〕' => true,
+                '〖' => true,
+                '〗' => true,
+                '〘' => true,
+                '〙' => true,
+                '〚' => true,
+                '〛' => true,
+                '«' => true,
+                '»' => true,
+                '‹' => true,
+                '›' => true,
+                '"' => true,
+                '\'' => true,
+                '‘' => true,
+                '’' => true,
+                '“' => true,
+                '”' => true,
+                //todo: add a way to have the user add more of these
+                _ => false,
+            }
+        } else {
+            false
+        }
+    }
+    fn is_pair(left: char, right: char) -> bool {
+        match (left, right) {
+            ('(', ')') => true,
+            ('{', '}') => true,
+            ('[', ']') => true,
+            ('｛', '｝') => true,
+            ('（', '）') => true,
+            ('［', '］') => true,
+            ('【', '】') => true,
+            ('「', '」') => true,
+            ('『', '』') => true,
+            ('〝', '〞') => true,
+            ('〈', '〉') => true,
+            ('《', '》') => true,
+            ('〔', '〕') => true,
+            ('〖', '〗') => true,
+            ('〘', '〙') => true,
+            ('〚', '〛') => true,
+            ('«', '»') => true,
+            ('‹', '›') => true,
+            ('"', '"') => true,
+            ('\'', '\'') => true,
+            ('‘', '’') => true,
+            ('“', '”') => true,
+
+            _ => false,
+        }
+    }
+
     pub fn display(&self) -> StyledText {
+        // TODO: make this use less heap allocations
+        let mut rainbow_delimiters = Vec::new();
+
+        let mut skip_counter = 0;
+
+        let string = self.buffer.to_string();
+        let mut acc = String::with_capacity(string.len());
+        let mut output = StyledText::new();
+        let mut line = StyledLine::new();
+        let mut highlight = false;
+
+        for (i, _) in string.bytes().enumerate() {
+            if skip_counter > 0 {
+                skip_counter -= 1;
+                continue;
+            }
+            let base_color = if self.is_delimiter(i) {
+                let settings = self.settings.clone();
+                let settings = settings.borrow();
+
+                let color = settings.colors.rainbow_delimiters[rainbow_delimiters.len() % settings.colors.rainbow_delimiters.len()];
+
+                let chr = self.buffer.get_char_at(i).unwrap();
+                if rainbow_delimiters.is_empty() {
+                    rainbow_delimiters.push((chr, color));
+                    color
+                } else {
+                    let last = rainbow_delimiters.last().unwrap();
+                    if Self::is_pair(last.0, chr) {
+                        let color = rainbow_delimiters.pop().unwrap().1;
+                        color
+                    } else {
+                        rainbow_delimiters.push((chr, color));
+                        color
+                    }
+                }
+            } else {
+                let settings = self.settings.borrow();
+                let color = settings.colors.buffer_color;
+
+                color
+            };
+
+            let chr = self.buffer.get_char_at(i).unwrap();
+
+            skip_counter = chr.len_utf8() - 1;
+
+            acc.push(chr);
+
+            let color = if self.highlights.contains(&i) {
+                let settings = self.settings.clone();
+                let settings = settings.borrow();
+
+                let selection_color = settings.colors.selected;
+
+                base_color.patch(selection_color)
+            } else {
+                base_color
+            };
+            line.push(StyledSpan::styled(acc.clone(),
+                                         color
+            ));
+            acc.clear();
+            if chr == '\n' {
+                output.lines.push(line);
+                line = StyledLine::new();
+            }
+        }
+
+        output
+    }
+
+    /*pub fn display(&self) -> StyledText {
+
+        let mut rainbow_delimiters = Vec::new();
+
+        let mut skip_counter = 0;
+
         let string = self.buffer.to_string();
         let mut acc = String::with_capacity(string.len());
         let mut output = StyledText::new();
         let mut line = StyledLine::new();
         let mut highlight = false;
         for (i, c) in string.bytes().enumerate() {
+            if skip_counter > 0 {
+                skip_counter -= 1;
+                continue;
+            }
+
+
+
+            if self.is_delimiter(i) {
+                if !highlight {
+                    line.push(StyledSpan::from(acc.clone()));
+                    acc.clear();
+                } else {
+                    let settings = self.settings.borrow();
+                    let selection_color = settings.colors.selected;
+
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 selection_color
+                    ));
+                    acc.clear();
+                }
+
+                let char = self.buffer.get_char_at(i).unwrap();
+
+                let settings = self.settings.clone();
+                let settings = settings.borrow();
+
+                let color = settings.colors.rainbow_delimiters[rainbow_delimiters.len() % settings.colors.rainbow_delimiters.len()];
+
+
+                let mut color = if rainbow_delimiters.is_empty() {
+                    rainbow_delimiters.push((char, color));
+                    color
+                } else {
+                    let last = rainbow_delimiters.last().unwrap();
+                    if Self::is_pair(last.0, char) {
+                        let color = rainbow_delimiters.pop().unwrap().1;
+                        color
+                    } else {
+                        rainbow_delimiters.push((char, color));
+                        color
+                    }
+                };
+
+                acc.push(char);
+
+                let color = if highlight {
+                    let mut selection_color = settings.colors.selected;
+                    selection_color.patch(color);
+
+                    selection_color
+                } else {
+                    color
+                };
+
+                line.push(StyledSpan::styled(acc.clone(),
+                                             color
+                ));
+                acc.clear();
+
+
+
+                skip_counter = char.len_utf8();
+
+
+            }
+
             if self.highlights.contains(&i) {
                 if !highlight {
                     line.push(StyledSpan::from(acc.clone()));
@@ -633,7 +859,7 @@ impl File {
             output.lines.push(line);
         }
         output
-    }
+    }*/
 
     pub fn display_section(&self, start_row: usize, end_row: usize) -> StyledText {
         let mut string = String::new();

@@ -814,7 +814,11 @@ impl TextPane for TextBuffer {
     }
 
     fn scroll(&mut self, rect: Rect) {
-        self.cursor.scroll(rect);
+        let mut cursor = self.cursor.clone();
+
+        cursor.scroll(self, rect);
+
+        self.cursor = cursor;
     }
 
     fn backspace(&mut self) {
