@@ -4,7 +4,6 @@ use std::io;
 use std::io::{Read, Write};
 use crate::models::style::color::Color;
 use crate::models::style::Style;
-use crate::models::style::text_modifier::Modifier;
 
 
 impl Default for EditorColors {

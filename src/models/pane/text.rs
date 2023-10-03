@@ -14,7 +14,7 @@ use either::Either;
 use crate::models::cursor::CursorMovement;
 use crate::models::pane::Pane;
 use crate::models::file::File;
-use crate::models::{AppEvent, Rect, settings};
+use crate::models::{AppEvent, Rect};
 use crate::models::file::file::ReplaceSelections;
 use crate::models::mode::command::CommandMode;
 use crate::models::mode::insert::InsertMode;

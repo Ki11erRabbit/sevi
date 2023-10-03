@@ -28,7 +28,7 @@ impl InsertMode {
                 self.key_buffer.clear();
 
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow_mut();
+                let settings = settings.borrow_mut();
                 if self.get_name() != settings.editor_settings.default_mode {
                     pane.execute_command("change_mode Normal");
                     pane.execute_command("move right 1");
@@ -262,7 +262,7 @@ impl TextMode for InsertMode {
             } => {
                 self.key_buffer.clear();
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow_mut();
+                let settings = settings.borrow_mut();
                 if self.get_name() != settings.editor_settings.default_mode {
                     pane.execute_command("change_mode Normal");
                     pane.execute_command("move right 1");

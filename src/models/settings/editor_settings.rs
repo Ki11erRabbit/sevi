@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::{fmt, io};
-use std::fmt::{Formatter, write};
+use std::fmt::Formatter;
 use std::io::{Read, Write};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -63,7 +63,7 @@ impl Default for EditorSettings {
             number_line: NumberLineStyle::None,
             tab_size: 4,
             use_spaces: true,
-            rainbow_delimiters: false,
+            rainbow_delimiters: true,
             font_settings: None,
             default_mode: String::from("Normal"),
         }

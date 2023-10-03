@@ -32,7 +32,7 @@ impl CommandMode {
                 self.command_buffer.clear();
                 self.edit_pos = 0;
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
             }
             "left" => {
@@ -69,7 +69,7 @@ impl CommandMode {
                 self.edit_pos = 0;
 
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
             }
             _ => {}

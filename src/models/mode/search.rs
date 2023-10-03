@@ -71,7 +71,7 @@ impl SearchMode {
                 self.search_string.clear();
                 self.edit_pos = 0;
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             }
@@ -103,7 +103,7 @@ impl SearchMode {
                     self.search_string.clear();
                     self.edit_pos = 0;
                     let settings = self.settings.clone().unwrap();
-                    let mut settings = settings.borrow();
+                    let settings = settings.borrow();
                     pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                     pane.execute_command("clear_selection");
                 }
@@ -119,7 +119,7 @@ impl SearchMode {
             "copy" => {
                 pane.execute_command(&format!("copy selection {}", self.number_buffer));
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
                 self.search_string.clear();
@@ -128,7 +128,7 @@ impl SearchMode {
             "delete_search" => {
                 pane.execute_command("delete selection");
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
                 self.search_string.clear();
@@ -138,7 +138,7 @@ impl SearchMode {
                 pane.execute_command(&format!("copy selection"));
                 pane.execute_command("delete selection");
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
                 self.search_string.clear();
@@ -147,7 +147,7 @@ impl SearchMode {
             "paste" => {
                 pane.execute_command(&format!("paste selection {}", self.number_buffer));
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
                 self.search_string.clear();

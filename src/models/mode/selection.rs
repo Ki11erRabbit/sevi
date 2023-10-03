@@ -105,7 +105,7 @@ impl SelectionMode {
             "cancel" => {
                 self.key_buffer.clear();
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             },
@@ -144,28 +144,28 @@ impl SelectionMode {
             "copy" => {
                 pane.execute_command(&format!("copy selection"));
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             }
             "delete" => {
                 pane.execute_command("delete selection");
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");    }
             "cut" => {
                 pane.execute_command(&format!("copy selection"));
                 pane.execute_command("delete selection");
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             }
             "paste" => {
                 pane.execute_command("paste selection");
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             }
@@ -222,7 +222,7 @@ impl TextMode for SelectionMode {
             } => {
                 self.key_buffer.clear();
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             },

@@ -138,23 +138,10 @@ impl Buffer {
         let line_byte = self.history[self.current].byte_of_line(y);
 
         let line = self.history[self.current].line(y);
-        let mut i = 0;
-        let mut col_byte = 0;
 
         let line = line.chars().take(x).collect::<String>();
 
         return Some(line_byte + line.len());
-
-        /*while i < line.byte_len() {
-            if line.is_char_boundary(i) {
-                if col_byte == x {
-                    break;
-                }
-                col_byte += 1;
-            }
-            i += 1;
-        }
-        Some(line_byte + col_byte)*/
     }
 
     fn get_new_rope(&mut self) -> &mut Rope {
