@@ -1,5 +1,7 @@
 use std::cell::RefCell;
 use std::collections::BTreeSet;
+use std::fmt::format;
+use std::io::Write;
 use std::path::PathBuf;
 use std::rc::Rc;
 use tree_sitter::Parser;
@@ -784,11 +786,41 @@ impl File {
             skip_counter = chr.len_utf8() - 1;
 
             if self.highlights.contains(&i) && !(self.is_delimiter(i) && self.settings.borrow().editor_settings.rainbow_delimiters){
+                if chr == '\n' {
+                    acc.push(' ');
+                    if highlight {
+                        let settings = self.settings.borrow();
+                        let selection_color = settings.colors.selected;
+
+                        line.push(StyledSpan::styled(acc.clone(),
+                                                     selection_color
+                        ));
+                    } else {
+                        line.push(StyledSpan::from(acc.clone()));
+                    }
+                    output.lines.push(line);
+                    line = StyledLine::new();
+                    acc.clear();
+                } else {
+                    if chr == '\t' {
+                        let settings = self.settings.borrow();
+                        let tab_size = settings.editor_settings.tab_size;
+                        for _ in 0..tab_size {
+                            acc.push(' ');
+                        }
+                    } else if chr == '\r' {
+                        acc.push(' ');
+                    } else {
+                        acc.push(chr);
+                    }
+                }
+
                 if !highlight {
                     line.push(StyledSpan::from(acc.clone()));
                     acc.clear();
                 }
                 highlight = true;
+
             } else if self.highlights.contains(&i) && self.is_delimiter(i) && self.settings.borrow().editor_settings.rainbow_delimiters {
                 let settings = self.settings.clone();
                 let settings = settings.borrow();
@@ -867,20 +899,20 @@ impl File {
                 ));
                 acc.clear();
             } else if chr == '\n' {
-                if !highlight {
-                    line.push(StyledSpan::from(acc.clone()));
-                    acc.clear();
-                } else {
+                acc.push(' ');
+                if highlight {
                     let settings = self.settings.borrow();
                     let selection_color = settings.colors.selected;
 
                     line.push(StyledSpan::styled(acc.clone(),
                                                  selection_color
                     ));
-                    acc.clear();
+                } else {
+                    line.push(StyledSpan::from(acc.clone()));
                 }
                 output.lines.push(line);
                 line = StyledLine::new();
+                acc.clear();
             } else {
                 if highlight {
                     let settings = self.settings.borrow();
@@ -892,7 +924,18 @@ impl File {
                     acc.clear();
                 }
                 highlight = false;
-                acc.push(chr);
+
+                if chr == '\t' {
+                    let settings = self.settings.borrow();
+                    let tab_size = settings.editor_settings.tab_size;
+                    for _ in 0..tab_size {
+                        acc.push(' ');
+                    }
+                } else if chr == '\r' {
+                    acc.push(' ');
+                } else {
+                    acc.push(chr);
+                }
             }
         }
         if !acc.is_empty() {
@@ -1281,5 +1324,61 @@ impl ReplaceSelections<Vec<String>> for File {
 
         self.buffer.replace_bulk(ranges, selection);
 
+    }
+}
+
+
+impl Drop for File {
+    fn drop(&mut self) {
+        if !self.saved {
+            match self.path {
+                Some(ref path) => {
+                    let filename = path.file_name().unwrap().to_str().unwrap();
+                    let extension = path.extension().unwrap().to_str().unwrap();
+
+                    let path = PathBuf::from(format!("##{}##{}", filename, extension));
+                    let mut file = std::fs::File::create(path).unwrap();
+                    file.write_all(self.buffer.to_string().as_bytes()).unwrap();
+                }
+                None => {
+                    // TODO: move this to its own function
+                    let mut file_ext = match self.language {
+                        None => String::from("txt"),
+                        Some(ref language) => match language.as_str() {
+                            "rust" => String::from("rs"),
+                            "c" => String::from("c"),
+                            "cpp" => String::from("cpp"),
+                            "java" => String::from("java"),
+                            "python" => String::from("py"),
+                            "javascript" => String::from("js"),
+                            "html" => String::from("html"),
+                            "css" => String::from("css"),
+                            "markdown" => String::from("md"),
+                            "latex" => String::from("tex"),
+                            "toml" => String::from("toml"),
+                            "yaml" => String::from("yaml"),
+                            "json" => String::from("json"),
+                            "csv" => String::from("csv"),
+                            "csharp" => String::from("cs"),
+                            "haskell" => String::from("hs"),
+                            "go" => String::from("go"),
+                            "php" => String::from("php"),
+                            "kotlin" => String::from("kt"),
+                            _ => String::from("txt"),
+                        }
+                    };
+
+                    let mut path = PathBuf::from("##untitled##");
+                    let mut number = 1;
+                    while path.exists() {
+                        path = PathBuf::from(format!("##untitled{}##{}", number, file_ext));
+                        number += 1;
+                    }
+                    let mut file = std::fs::File::create(path).unwrap();
+                    file.write_all(self.buffer.to_string().as_bytes()).unwrap();
+                }
+            }
+
+        }
     }
 }
