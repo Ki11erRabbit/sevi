@@ -122,12 +122,15 @@ impl TextBuffer {
         match command_name {
             "qa!" => {
                 self.sender.send(AppEvent::ForceQuit).expect("Failed to send force quit event");
+                self.file.set_safe_close();
             }
             "q" => {
                 self.sender.send(AppEvent::Close).expect("Failed to send quit event");
+                self.file.set_safe_close();
             }
             "q!" => {
                 self.sender.send(AppEvent::ForceClose).expect("Failed to send force quit event");
+                self.file.set_safe_close();
             }
             "e" => {
                 let path = command_args.next();
@@ -202,8 +205,9 @@ impl TextBuffer {
                             return;
                         }
                     }
-                    self.sender.send(AppEvent::Close).expect("Failed to send quit event");
                 }
+                self.sender.send(AppEvent::Close).expect("Failed to send quit event");
+                self.file.set_safe_close();
             }
             "w!q" => {
                 if let Some(path) = command_args.next() {
@@ -227,8 +231,9 @@ impl TextBuffer {
                             return
                         }
                     }
-                    self.sender.send(AppEvent::Close).expect("Failed to send quit event");
                 }
+                self.sender.send(AppEvent::Close).expect("Failed to send quit event");
+                self.file.set_safe_close();
             }
             "w!q!" => {
                 if let Some(path) = command_args.next() {
@@ -250,8 +255,9 @@ impl TextBuffer {
                             self.send_info_message(msg.as_str());
                         }
                     }
-                    self.sender.send(AppEvent::ForceClose).expect("Failed to send force quit event");
                 }
+                self.sender.send(AppEvent::ForceClose).expect("Failed to send force quit event");
+                self.file.set_safe_close();
             }
             "wq!" => {
                 if let Some(path) = command_args.next() {
@@ -273,8 +279,10 @@ impl TextBuffer {
                             self.send_info_message(msg.as_str());
                         }
                     }
-                    self.sender.send(AppEvent::ForceClose).expect("Failed to send force quit event");
+
                 }
+                self.sender.send(AppEvent::ForceClose).expect("Failed to send force quit event");
+                self.file.set_safe_close();
             }
             _ => {}
         }

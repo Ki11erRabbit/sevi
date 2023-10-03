@@ -329,6 +329,10 @@ impl Update<Message> for Model {
                 Message::AppClose => {
                     self.quit = true;
                     self.register_channels.0.send(RegisterMessage::Quit).unwrap();
+
+                    for (_, file) in self.files.iter_mut() {
+                        file.set_safe_close();
+                    }
                     None
                 },
                 Message::Redraw => {
@@ -363,6 +367,7 @@ impl Update<Message> for Model {
                     None
                 },
                 Message::Close => {
+
 
                     if !self.pane.borrow().can_close() {
                         self.pane.borrow().send_info_message("File has unsaved changes. `q!` to forcibly close the file or `wq` to save and quit.");

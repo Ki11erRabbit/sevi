@@ -2,6 +2,8 @@ use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::fmt::format;
 use std::io::Write;
+use std::panic;
+use std::panic::UnwindSafe;
 use std::path::PathBuf;
 use std::rc::Rc;
 use tree_sitter::Parser;
@@ -22,6 +24,7 @@ pub trait ReplaceSelections<S> {
 pub struct LSPInfo {
 
 }
+
 pub struct File {
     path: Option<PathBuf>,
     language: Option<String>,
@@ -30,6 +33,7 @@ pub struct File {
     settings: Rc<RefCell<Settings>>,
     highlights: BTreeSet<usize>,
     saved: bool,
+    safe_close: bool,
 }
 
 impl File {
@@ -221,6 +225,7 @@ impl File {
                     settings,
                     highlights: BTreeSet::new(),
                     saved: true,
+                    safe_close: false,
                 })
             }
             None => {
@@ -236,11 +241,15 @@ impl File {
                     settings,
                     highlights: BTreeSet::new(),
                     saved: true,
+                    safe_close: false,
                 })
             }
         }
     }
 
+    pub fn set_safe_close(&mut self) {
+        self.safe_close = true;
+    }
     pub fn set_path(&mut self, path: PathBuf) {
         self.path = Some(path);
     }
@@ -1330,13 +1339,13 @@ impl ReplaceSelections<Vec<String>> for File {
 
 impl Drop for File {
     fn drop(&mut self) {
-        if !self.saved {
+        if !self.saved && !self.safe_close {
             match self.path {
                 Some(ref path) => {
                     let filename = path.file_name().unwrap().to_str().unwrap();
                     let extension = path.extension().unwrap().to_str().unwrap();
-
-                    let path = PathBuf::from(format!("##{}##{}", filename, extension));
+                    let parent = path.parent().unwrap().to_str().unwrap();
+                    let path = PathBuf::from(format!("{}##{}##{}",parent, filename, extension));
                     let mut file = std::fs::File::create(path).unwrap();
                     file.write_all(self.buffer.to_string().as_bytes()).unwrap();
                 }
@@ -1380,5 +1389,6 @@ impl Drop for File {
             }
 
         }
+
     }
 }
