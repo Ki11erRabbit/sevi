@@ -818,7 +818,11 @@ impl File {
 
                 let selection_color = settings.colors.selected;
 
-                base_color.patch(selection_color)
+                if self.settings.borrow().editor_settings.rainbow_delimiters {
+                    selection_color.patch(base_color)
+                } else {
+                    base_color.patch(selection_color)
+                }
             } else {
                 base_color
             };
