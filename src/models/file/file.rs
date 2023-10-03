@@ -822,6 +822,7 @@ impl File {
 
                 let selection_color = settings.colors.selected;
 
+
                 if rainbow {
                     selection_color.patch(base_color)
                 } else {
