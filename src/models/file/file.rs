@@ -761,8 +761,159 @@ impl File {
             _ => false,
         }
     }
-
     pub fn display(&self) -> StyledText {
+        // TODO: make this use less heap allocations
+        let mut rainbow_delimiters = Vec::new();
+
+        let mut skip_counter = 0;
+
+        let string = self.buffer.to_string();
+        let mut acc = String::with_capacity(string.len());
+        let mut output = StyledText::new();
+        let mut line = StyledLine::new();
+        let mut highlight = false;
+
+        for (i, _) in string.bytes().enumerate() {
+            if skip_counter > 0 {
+                skip_counter -= 1;
+                continue;
+            }
+
+            let chr = self.buffer.get_char_at(i).unwrap();
+
+            skip_counter = chr.len_utf8() - 1;
+
+            if self.highlights.contains(&i) && !(self.is_delimiter(i) && self.settings.borrow().editor_settings.rainbow_delimiters){
+                if !highlight {
+                    line.push(StyledSpan::from(acc.clone()));
+                    acc.clear();
+                }
+                highlight = true;
+            } else if self.highlights.contains(&i) && self.is_delimiter(i) && self.settings.borrow().editor_settings.rainbow_delimiters {
+                let settings = self.settings.clone();
+                let settings = settings.borrow();
+
+                if !highlight {
+                    line.push(StyledSpan::from(acc.clone()));
+                    acc.clear();
+                }
+                highlight = true;
+
+                let color = settings.colors.rainbow_delimiters[rainbow_delimiters.len() % settings.colors.rainbow_delimiters.len()];
+
+                let color = if rainbow_delimiters.is_empty() {
+                    rainbow_delimiters.push((chr, color));
+                    acc.push(chr);
+                    color
+
+                } else {
+                    let last = rainbow_delimiters.last().unwrap();
+                    if Self::is_pair(last.0, chr) {
+                        let color = rainbow_delimiters.pop().unwrap().1;
+                        acc.push(chr);
+                        color
+                    } else {
+                        rainbow_delimiters.push((chr, color));
+                        acc.push(chr);
+                        color
+                    }
+                };
+
+                let selection_color = settings.colors.selected;
+                let selection_color = selection_color.patch(color);
+
+                line.push(StyledSpan::styled(acc.clone(),
+                                             selection_color
+                ));
+                acc.clear();
+            } else if self.is_delimiter(i) && self.settings.borrow().editor_settings.rainbow_delimiters {
+                let settings = self.settings.clone();
+                let settings = settings.borrow();
+
+                if highlight {
+                    let selection_color = settings.colors.selected;
+
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 selection_color
+                    ));
+                    acc.clear();
+                } else {
+                    line.push(StyledSpan::from(acc.clone()));
+                    acc.clear();
+                }
+                highlight = false;
+                let color = settings.colors.rainbow_delimiters[rainbow_delimiters.len() % settings.colors.rainbow_delimiters.len()];
+
+                let color = if rainbow_delimiters.is_empty() {
+                    rainbow_delimiters.push((chr, color));
+                    acc.push(chr);
+                    color
+
+                } else {
+                    let last = rainbow_delimiters.last().unwrap();
+                    if Self::is_pair(last.0, chr) {
+                        let color = rainbow_delimiters.pop().unwrap().1;
+                        acc.push(chr);
+                        color
+                    } else {
+                        rainbow_delimiters.push((chr, color));
+                        acc.push(chr);
+                        color
+                    }
+                };
+
+                line.push(StyledSpan::styled(acc.clone(),
+                                             color
+                ));
+                acc.clear();
+            } else if chr == '\n' {
+                if !highlight {
+                    line.push(StyledSpan::from(acc.clone()));
+                    acc.clear();
+                } else {
+                    let settings = self.settings.borrow();
+                    let selection_color = settings.colors.selected;
+
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 selection_color
+                    ));
+                    acc.clear();
+                }
+                output.lines.push(line);
+                line = StyledLine::new();
+            } else {
+                if highlight {
+                    let settings = self.settings.borrow();
+                    let selection_color = settings.colors.selected;
+
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 selection_color
+                    ));
+                    acc.clear();
+                }
+                highlight = false;
+                acc.push(chr);
+            }
+        }
+        if !acc.is_empty() {
+            if !highlight {
+                line.push(StyledSpan::from(acc.clone()));
+                acc.clear();
+            } else {
+                let settings = self.settings.borrow();
+                let selection_color = settings.colors.selected;
+
+                line.push(StyledSpan::styled(acc.clone(),
+                                             selection_color
+                ));
+                acc.clear();
+            }
+        }
+
+
+        output
+    }
+    /*pub fn display(&self) -> StyledText {
         // TODO: make this use less heap allocations
         let mut rainbow_delimiters = Vec::new();
 
@@ -842,7 +993,7 @@ impl File {
         }
 
         output
-    }
+    }*/
 
     /*pub fn display(&self) -> StyledText {
 
