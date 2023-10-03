@@ -1,9 +1,6 @@
 use std::cell::RefCell;
 use std::collections::BTreeSet;
-use std::fmt::format;
 use std::io::Write;
-use std::panic;
-use std::panic::UnwindSafe;
 use std::path::PathBuf;
 use std::rc::Rc;
 use tree_sitter::Parser;
@@ -1351,7 +1348,7 @@ impl Drop for File {
                 }
                 None => {
                     // TODO: move this to its own function
-                    let mut file_ext = match self.language {
+                    let file_ext = match self.language {
                         None => String::from("txt"),
                         Some(ref language) => match language.as_str() {
                             "rust" => String::from("rs"),

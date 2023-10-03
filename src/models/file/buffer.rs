@@ -3,7 +3,6 @@ use std::rc::Rc;
 use std::fmt;
 use std::io::Write;
 use std::ops::{RangeBounds};
-use std::panic::UnwindSafe;
 use std::path::PathBuf;
 use crate::models::settings::Settings;
 
