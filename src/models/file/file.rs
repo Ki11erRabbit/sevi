@@ -779,6 +779,9 @@ impl File {
                 skip_counter -= 1;
                 continue;
             }
+
+            let mut rainbow= false;
+
             let base_color = if self.is_delimiter(i) && self.settings.borrow().editor_settings.rainbow_delimiters {
                 let settings = self.settings.clone();
                 let settings = settings.borrow();
@@ -786,6 +789,7 @@ impl File {
                 let color = settings.colors.rainbow_delimiters[rainbow_delimiters.len() % settings.colors.rainbow_delimiters.len()];
 
                 let chr = self.buffer.get_char_at(i).unwrap();
+                rainbow = true;
                 if rainbow_delimiters.is_empty() {
                     rainbow_delimiters.push((chr, color));
                     color
@@ -818,7 +822,11 @@ impl File {
 
                 let selection_color = settings.colors.selected;
 
-                base_color.patch(selection_color)
+                if rainbow {
+                    selection_color.patch(base_color)
+                } else {
+                    base_color.patch(selection_color)
+                }
             } else {
                 base_color
             };
