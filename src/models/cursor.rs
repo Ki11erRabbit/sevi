@@ -250,39 +250,59 @@ impl Cursor {
                 }
             }
             CursorMovement::WordFrontRight => {
+                self.col_movement = ColMovement::Right;
                 let byte_position = file.get_byte_offset(self.row, self.col).expect("Invalid byte offset");
 
                 let byte_position = file.next_word_front(byte_position, n);
 
                 let (col, row) = file.get_cursor(byte_position).expect("Invalid cursor position");
+                if row > self.row {
+                    self.row_movement = RowMovement::Down;
+                    self.col_movement = ColMovement::Left;
+                }
                 self.row = row;
                 self.col = col;
 
             }
             CursorMovement::WordFrontLeft => {
+                self.col_movement = ColMovement::Left;
                 let byte_position = file.get_byte_offset(self.row, self.col).expect("Invalid byte offset");
 
                 let byte_position = file.prev_word_front(byte_position, n);
 
                 let (col, row) = file.get_cursor(byte_position).expect("Invalid cursor position");
+                if row < self.row {
+                    self.row_movement = RowMovement::Up;
+                    self.col_movement = ColMovement::Right;
+                }
                 self.row = row;
                 self.col = col;
             }
             CursorMovement::WordBackRight => {
+                self.col_movement = ColMovement::Right;
                 let byte_position = file.get_byte_offset(self.row, self.col).expect("Invalid byte offset");
 
                 let byte_position = file.next_word_back(byte_position, n);
 
                 let (col, row) = file.get_cursor(byte_position).expect("Invalid cursor position");
+                if row > self.row {
+                    self.row_movement = RowMovement::Down;
+                    self.col_movement = ColMovement::Left;
+                }
                 self.row = row;
                 self.col = col;
             }
             CursorMovement::WordBackLeft => {
+                self.col_movement = ColMovement::Left;
                 let byte_position = file.get_byte_offset(self.row, self.col).expect("Invalid byte offset");
 
                 let byte_position = file.prev_word_back(byte_position, n);
 
                 let (col, row) = file.get_cursor(byte_position).expect("Invalid cursor position");
+                if row < self.row {
+                    self.row_movement = RowMovement::Up;
+                    self.col_movement = ColMovement::Right;
+                }
                 self.row = row;
                 self.col = col;
             }
