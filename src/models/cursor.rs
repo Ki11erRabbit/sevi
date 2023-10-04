@@ -44,6 +44,7 @@ pub struct Cursor {
     row_movement: RowMovement,
     number_line_width: usize,
     gutter_width: usize,
+    height: usize,
 }
 
 
@@ -58,6 +59,7 @@ impl Cursor {
             row_movement: RowMovement::None,
             number_line_width: 0,
             gutter_width: 0,
+            height: 0,
         }
     }
 
@@ -112,6 +114,8 @@ impl Cursor {
     }
 
     pub fn scroll(&mut self, pane: &mut dyn TextPane, rect: Rect) {
+
+        self.height = rect.height;
 
         let file = pane.borrow_current_file();
         let col = match file.get_line(self.row) {
@@ -217,30 +221,30 @@ impl Cursor {
 
                 self.col = number_of_cols;
             }
-            /*CursorMovement::PageUp => {
+            CursorMovement::PageUp => {
                 self.row_movement = RowMovement::Up;
                 if self.row > 0 {
-                    self.row = self.row.saturating_sub(n);
+                    self.row = self.row.saturating_sub(self.height * n);
                 }
             }
             CursorMovement::PageDown => {
                 self.row_movement = RowMovement::Down;
                 if self.row < number_of_lines - 1 {
-                    self.row = self.row.saturating_add(n);
+                    self.row = (self.row.saturating_add(self.height * n) % number_of_lines).min(number_of_lines - 1);
                 }
             }
             CursorMovement::HalfPageUp => {
                 self.row_movement = RowMovement::Up;
                 if self.row > 0 {
-                    self.row = self.row.saturating_sub(n / 2);
+                    self.row = self.row.saturating_sub((self.height/ 2) * n);
                 }
             }
             CursorMovement::HalfPageDown => {
                 self.row_movement = RowMovement::Down;
                 if self.row < number_of_lines - 1 {
-                    self.row = self.row.saturating_add(n / 2);
+                    self.row = (self.row.saturating_add((self.height / 2) * n) % number_of_lines).min(number_of_lines - 1);
                 }
-            }*/
+            }
             _ => {}
         }
 

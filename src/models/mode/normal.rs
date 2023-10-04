@@ -86,8 +86,8 @@ impl NormalMode {
             "up_line_start" => {
                 pane.execute_command("move up_line_start");
             },
-            "down_line_end" => {
-                pane.execute_command("move down_line_end");
+            "down_line_start" => {
+                pane.execute_command("move down_line_start");
             },
             "next_word_front" => {
                 pane.execute_command("move next_word_front");

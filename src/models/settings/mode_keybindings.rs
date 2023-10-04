@@ -561,12 +561,12 @@ impl ModeKeybindings {
 
                 // Up one Line at Start
                 bindings.insert(vec![KeyEvent {
-                    key: Key::Char('+'),
+                    key: Key::Char('-'),
                     modifiers: KeyModifiers::NONE,
                 }], "up_line_start".to_string());
                 // Down one Line at Start
                 bindings.insert(vec![KeyEvent {
-                    key: Key::Char('-'),
+                    key: Key::Char('+'),
                     modifiers: KeyModifiers::NONE,
                 }], "down_line_start".to_string());
             }

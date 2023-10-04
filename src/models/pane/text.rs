@@ -610,11 +610,24 @@ impl TextBuffer {
                     },
                     "insert_below" => {
                         self.mode = self.modes.get("Insert").unwrap().clone();
+                        let (_, row) = self.get_cursor();
+
+                        let byte_offset = self.file.get_byte_offset(1+row, 0).unwrap_or(0);
+                        self.insert_char(byte_offset, '\n');
+
                         self.cursor.move_cursor(CursorMovement::Down, 1, &self.file);
+                        self.cursor.move_cursor(CursorMovement::LineStart, 1, &self.file);
                     },
                     "insert_above" => {
                         self.mode = self.modes.get("Insert").unwrap().clone();
-                        self.cursor.move_cursor(CursorMovement::Up, 1, &self.file);
+                        let (_, row) = self.get_cursor();
+
+                        let byte_offset = self.file.get_byte_offset(row, 0).unwrap_or(0);
+                        self.insert_char(byte_offset, '\n');
+
+                        self.cursor.move_cursor(CursorMovement::LineStart, 1, &self.file);
+
+                        //self.cursor.move_cursor(CursorMovement::Up, 1, &self.file);
                     },
                     "selection_normal" => {
                         let mode= self.modes.get("Selection").unwrap().clone();
@@ -716,6 +729,14 @@ impl TextBuffer {
                     Some("half_page_down") => CursorMovement::HalfPageDown,
                     Some("start_of_line") => CursorMovement::LineStart,
                     Some("end_of_line") => CursorMovement::LineEnd,
+                    Some("up_line_start") => {
+                        self.cursor.move_cursor(CursorMovement::LineStart, 1, &self.file);
+                        CursorMovement::Up
+                    }
+                    Some("down_line_start") => {
+                        self.cursor.move_cursor(CursorMovement::LineStart, 1, &self.file);
+                        CursorMovement::Down
+                    }
                     _ => panic!("Invalid direction"),
                 };
 
