@@ -850,8 +850,10 @@ impl File {
         }
     }
 
+    /// TODO: fix rainbow delimiters bleeding into selections
+    /// TODO: fix newlines getting included in highlight
     fn internal_display(&self, text: String, offset: usize) -> StyledText {
-        //TODO: fix newlines getting included in highlight
+
         let mut rainbow_delimiters = Vec::new();
 
         let mut skip_counter = 0;
