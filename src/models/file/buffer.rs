@@ -923,9 +923,143 @@ impl Buffer {
         let line_num = self.history[self.current].line_of_byte(byte_offset);
 
         let y = line_num;
-        let x = byte_offset - self.history[self.current].byte_of_line(y);
+        let mut x = byte_offset - self.history[self.current].byte_of_line(y);
+
+        while !self.history[self.current].is_char_boundary(x) {
+            x -= 1;
+        }
 
         Some((x, y))
+    }
+
+    pub fn next_word_front(&self, mut byte_position: usize) -> usize {
+
+        while !self.history[self.current].is_char_boundary(byte_position) {
+            byte_position -= 1;
+        }
+
+        let mut current = self.get_char_at(byte_position);
+        let mut start = byte_position;
+        if let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start += c.len_utf8();
+                current = self.get_char_at(start);
+            }
+        }
+
+        while let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start += c.len_utf8();
+                current = self.get_char_at(start);
+                break
+            } else {
+                start += c.len_utf8();
+            }
+            current = self.get_char_at(start);
+        }
+        start
+    }
+
+    pub fn prev_word_front(&self, byte_position: usize) -> usize {
+
+        let mut current = self.get_char_at(byte_position);
+        let mut start = byte_position;
+        if let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start = start.saturating_sub(c.len_utf8());
+                current = self.get_char_at(start);
+            }
+        }
+
+        while let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start = start.saturating_sub(c.len_utf8());
+                current = self.get_char_at(start);
+                break
+            } else {
+                start = start.saturating_sub(c.len_utf8());
+            }
+            current = self.get_char_at(start);
+        }
+        while let Some(c) = current {
+            if c.is_alphanumeric() || c == '_' {
+                start = start.saturating_sub(c.len_utf8());
+            } else {
+                start = start.saturating_add(c.len_utf8());
+                break;
+            }
+            current = self.get_char_at(start);
+        }
+
+        start
+    }
+
+    pub fn next_word_back(&self, byte_position: usize) -> usize {
+        let mut current = self.get_char_at(byte_position);
+        let mut start = byte_position;
+
+        if let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start += c.len_utf8();
+                current = self.get_char_at(start);
+            }
+        }
+
+        while let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start += c.len_utf8();
+                current = self.get_char_at(start);
+                break
+            } else {
+                start += c.len_utf8();
+            }
+            current = self.get_char_at(start);
+        }
+        while let Some(c) = current {
+            if c.is_alphanumeric() || c == '_' {
+                start += c.len_utf8();
+            } else {
+                start = start.saturating_sub(c.len_utf8());
+                break;
+            }
+            current = self.get_char_at(start);
+        }
+
+        start
+    }
+
+    pub fn prev_word_back(&self, byte_position: usize) -> usize {
+        let mut current = self.get_char_at(byte_position);
+        let mut start = byte_position;
+
+        if let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start = start.saturating_sub(c.len_utf8());
+                current = self.get_char_at(start);
+            }
+        }
+
+        while let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start = start.saturating_sub(c.len_utf8());
+                current = self.get_char_at(start);
+                break
+            } else {
+                start = start.saturating_sub(c.len_utf8());
+            }
+            current = self.get_char_at(start);
+        }
+        while let Some(c) = current {
+            if c.is_alphanumeric() || c == '_' {
+                start = start.saturating_sub(c.len_utf8());
+            } else {
+                start = start.saturating_add(c.len_utf8());
+                break;
+            }
+            current = self.get_char_at(start);
+        }
+
+        start
     }
 
 }

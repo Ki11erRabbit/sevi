@@ -5,6 +5,7 @@ use crate::models::settings::editor_settings::NumberLineStyle;
 use crate::models::settings::Settings;
 use crate::models::style::{StyledSpan, StyledText};
 
+/// TODO: add scroll amount for horizontal scrolling
 pub struct BufferText {
     rect: Rect,
     settings: Rc<RefCell<Settings>>,

@@ -69,7 +69,8 @@ impl MockComponent for Buffer {
             let text = text_buffer.draw(text);
 
             frame.render_widget(
-                Paragraph::new(text),
+                Paragraph::new(text)
+                    .scroll((0, self.scroll.1)),
                 /*Editor::new(text)
                     .number_line_type(number_line_type, row),
                     //.scroll(self.scroll),*/

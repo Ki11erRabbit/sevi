@@ -31,6 +31,10 @@ pub enum CursorMovement {
     PageDown,
     HalfPageUp,
     HalfPageDown,
+    WordFrontRight,
+    WordFrontLeft,
+    WordBackRight,
+    WordBackLeft,
 }
 
 
@@ -245,7 +249,43 @@ impl Cursor {
                     self.row = (self.row.saturating_add((self.height / 2) * n) % number_of_lines).min(number_of_lines - 1);
                 }
             }
-            _ => {}
+            CursorMovement::WordFrontRight => {
+                let byte_position = file.get_byte_offset(self.row, self.col).expect("Invalid byte offset");
+
+                let byte_position = file.next_word_front(byte_position, n);
+
+                let (col, row) = file.get_cursor(byte_position).expect("Invalid cursor position");
+                self.row = row;
+                self.col = col;
+
+            }
+            CursorMovement::WordFrontLeft => {
+                let byte_position = file.get_byte_offset(self.row, self.col).expect("Invalid byte offset");
+
+                let byte_position = file.prev_word_front(byte_position, n);
+
+                let (col, row) = file.get_cursor(byte_position).expect("Invalid cursor position");
+                self.row = row;
+                self.col = col;
+            }
+            CursorMovement::WordBackRight => {
+                let byte_position = file.get_byte_offset(self.row, self.col).expect("Invalid byte offset");
+
+                let byte_position = file.next_word_back(byte_position, n);
+
+                let (col, row) = file.get_cursor(byte_position).expect("Invalid cursor position");
+                self.row = row;
+                self.col = col;
+            }
+            CursorMovement::WordBackLeft => {
+                let byte_position = file.get_byte_offset(self.row, self.col).expect("Invalid byte offset");
+
+                let byte_position = file.prev_word_back(byte_position, n);
+
+                let (col, row) = file.get_cursor(byte_position).expect("Invalid cursor position");
+                self.row = row;
+                self.col = col;
+            }
         }
 
 

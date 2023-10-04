@@ -616,6 +616,42 @@ impl File {
         self.saved = false;
     }
 
+    pub fn next_word_front(&self, mut byte_position: usize, mut amount: usize) -> usize {
+        while amount > 0 {
+            byte_position = self.buffer.next_word_front(byte_position);
+            amount -= 1;
+        }
+        byte_position
+    }
+
+    pub fn next_word_back(&self, mut byte_position: usize, mut amount: usize) -> usize {
+
+
+        while amount > 0 {
+            byte_position = self.buffer.next_word_back(byte_position);
+            amount -= 1;
+        }
+        byte_position
+    }
+
+    pub fn prev_word_front(&self, mut byte_position: usize, mut amount: usize) -> usize {
+
+        while amount > 0 {
+            byte_position = self.buffer.prev_word_front(byte_position);
+            amount -= 1;
+        }
+        byte_position
+    }
+
+    pub fn prev_word_back(&self, mut byte_position: usize, mut amount: usize) -> usize {
+
+        while amount > 0 {
+            byte_position = self.buffer.prev_word_back(byte_position);
+            amount -= 1;
+        }
+        byte_position
+    }
+
     fn is_delimiter(&self, b: usize) -> bool {
         if let Some(c) = self.buffer.get_char_at(b) {
             match c {

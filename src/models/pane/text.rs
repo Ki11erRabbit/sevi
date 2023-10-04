@@ -716,6 +716,8 @@ impl TextBuffer {
                     }
                     return;
                 }
+
+
                 let direction = match direction {
                     Some("up") => CursorMovement::Up,
                     Some("down") => CursorMovement::Down,
@@ -737,10 +739,16 @@ impl TextBuffer {
                         self.cursor.move_cursor(CursorMovement::LineStart, 1, &self.file);
                         CursorMovement::Down
                     }
+                    Some("next_word_front") => CursorMovement::WordFrontRight,
+                    Some("next_word_back") => CursorMovement::WordBackRight,
+                    Some("prev_word_front") => CursorMovement::WordFrontLeft,
+                    Some("prev_word_back") =>  CursorMovement::WordBackLeft,
                     _ => panic!("Invalid direction"),
                 };
 
-                let amount = command_args.next().unwrap_or("1").parse::<usize>().unwrap_or(1);
+                let arg = command_args.next();
+                let amount = arg.unwrap_or("1").parse::<usize>().unwrap_or(1);
+
 
                 //todo: add to jump table when doing large movements
 
