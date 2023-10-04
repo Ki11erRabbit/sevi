@@ -130,10 +130,10 @@ impl EditorSettings {
         if user_settings.tab_size != 0 {
             self.tab_size = user_settings.tab_size;
         }
-        if user_settings.use_spaces {
+        if user_settings.use_spaces != self.use_spaces {
             self.use_spaces = user_settings.use_spaces;
         }
-        if user_settings.rainbow_delimiters {
+        if user_settings.rainbow_delimiters != self.rainbow_delimiters {
             self.rainbow_delimiters = user_settings.rainbow_delimiters;
         }
         if user_settings.font_settings.is_some() {

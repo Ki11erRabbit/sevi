@@ -293,7 +293,9 @@ impl TextMode for NormalMode {
                                 let settings = self.settings.clone().unwrap();
                                 let mut settings = settings.borrow_mut();
                                 if let Some(command) = settings.mode_keybindings.get(&self.get_name(), &self.key_buffer) {
-                                    self.execute_command(command, pane);
+                                    let command = command.to_string();
+                                    drop(settings);
+                                    self.execute_command(&command, pane);
                                 }
                                 return;
                             }
@@ -322,7 +324,9 @@ impl TextMode for NormalMode {
                 let settings = self.settings.clone().unwrap();
                 let mut settings = settings.borrow_mut();
                 if let Some(command) = settings.mode_keybindings.get(&self.get_name(), &self.key_buffer) {
-                    self.execute_command(command, pane);
+                    let command = command.to_string();
+                    drop(settings);
+                    self.execute_command(&command, pane);
                 }
             }
         }

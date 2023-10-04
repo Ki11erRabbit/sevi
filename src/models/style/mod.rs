@@ -276,6 +276,10 @@ impl<'a> StyledLine<'a> {
     pub fn len(&self) -> usize {
         self.spans.iter().map(|s| s.len()).sum()
     }
+
+    pub fn insert(&mut self, index: usize, span: StyledSpan<'a>) {
+        self.spans.insert(index, span);
+    }
 }
 
 impl fmt::Display for StyledLine<'_> {
@@ -353,6 +357,14 @@ impl<'a> StyledText<'a> {
 
     pub fn len(&self) -> usize {
         self.lines.iter().map(|l| l.len()).sum()
+    }
+
+    pub fn rows(&self) -> usize {
+        self.lines.len()
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut StyledLine<'a>> {
+        self.lines.iter_mut()
     }
 }
 

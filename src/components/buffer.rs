@@ -3,10 +3,11 @@ use std::rc::Rc;
 use tuirealm::{Attribute, AttrValue, Component, Event, Frame, MockComponent, Props, State};
 use tuirealm::command::{Cmd, CmdResult};
 use tuirealm::tui::layout::Rect;
+use tuirealm::tui::widgets::Paragraph;
 use crate::models::{AppEvent, Message};
 use crate::models::pane::{Pane, TextPane};
 use crate::models::pane::text::TextBuffer;
-use crate::widgets::editor::Editor;
+use crate::models::text_buffer::BufferText;
 
 pub struct Buffer {
     pane: Rc<RefCell<TextBuffer>>,
@@ -45,20 +46,33 @@ impl MockComponent for Buffer {
 
             let pane = self.pane.clone();
             let pane = pane.borrow_mut();
-            /*let (_, offset) = pane.get_scroll_amount().unwrap_or((0, 0));
-            let text = pane.draw_section(offset, offset + area.height as usize);*/
-            let text = pane.draw();
+            let (_, offset) = pane.get_scroll_amount().unwrap_or((0, 0));
+            let start = offset;
+            let end = offset + area.height as usize;
+            let text = pane.draw_section(start, end);
+            //let text = pane.draw();
 
             let (_, row) = pane.get_cursor();
 
             let settings = pane.get_settings();
-            let settings = settings.borrow();
-            let number_line_type = settings.editor_settings.number_line;
+
+            let number_line_type = {
+                let settings = settings.borrow();
+                settings.editor_settings.number_line
+            };
+
+            let text_buffer = BufferText::new(area.into(), settings.clone())
+                .add_number_line_style(number_line_type)
+                .add_current_row(row)
+                .set_start_row(start);
+
+            let text = text_buffer.draw(text);
 
             frame.render_widget(
-                Editor::new(text)
-                    .number_line_type(number_line_type, row)
-                    .scroll(self.scroll),
+                Paragraph::new(text),
+                /*Editor::new(text)
+                    .number_line_type(number_line_type, row),
+                    //.scroll(self.scroll),*/
                 area,
             );
         }
@@ -85,6 +99,9 @@ impl Component<Message, AppEvent> for Buffer {
     fn on(&mut self, ev: Event<AppEvent>) -> Option<Message> {
         match ev {
             Event::User(AppEvent::Edit) => {
+                Some(Message::Redraw)
+            }
+            Event::User(AppEvent::Scroll) => {
                 Some(Message::Redraw)
             }
             _ => None,

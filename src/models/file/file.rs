@@ -813,14 +813,15 @@ impl File {
             _ => false,
         }
     }
-    pub fn display(&self) -> StyledText {
-        // TODO: make this use less heap allocations
+
+    fn internal_display(&self, text: String, offset: usize) -> StyledText {
+        //TODO: fix newlines getting included in highlight
         let mut rainbow_delimiters = Vec::new();
 
         let mut skip_counter = 0;
 
-        let string = self.buffer.to_string();
-        let mut acc = String::with_capacity(string.len());
+        let string = text;
+        let mut acc = String::new();
         let mut output = StyledText::new();
         let mut line = StyledLine::new();
         let mut highlight = false;
@@ -830,6 +831,7 @@ impl File {
                 skip_counter -= 1;
                 continue;
             }
+            let i = i + offset;
 
             let chr = self.buffer.get_char_at(i).unwrap();
 
@@ -1005,6 +1007,9 @@ impl File {
 
 
         output
+    }
+    pub fn display(&self) -> StyledText {
+        self.internal_display(self.buffer.to_string(), 0)
     }
     /*pub fn display(&self) -> StyledText {
         // TODO: make this use less heap allocations
@@ -1238,38 +1243,8 @@ impl File {
                 string.push_str(&line.to_string());
             }
         }
-        let mut acc = String::with_capacity(string.len());
-        let mut output = StyledText::new();
-        let mut line = StyledLine::new();
-        let mut highlight = false;
-        for (i, c) in string.chars().enumerate() {
-            if self.highlights.contains(&i) {
-                highlight = true;
-            } else if highlight {
-                highlight = false;
-                //TODO: put in a particular style
-                line.push(StyledSpan::styled(acc.clone(),
-                                             Style::default().bg(Color::Magenta)
-                ));
-                acc.clear();
-            }
-            if c == '\n' {
-                if highlight {
-                    line.push(StyledSpan::styled(acc.clone(),Style::default()
-                        .bg(Color::Magenta)
-                    ));
-                } else {
-                    line.push(StyledSpan::from(acc.clone()));
-                }
-                output.lines.push(line);
-                line = StyledLine::new();
-                acc.clear();
-            } else {
-                acc.push(c);
-            }
-        }
-        output
 
+        self.internal_display(string, self.buffer.get_byte_offset(0, start_row).unwrap())
     }
 
     pub fn recover(&mut self) -> Result<(), String>{

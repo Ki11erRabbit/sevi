@@ -331,7 +331,6 @@ impl Model {
 
 impl Update<Message> for Model {
     fn update(&mut self, msg: Option<Message>) -> Option<Message> {
-
         if let Some(msg) = msg {
             match msg {
                 Message::AppClose => {
