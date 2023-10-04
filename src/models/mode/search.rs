@@ -163,6 +163,22 @@ impl SearchMode {
                 self.key_buffer.clear();
                 self.moving_cursor = true;
             }
+            "mirror_mode" => {
+                let command = match self.search_type {
+                    SearchType::Forward => "search_down",
+                    SearchType::Backward => "search_up",
+                };
+
+                pane.execute_command(&format!("change_mode mirror {}", command));
+            }
+            "pair_mode" => {
+                let command = match self.search_type {
+                    SearchType::Forward => "search_down",
+                    SearchType::Backward => "search_up",
+                };
+
+                pane.execute_command(&format!("change_mode pair {}", command));
+            }
             _ => {}
         }
         self.number_buffer.clear();

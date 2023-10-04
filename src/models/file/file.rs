@@ -21,6 +21,11 @@ pub trait ReplaceSelections<S> {
     fn replace_selections(&mut self, selections: S);
 }
 
+pub trait InsertPairs<P> {
+    fn insert_pairs(&mut self, pairs: P);
+}
+
+
 #[derive(Debug)]
 pub struct LSPInfo {
 
@@ -370,6 +375,11 @@ impl File {
     pub fn get_until_prev_word(&self, byte_offset: usize) -> Option<String> {
         self.buffer.get_until_prev_word(byte_offset).map(|word| word.to_string())
     }
+
+    pub fn get_highlights(&self) -> BTreeSet<usize> {
+        self.highlights.clone()
+    }
+
     pub fn get_highlighted(&self) -> Option<Vec<String>> {
         if self.highlights.is_empty() {
             return None;
@@ -605,6 +615,7 @@ impl File {
         self.buffer.replace(range, c);
         self.saved = false;
     }
+
 
     pub fn undo(&mut self) {
         self.buffer.undo();
@@ -852,6 +863,7 @@ impl File {
 
     /// TODO: fix rainbow delimiters bleeding into selections
     /// TODO: fix newlines getting included in highlight
+    /// TODO: fix missing the first char of a highlight
     fn internal_display(&self, text: String, offset: usize) -> StyledText {
 
         let mut rainbow_delimiters = Vec::new();
@@ -1428,6 +1440,110 @@ impl ReplaceSelections<Vec<String>> for File {
     }
 }
 
+impl InsertPairs<(&str, &str)> for File {
+    fn insert_pairs(&mut self, pair: (&str, &str)) {
+        let mut ranges = Vec::new();
+
+        let mut iter = self.highlights.iter();
+        let byte = iter.next();
+
+        let mut start = *byte.unwrap();
+        let mut end = *byte.unwrap();
+        let mut last_end = *byte.unwrap();
+
+        while let Some(byte) = iter.next() {
+            if *byte == last_end + 1 {
+                end = *byte;
+                last_end = *byte;
+            } else {
+
+                ranges.push((start, end));
+
+                start = *byte;
+                end = *byte;
+                last_end = *byte;
+            }
+
+            while let Some(byte) = iter.next() {
+                if *byte == last_end + 1 {
+                    end = *byte;
+                    last_end = *byte;
+                } else {
+
+                    ranges.push((start,end));
+
+                    start = *byte;
+                    end = *byte;
+                    last_end = *byte;
+                    break
+                }
+
+            }
+        }
+        if start != end {
+            ranges.push((start, end));
+        }
+
+        let mut pairs = Vec::new();
+        for _ in ranges.iter() {
+            pairs.push(pair);
+        }
+
+        self.buffer.insert_bulk_pair(ranges, pairs);
+    }
+}
+
+impl InsertPairs<Vec<(&str, &str)>> for File {
+    fn insert_pairs(&mut self, mut pairs: Vec<(&str, &str)>) {
+
+        let mut ranges = Vec::new();
+
+        let mut iter = self.highlights.iter();
+        let byte = iter.next();
+
+        let mut start = *byte.unwrap();
+        let mut end = *byte.unwrap();
+        let mut last_end = *byte.unwrap();
+
+        while let Some(byte) = iter.next() {
+            if *byte == last_end + 1 {
+                end = *byte;
+                last_end = *byte;
+            } else {
+                ranges.push((start, end));
+
+                start = *byte;
+                end = *byte;
+                last_end = *byte;
+            }
+
+            while let Some(byte) = iter.next() {
+                if *byte == last_end + 1 {
+                    end = *byte;
+                    last_end = *byte;
+                } else {
+                    ranges.push((start, end));
+
+                    start = *byte;
+                    end = *byte;
+                    last_end = *byte;
+                    break
+                }
+            }
+        }
+        if start != end {
+            ranges.push((start, end));
+        }
+
+        if pairs.len() < ranges.len() {
+            pairs.truncate(ranges.len());
+        } else if pairs.len() > ranges.len() {
+            ranges.truncate(pairs.len());
+        }
+
+        self.buffer.insert_bulk_pair(ranges, pairs);
+    }
+}
 
 impl Drop for File {
     fn drop(&mut self) {

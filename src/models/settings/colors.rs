@@ -212,6 +212,9 @@ impl Default for StatusBarColor {
         mode.insert("Command".to_string(), Style::new().fg(Color::Black).bg(Color::LightMagenta));
         mode.insert("Search".to_string(), Style::new().fg(Color::Black).bg(Color::LightBlue));
         mode.insert("Replace".to_string(), Style::new().fg(Color::Black).bg(Color::LightRed));
+        mode.insert("Mirror".to_string(), Style::new().fg(Color::Black).bg(Color::Gray));
+        mode.insert("Pair".to_string(), Style::new().fg(Color::Black).bg(Color::White));
+
         StatusBarColor {
             message: Style::new().bg(Color::DarkGray),
             mode,

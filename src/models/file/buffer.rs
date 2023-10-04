@@ -774,6 +774,20 @@ impl Buffer {
         }
     }
 
+    pub fn insert_pair<T>(&mut self, start: usize, end: usize, text: (T, T)) where T: AsRef<str> {
+        self.get_new_rope();
+        self.history[self.current].insert(end + 1, text.1);
+        self.history[self.current].insert(start, text.0);
+    }
+
+    pub fn insert_bulk_pair<T>(&mut self, ranges: Vec<(usize, usize)>, texts: Vec<(T, T)>) where T: AsRef<str> {
+        self.get_new_rope();
+        for (range, text) in ranges.iter().rev().zip(texts.iter().rev()) {
+            self.history[self.current].insert(range.1 + 1, &text.1);
+            self.history[self.current].insert(range.0, &text.0);
+        }
+    }
+
     pub fn get_version_count(&self) -> usize {
         self.history.len()
     }

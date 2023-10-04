@@ -216,6 +216,24 @@ impl SelectionMode {
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             }
+            "mirror_mode" => {
+                let command = match self.selection_type {
+                    SelectionType::Normal => "selection_normal_mirror",
+                    SelectionType::Line => "selection_line_mirror",
+                    SelectionType::Block => "selection_block_mirror",
+                };
+
+                pane.execute_command(&format!("change_mode mirror {}", command));
+            }
+            "pair_mode" => {
+                let command = match self.selection_type {
+                    SelectionType::Normal => "selection_normal_pair",
+                    SelectionType::Line => "selection_line_pair",
+                    SelectionType::Block => "selection_block_pair",
+                };
+
+                pane.execute_command(&format!("change_mode pair {}", command));
+            }
             _ => {}
         }
 
@@ -308,7 +326,7 @@ impl TextMode for SelectionMode {
     }
 
     fn start(&mut self, pane: &mut dyn TextPane) {
-        pane.execute_command("clear_selection");
+
         match self.selection_type {
             SelectionType::Line => {
                 let (_, row) = pane.get_cursor();

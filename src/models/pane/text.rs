@@ -18,10 +18,12 @@ use crate::models::{AppEvent, Rect};
 use crate::models::file::file::ReplaceSelections;
 use crate::models::mode::command::CommandMode;
 use crate::models::mode::insert::InsertMode;
+use crate::models::mode::mirror::MirrorMode;
 use crate::models::settings::Settings;
 use crate::models::mode::TextMode;
 use crate::models::mode::normal::NormalMode;
 use crate::models::mode::Mode;
+use crate::models::mode::pair::PairMode;
 use crate::models::mode::search::{SearchMode, SearchType};
 use crate::models::mode::selection::{SelectionMode, SelectionType};
 use crate::models::settings::editor_settings::NumberLineStyle;
@@ -58,12 +60,18 @@ impl TextBuffer {
         selection_mode.borrow_mut().add_settings(settings.clone());
         let search_mode = Rc::new(RefCell::new(SearchMode::new()));
         search_mode.borrow_mut().add_settings(settings.clone());
+        let mirror_mode = Rc::new(RefCell::new(MirrorMode::new()));
+        mirror_mode.borrow_mut().add_settings(settings.clone());
+        let pair_mode = Rc::new(RefCell::new(PairMode::new()));
+        pair_mode.borrow_mut().add_settings(settings.clone());
 
         let normal_mode: Rc<RefCell<dyn TextMode>> = normal_mode.clone();
         let command_mode: Rc<RefCell<dyn TextMode>> = command_mode.clone();
         let insert_mode: Rc<RefCell<dyn TextMode>> = insert_mode.clone();
         let selection_mode: Rc<RefCell<dyn TextMode>> = selection_mode.clone();
         let search_mode: Rc<RefCell<dyn TextMode>> = search_mode.clone();
+        let mirror_mode: Rc<RefCell<dyn TextMode>> = mirror_mode.clone();
+        let pair_mode: Rc<RefCell<dyn TextMode>> = pair_mode.clone();
 
 
         let mut modes = HashMap::new();
@@ -72,6 +80,8 @@ impl TextBuffer {
         modes.insert("Insert".to_string(), insert_mode);
         modes.insert("Selection".to_string(), selection_mode);
         modes.insert("Search".to_string(), search_mode);
+        modes.insert("Mirror".to_string(), mirror_mode);
+        modes.insert("Pair".to_string(), pair_mode);
 
 
         let mode = {
@@ -658,6 +668,39 @@ impl TextBuffer {
                     "search_up" => {
                         let mode = self.modes.get("Search").unwrap().clone();
                         mode.borrow_mut().add_special(&SearchType::Backward);
+                        self.mode = mode;
+                    }
+                    "mirror" => {
+                        let mode = self.modes.get("Mirror").unwrap().clone();
+                        if let Some(return_to) = command_args.next() {
+                            mode.borrow_mut().add_special(&return_to.to_string());
+                        }
+                        self.mode = mode;
+                    }
+                    "pair" => {
+                        let mode = self.modes.get("Pair").unwrap().clone();
+                        if let Some(return_to) = command_args.next() {
+                            let return_to = return_to.to_string();
+                            mode.borrow_mut().add_special(&return_to);
+                        }
+                        self.mode = mode;
+                    }
+                    "selection_normal_mirror" | "selection_normal_pair" => {
+                        let mode= self.modes.get("Selection").unwrap().clone();
+                        let pos = self.get_cursor();
+                        mode.borrow_mut().add_special(&SelectionType::Normal);
+                        self.mode = mode;
+                    }
+                    "selection_line_mirror" | "selection_line_pair" => {
+                        let mode= self.modes.get("Selection").unwrap().clone();
+                        let pos = self.get_cursor();
+                        mode.borrow_mut().add_special(&SelectionType::Line);
+                        self.mode = mode;
+                    }
+                    "selection_block_mirror" | "selection_block_pair" => {
+                        let mode= self.modes.get("Selection").unwrap().clone();
+                        let pos = self.get_cursor();
+                        mode.borrow_mut().add_special(&SelectionType::Block);
                         self.mode = mode;
                     }
                     _ => panic!("Invalid mode"),

@@ -100,6 +100,8 @@ impl Default for ModeKeybindings {
         bindings.insert("Command".to_string(), ModeKeybindings::generate_command_keybindings());
         bindings.insert("Selection".to_string(), ModeKeybindings::generate_selection_keybindings());
         bindings.insert("Search".to_string(), ModeKeybindings::generate_search_keybindings());
+        bindings.insert("Mirror".to_string(), ModeKeybindings::generate_mirror_keybindings());
+        bindings.insert("Pair".to_string(), ModeKeybindings::generate_pair_keybindings());
 
         ModeKeybindings {
             universal_bindings: ModeKeybindings::generate_universal_keybindings(),
@@ -1416,6 +1418,24 @@ impl ModeKeybindings {
 
             }
         }
+        // Mode change
+        {
+            // Enter Mirror Mode
+            bindings.insert(vec![KeyEvent {
+                key: Key::Char('m'),
+                modifiers: KeyModifiers::NONE,
+            }], "mirror_mode".to_string());
+
+            // Enter Pair Mode
+            bindings.insert(vec![KeyEvent {
+                key: Key::Char('p'),
+                modifiers: KeyModifiers::CTRL,
+            }], "pair_mode".to_string());
+            bindings.insert(vec![KeyEvent {
+                key: Key::Char('a'),
+                modifiers: KeyModifiers::NONE,
+            }], "pair_mode".to_string());
+        }
 
         bindings
     }
@@ -1523,6 +1543,108 @@ impl ModeKeybindings {
                     modifiers: KeyModifiers::CTRL,
                 }], "delete_search".to_string());
             }
+        }
+        // Mode change
+        {
+            // Enter Mirror Mode
+            bindings.insert(vec![KeyEvent {
+                key: Key::Char('m'),
+                modifiers: KeyModifiers::CTRL,
+            }], "mirror_mode".to_string());
+            bindings.insert(vec![KeyEvent {
+                key: Key::Char('o'),
+                modifiers: KeyModifiers::CTRL,
+            }], "mirror_mode".to_string());
+
+            // Enter Pair Mode
+            bindings.insert(vec![KeyEvent {
+                key: Key::Char('P'),
+                modifiers: KeyModifiers::CTRL,
+            }], "pair_mode".to_string());
+            bindings.insert(vec![KeyEvent {
+                key: Key::Char('a'),
+                modifiers: KeyModifiers::CTRL,
+            }], "pair_mode".to_string());
+        }
+
+        bindings
+    }
+
+    fn generate_mirror_keybindings() -> HashMap<Vec<KeyEvent>, String> {
+        let mut bindings = HashMap::new();
+
+        // Move to ends
+        {
+            // Start of Line
+            bindings.insert(vec![KeyEvent {
+                key: Key::Up,
+                modifiers: KeyModifiers::NONE,
+            }], "start".to_string());
+
+            // End of Line
+            bindings.insert(vec![KeyEvent {
+                key: Key::Down,
+                modifiers: KeyModifiers::NONE,
+            }], "end".to_string());
+        }
+        // Execute
+        {
+            bindings.insert(vec![KeyEvent {
+                key: Key::Enter,
+                modifiers: KeyModifiers::NONE,
+            }], "execute".to_string());
+        }
+        // Backspace and delete
+        {
+            bindings.insert(vec![KeyEvent {
+                key: Key::Backspace,
+                modifiers: KeyModifiers::NONE,
+            }], "backspace".to_string());
+
+            bindings.insert(vec![KeyEvent {
+                key: Key::Delete,
+                modifiers: KeyModifiers::NONE,
+            }], "delete".to_string());
+        }
+
+        bindings
+    }
+
+    fn generate_pair_keybindings() -> HashMap<Vec<KeyEvent>, String> {
+        let mut bindings = HashMap::new();
+
+        // Move to ends
+        {
+            // Start of Line
+            bindings.insert(vec![KeyEvent {
+                key: Key::Up,
+                modifiers: KeyModifiers::NONE,
+            }], "start".to_string());
+
+            // End of Line
+            bindings.insert(vec![KeyEvent {
+                key: Key::Down,
+                modifiers: KeyModifiers::NONE,
+            }], "end".to_string());
+        }
+        // Execute
+        {
+            bindings.insert(vec![KeyEvent {
+                key: Key::Enter,
+                modifiers: KeyModifiers::NONE,
+            }], "execute".to_string());
+        }
+        // Backspace and delete
+        {
+            bindings.insert(vec![KeyEvent {
+                key: Key::Backspace,
+                modifiers: KeyModifiers::NONE,
+            }], "backspace".to_string());
+
+            bindings.insert(vec![KeyEvent {
+                key: Key::Delete,
+                modifiers: KeyModifiers::NONE,
+            }], "delete".to_string());
         }
 
         bindings
