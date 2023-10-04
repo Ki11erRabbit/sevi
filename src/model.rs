@@ -77,6 +77,10 @@ impl Default for Model {
                 let file = File::new(None, settings.clone()).unwrap();
                 file
             }
+            Err(FileError::RecoverFileFound(file)) => {
+                sender.send(AppEvent::Message("Recover file found. Use `:recover` to recover the file".to_string().into())).unwrap();
+                file
+            }
         };
 
         let (reg_sender, reg_receiver) = std::sync::mpsc::channel();
@@ -189,6 +193,10 @@ impl Model {
             Err(FileError::Directory) => {
                 sender.send(AppEvent::Message("Cannot open directory yet".to_string().into())).unwrap();
                 let file = File::new(None, settings.clone()).unwrap();
+                file
+            }
+            Err(FileError::RecoverFileFound(file)) => {
+                sender.send(AppEvent::Message("Recover file found. Use `:recover` to recover the file".to_string().into())).unwrap();
                 file
             }
         };
@@ -352,6 +360,10 @@ impl Update<Message> for Model {
                         Err(FileError::Directory) => {
                             self.sender.send(AppEvent::Message("Cannot open directory yet".to_string().into())).unwrap();
                             let file = File::new(None, self.settings.clone()).unwrap();
+                            file
+                        }
+                        Err(FileError::RecoverFileFound(file)) => {
+                            self.sender.send(AppEvent::Message("Recover file found. Use `:recover` to recover the file".to_string().into())).unwrap();
                             file
                         }
                     };

@@ -11,6 +11,12 @@ use crop::{Rope, RopeSlice};
 
 
 
+impl fmt::Debug for Buffer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Buffer {{ current: {}, history: {:?},  version: {} }}", self.current, self.history,  self.version)
+    }
+}
+
 
 pub struct Buffer {
     current: usize,

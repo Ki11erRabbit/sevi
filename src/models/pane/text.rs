@@ -284,6 +284,16 @@ impl TextBuffer {
                 self.sender.send(AppEvent::ForceClose).expect("Failed to send force quit event");
                 self.file.set_safe_close();
             }
+            "recover" => {
+                match self.file.recover() {
+                    Ok(_) => {
+                        self.send_info_message("File recovered");
+                    }
+                    Err(msg) => {
+                        self.send_info_message(msg.as_str());
+                    }
+                }
+            }
             _ => {}
         }
     }

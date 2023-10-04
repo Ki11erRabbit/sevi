@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 use std::collections::BTreeSet;
-use std::io::Write;
+use std::fmt;
+use std::fmt::Formatter;
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::rc::Rc;
 use tree_sitter::Parser;
@@ -13,13 +15,28 @@ use crate::models::style::color::Color;
 pub enum FileError {
     FileDoesNotExist,
     Directory,
+    RecoverFileFound(File),
 }
 pub trait ReplaceSelections<S> {
     fn replace_selections(&mut self, selections: S);
 }
 
+#[derive(Debug)]
 pub struct LSPInfo {
 
+}
+
+impl fmt::Debug for File {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("File")
+            .field("path", &self.path)
+            .field("buffer", &self.buffer)
+            .field("lsp_info", &self.lsp_info)
+            .field("language", &self.language)
+            .field("highlights", &self.highlights)
+            .field("saved", &self.saved)
+            .finish()
+    }
 }
 
 pub struct File {
@@ -44,6 +61,26 @@ impl File {
                     return Err(FileError::FileDoesNotExist);
                 }
 
+                let parent = path.parent();
+                let file_name = path.file_name().unwrap();
+                let file_name = file_name.to_str().unwrap();
+
+                let recover_file_path = match parent {
+                    Some(parent) => {
+                        PathBuf::from(format!("{}##{}", parent.display(), file_name))
+                    }
+                    None => {
+                        PathBuf::from(format!("##{}", file_name))
+                    }
+                };
+
+                let recovered_file;
+
+                if recover_file_path.exists() {
+                    recovered_file = true;
+                } else {
+                    recovered_file = false;
+                }
                 let string = std::fs::read_to_string(&path).unwrap();
 
                 let file_type = path.extension().and_then(|ext| ext.to_str()).unwrap_or("txt").to_string();
@@ -214,7 +251,8 @@ impl File {
 
                 let lsp_info = None;
 
-                Ok(Self {
+
+                let file = Self {
                     path: Some(path),
                     buffer,
                     lsp_info,
@@ -223,7 +261,13 @@ impl File {
                     highlights: BTreeSet::new(),
                     saved: true,
                     safe_close: false,
-                })
+                };
+
+                if recovered_file {
+                    Err(FileError::RecoverFileFound(file))
+                } else {
+                    return Ok(file);
+                }
             }
             None => {
                 let mut buffer = Buffer::new(settings.clone());
@@ -1228,6 +1272,44 @@ impl File {
 
     }
 
+    pub fn recover(&mut self) -> Result<(), String>{
+
+        let path = match self.path {
+            Some(ref path) => path,
+            None => return Err(String::from("No path to recover from")),
+        };
+
+
+        let parent = path.parent();
+        let file_name = path.file_name().unwrap();
+        let file_name = file_name.to_str().unwrap();
+
+        let recover_file_path = match parent {
+            Some(parent) => {
+                PathBuf::from(format!("{}##{}", parent.display(), file_name))
+            }
+            None => {
+                PathBuf::from(format!("##{}##", file_name))
+            }
+        };
+
+        let mut string = String::new();
+        let mut file = match std::fs::File::open(&recover_file_path) {
+            Ok(file) => file,
+            Err(_) => return Err(String::from("An error occurred while opening the file")),
+        };
+
+        match file.read_to_string(&mut string) {
+            Ok(_) => (),
+            Err(_) => return Err(String::from("An error occured while reading the file")),
+        };
+
+        self.buffer.replace(.., string);
+
+
+        Ok(())
+    }
+
 }
 
 impl ReplaceSelections<&str> for File {
@@ -1340,9 +1422,8 @@ impl Drop for File {
             match self.path {
                 Some(ref path) => {
                     let filename = path.file_name().unwrap().to_str().unwrap();
-                    let extension = path.extension().unwrap().to_str().unwrap();
                     let parent = path.parent().unwrap().to_str().unwrap();
-                    let path = PathBuf::from(format!("{}##{}##{}",parent, filename, extension));
+                    let path = PathBuf::from(format!("{}##{}",parent, filename));
                     let mut file = std::fs::File::create(path).unwrap();
                     file.write_all(self.buffer.to_string().as_bytes()).unwrap();
                 }
@@ -1374,10 +1455,10 @@ impl Drop for File {
                         }
                     };
 
-                    let mut path = PathBuf::from("##untitled##");
+                    let mut path = PathBuf::from("##untitled");
                     let mut number = 1;
                     while path.exists() {
-                        path = PathBuf::from(format!("##untitled{}##{}", number, file_ext));
+                        path = PathBuf::from(format!("##untitled{}.{}", number, file_ext));
                         number += 1;
                     }
                     let mut file = std::fs::File::create(path).unwrap();
