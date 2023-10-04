@@ -202,6 +202,14 @@ impl<'a> StyledSpan<'a> {
         self.text.len()
     }
 
+    pub fn chars(&self) -> std::str::Chars<'_> {
+        self.text.chars()
+    }
+
+    pub fn drop(&mut self, char_index: usize) {
+        self.text = self.text.chars().skip(char_index).collect::<String>().into();
+    }
+
 
     pub fn patch_style(&mut self, style: Style) {
         self.style = self.style.patch(style);
@@ -279,6 +287,27 @@ impl<'a> StyledLine<'a> {
 
     pub fn insert(&mut self, index: usize, span: StyledSpan<'a>) {
         self.spans.insert(index, span);
+    }
+
+    pub fn drop(&mut self, mut char_index: usize) {
+        let mut span_index = 0;
+        while char_index > 0 {
+            if span_index >= self.spans.len() {
+                break;
+            }
+            let span = &mut self.spans[span_index];
+            let char_count = span.chars().count();
+
+            if char_index >= char_count {
+                char_index -= char_count;
+                span_index += 1;
+            } else {
+                span.drop(char_index);
+                char_index = 0;
+            }
+        }
+
+        self.spans.drain(0..span_index);
     }
 }
 

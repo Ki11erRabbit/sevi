@@ -5,13 +5,14 @@ use crate::models::settings::editor_settings::NumberLineStyle;
 use crate::models::settings::Settings;
 use crate::models::style::{StyledSpan, StyledText};
 
-/// TODO: add scroll amount for horizontal scrolling
+
 pub struct BufferText {
     rect: Rect,
     settings: Rc<RefCell<Settings>>,
     number_line_type: NumberLineStyle,
     cursor_row: Option<usize>,
     start_row: usize,
+    scroll_cols: Option<usize>,
 }
 
 impl BufferText {
@@ -22,6 +23,7 @@ impl BufferText {
             number_line_type: NumberLineStyle::None,
             cursor_row: None,
             start_row: 0,
+            scroll_cols: None,
         }
     }
 
@@ -39,10 +41,24 @@ impl BufferText {
         self.start_row = start_row;
         self
     }
+    pub fn set_scroll_cols(mut self, scroll_cols: usize) -> Self {
+        self.scroll_cols = Some(scroll_cols);
+        self
+    }
 
     pub fn draw<'a>(self, mut text: StyledText<'a>) -> StyledText<'a> {
         let text = match self.number_line_type {
-            NumberLineStyle::None => text,
+            NumberLineStyle::None => {
+                for line in text.iter_mut() {
+                    match self.scroll_cols {
+                        None => {},
+                        Some(cols) => {
+                            line.drop(cols)
+                        }
+                    }
+                }
+                text
+            },
             NumberLineStyle::Relative => {
                 let mut places = 1;
                 let mut num_width = 3;
@@ -55,6 +71,12 @@ impl BufferText {
 
                 for (i, line) in text.iter_mut().enumerate() {
                     let i = i + self.start_row;
+                    match self.scroll_cols {
+                        None => {},
+                        Some(cols) => {
+                            line.drop(cols)
+                        }
+                    }
 
                     if let Some(row) = self.cursor_row {
                         if i == row {
@@ -80,6 +102,14 @@ impl BufferText {
 
                 for (i, line) in text.iter_mut().enumerate() {
                     let i = i + self.start_row;
+
+                    match self.scroll_cols {
+                        None => {},
+                        Some(cols) => {
+                            line.drop(cols)
+                        }
+                    }
+
                     let line_number = format!("{:width$}", i + 1, width = num_width);
                     let settings = self.settings.clone();
                     let settings = settings.borrow();

@@ -64,13 +64,14 @@ impl MockComponent for Buffer {
             let text_buffer = BufferText::new(area.into(), settings.clone())
                 .add_number_line_style(number_line_type)
                 .add_current_row(row)
-                .set_start_row(start);
+                .set_start_row(start)
+                .set_scroll_cols(self.scroll.1 as usize);
 
             let text = text_buffer.draw(text);
 
             frame.render_widget(
-                Paragraph::new(text)
-                    .scroll((0, self.scroll.1)),
+                Paragraph::new(text),
+                    //.scroll((0, self.scroll.1)),
                 /*Editor::new(text)
                     .number_line_type(number_line_type, row),
                     //.scroll(self.scroll),*/

@@ -125,7 +125,7 @@ impl Cursor {
         let col = match file.get_line(self.row) {
             None => self.col,
             Some(line) => {
-                let line = line.chars().take(self.col + 1).collect::<String>();
+                let line = line.chars().take(self.col).collect::<String>();
                 let col = UnicodeWidthStr::width(line.as_str());
                 col
             }
