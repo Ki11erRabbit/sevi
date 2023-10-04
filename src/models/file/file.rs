@@ -8,8 +8,7 @@ use std::rc::Rc;
 use tree_sitter::Parser;
 use crate::models::file::buffer::Buffer;
 use crate::models::settings::Settings;
-use crate::models::style::{Style, StyledLine, StyledSpan, StyledText};
-use crate::models::style::color::Color;
+use crate::models::style::{StyledLine, StyledSpan, StyledText};
 
 #[derive(Debug)]
 pub enum FileError {

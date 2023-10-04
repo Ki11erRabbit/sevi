@@ -1,13 +1,11 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::models::Rect;
 use crate::models::settings::editor_settings::NumberLineStyle;
 use crate::models::settings::Settings;
 use crate::models::style::{StyledSpan, StyledText};
 
 
 pub struct BufferText {
-    rect: Rect,
     settings: Rc<RefCell<Settings>>,
     number_line_type: NumberLineStyle,
     cursor_row: Option<usize>,
@@ -16,9 +14,8 @@ pub struct BufferText {
 }
 
 impl BufferText {
-    pub fn new(rect: Rect, settings: Rc<RefCell<Settings>>) -> Self {
+    pub fn new(settings: Rc<RefCell<Settings>>) -> Self {
         Self {
-            rect,
             settings,
             number_line_type: NumberLineStyle::None,
             cursor_row: None,

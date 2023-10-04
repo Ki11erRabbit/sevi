@@ -61,7 +61,7 @@ impl MockComponent for Buffer {
                 settings.editor_settings.number_line
             };
 
-            let text_buffer = BufferText::new(area.into(), settings.clone())
+            let text_buffer = BufferText::new(settings.clone())
                 .add_number_line_style(number_line_type)
                 .add_current_row(row)
                 .set_start_row(start)

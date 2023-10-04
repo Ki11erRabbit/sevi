@@ -687,19 +687,16 @@ impl TextBuffer {
                     }
                     "selection_normal_mirror" | "selection_normal_pair" => {
                         let mode= self.modes.get("Selection").unwrap().clone();
-                        let pos = self.get_cursor();
                         mode.borrow_mut().add_special(&SelectionType::Normal);
                         self.mode = mode;
                     }
                     "selection_line_mirror" | "selection_line_pair" => {
                         let mode= self.modes.get("Selection").unwrap().clone();
-                        let pos = self.get_cursor();
                         mode.borrow_mut().add_special(&SelectionType::Line);
                         self.mode = mode;
                     }
                     "selection_block_mirror" | "selection_block_pair" => {
                         let mode= self.modes.get("Selection").unwrap().clone();
-                        let pos = self.get_cursor();
                         mode.borrow_mut().add_special(&SelectionType::Block);
                         self.mode = mode;
                     }

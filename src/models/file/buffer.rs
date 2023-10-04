@@ -964,7 +964,7 @@ impl Buffer {
         while let Some(c) = current {
             if !(c.is_alphanumeric() || c == '_') {
                 start += c.len_utf8();
-                current = self.get_char_at(start);
+                //current = self.get_char_at(start);
                 break
             } else {
                 start += c.len_utf8();
