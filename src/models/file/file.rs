@@ -861,9 +861,7 @@ impl File {
         }
     }
 
-    /// TODO: fix rainbow delimiters bleeding into selections
-    /// TODO: fix newlines getting included in highlight
-    /// TODO: fix missing the first char of a highlight
+
     fn internal_display(&self, text: String, offset: usize) -> StyledText {
 
         let mut rainbow_delimiters = Vec::new();
@@ -888,6 +886,11 @@ impl File {
             skip_counter = chr.len_utf8() - 1;
 
             if self.highlights.contains(&i) && !(self.is_delimiter(i) && self.settings.borrow().editor_settings.rainbow_delimiters){
+                if !highlight {
+                    line.push(StyledSpan::from(acc.clone()));
+                    acc.clear();
+                }
+
                 if chr == '\n' {
                     acc.push(' ');
                     if highlight {
@@ -916,18 +919,20 @@ impl File {
                         acc.push(chr);
                     }
                 }
-
-                if !highlight {
-                    line.push(StyledSpan::from(acc.clone()));
-                    acc.clear();
-                }
                 highlight = true;
 
             } else if self.highlights.contains(&i) && self.is_delimiter(i) && self.settings.borrow().editor_settings.rainbow_delimiters {
                 let settings = self.settings.clone();
                 let settings = settings.borrow();
 
-                if !highlight {
+                if highlight {
+                    let selection_color = settings.colors.selected;
+
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 selection_color
+                    ));
+                    acc.clear();
+                } else {
                     line.push(StyledSpan::from(acc.clone()));
                     acc.clear();
                 }
@@ -1001,7 +1006,6 @@ impl File {
                 ));
                 acc.clear();
             } else if chr == '\n' {
-                acc.push(' ');
                 if highlight {
                     let settings = self.settings.borrow();
                     let selection_color = settings.colors.selected;
@@ -1012,6 +1016,10 @@ impl File {
                 } else {
                     line.push(StyledSpan::from(acc.clone()));
                 }
+                acc.clear();
+                acc.push(' ');
+                line.push(StyledSpan::from(acc.clone()));
+
                 output.lines.push(line);
                 line = StyledLine::new();
                 acc.clear();

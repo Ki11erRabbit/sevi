@@ -266,7 +266,6 @@ fn parse_settings(table: &toml::Value, values: &[&str]) -> EditorSettings {
 
         for pair in pairs_table.as_array().unwrap() {
             let pair = pair.as_array().unwrap();
-            eprintln!("{:?}", pair);
             let key = pair[0].as_str().unwrap().to_string();
             let value = pair[1].as_str().unwrap().to_string();
 
