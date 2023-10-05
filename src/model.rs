@@ -167,9 +167,9 @@ impl Drop for Model {
     fn drop(&mut self) {
         let terminal = self.terminal.clone();
         let mut terminal = terminal.borrow_mut();
+        let _ = terminal.clear_screen();
         let _ = terminal.leave_alternate_screen();
         let _ = terminal.disable_raw_mode();
-        let _ = terminal.clear_screen();
     }
 }
 

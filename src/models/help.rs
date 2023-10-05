@@ -6,7 +6,7 @@ use crate::models::settings::Settings;
 
 //---------------------------------------|----------------------------------------
 pub static TITLE_TEXT: &str = "\n                             SEVI - main help file\n\n";
-pub static HELP_TEXT: [&str;194] = ["You can save this file by typing \":w<Enter>\".\n",
+pub static HELP_TEXT: [&str;199] = ["You can save this file by typing \":w<Enter>\".\n",
     "Move around:\n",
     "    You can use the arrow keys to move around.\n",
     "    You can also use the 'h', 'j', 'k', and 'l' keys to move left, down, up, and right respectively.\n",
@@ -101,6 +101,11 @@ pub static HELP_TEXT: [&str;194] = ["You can save this file by typing \":w<Enter
     "Undo/Redo Keybindings:\n",
     "    \"u\" - undo\n",
     "    \"C-r\" - redo\n\n",
+    "A note on Cut/Copy/Paste:\n",
+    "    These interact with the system clipboard if no error occured.\n",
+    "    This is rather limiting, so to solve this, you can enter a number before the keypress.\n",
+    "    The number specifies a register to store or pull the text from. There is no limit to the\n",
+    "    number of registers.\n\n",
     "Description of Modes:\n",
     "    Normal Mode:     This is the default mode. You can move around and edit the file.\n",
     "    Insert Mode:     This mode allows you to insert text into the file.\n",
