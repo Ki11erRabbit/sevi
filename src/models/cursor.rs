@@ -158,6 +158,7 @@ impl Cursor {
     }
 
 
+    /// TODO: fix page movement
     pub fn move_cursor(&mut self, direction: CursorMovement, n: usize, file: &File) {
         let number_of_lines = file.get_line_count();
 

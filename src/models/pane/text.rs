@@ -304,6 +304,9 @@ impl TextBuffer {
                     }
                 }
             }
+            "help" | "h" => {
+                self.sender.send(AppEvent::CreateHelpFile).expect("Failed to send create help file event");
+            }
             _ => {}
         }
     }
@@ -812,6 +815,7 @@ impl TextBuffer {
 
 impl Pane for TextBuffer {
     fn execute_command(&mut self, command: &str) {
+        self.sender.send(AppEvent::RemoveInfoDisplay).expect("Failed to send remove info display event");
         let mut command_args = command.split_whitespace();
         let command = command_args.next().unwrap_or("");
 

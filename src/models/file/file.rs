@@ -1060,6 +1060,7 @@ impl File {
                 ));
                 acc.clear();
             }
+            output.lines.push(line);
         }
 
 

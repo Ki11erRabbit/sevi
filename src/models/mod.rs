@@ -12,6 +12,7 @@ pub mod mode;
 pub mod cursor;
 pub mod status_bar;
 pub mod text_buffer;
+pub mod help;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Id {
@@ -36,6 +37,8 @@ pub enum AppEvent {
     ForceQuit,
     InfoMessage,
     Message(Box<str>),
+    RemoveInfoDisplay,
+    CreateHelpFile,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -50,6 +53,8 @@ pub enum Message {
     Key(key::KeyEvent),
     InfoMessage(Box<str>),
     Tick,
+    RemoveInfoDisplay,
+    OpenHelpFile,
 }
 
 pub enum ModelMessage {
