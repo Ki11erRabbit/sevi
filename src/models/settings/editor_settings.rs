@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::{fmt, io};
-use std::fmt::{Formatter, write};
+use std::collections::HashMap;
+use std::fmt::Formatter;
 use std::io::{Read, Write};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -32,7 +33,9 @@ impl fmt::Display for EditorSettings {
         write!(f, "\ntab_size = {}", self.tab_size)?;
         write!(f, "\nuse_spaces = {}", self.use_spaces)?;
         write!(f, "\nrainbow_delimiters = {}", self.rainbow_delimiters)?;
-        write!(f, "\ndefault_mode = \"{}\"", self.default_mode)
+        write!(f, "\ndefault_mode = \"{}\"", self.default_mode)?;
+        write!(f, "\npairs = [{}]", self.pairs_to_string())
+
     }
 }
 
@@ -54,18 +57,38 @@ pub struct EditorSettings {
     /// This is the mode that the editor will start in.
     /// The value should be either "Normal" or "Insert".
     pub default_mode: String,
+    /// Pairs to use within Pair mode
+    pub pairs: HashMap<String, String>,
 }
 
 
 impl Default for EditorSettings {
     fn default() -> Self {
+
+        let mut pairs = HashMap::new();
+
+        pairs.insert(String::from("("), String::from(")"));
+        pairs.insert(String::from("["), String::from("]"));
+        pairs.insert(String::from("{"), String::from("}"));
+        pairs.insert(String::from("<"), String::from(">"));
+        pairs.insert(String::from("\""), String::from("\""));
+        pairs.insert(String::from("'"), String::from("'"));
+        pairs.insert(String::from("`"), String::from("`"));
+        pairs.insert(String::from("/*"), String::from("*/"));
+        pairs.insert(String::from("<!--"), String::from("-->"));
+        pairs.insert(String::from("\"\"\""), String::from("\"\"\""));
+        pairs.insert(String::from("#|"), String::from("|#"));
+        pairs.insert(String::from("(*"), String::from("*)"));
+        pairs.insert(String::from("{-"), String::from("-}"));
+
         EditorSettings {
             number_line: NumberLineStyle::None,
             tab_size: 4,
             use_spaces: true,
-            rainbow_delimiters: false,
+            rainbow_delimiters: true,
             font_settings: None,
             default_mode: String::from("Normal"),
+            pairs,
         }
     }
 }
@@ -115,6 +138,7 @@ impl EditorSettings {
             "rainbow_delimiters",
             "font_settings",
             "default_mode",
+            "pairs",
         ];
 
         match table.get("EditorSettings") {
@@ -130,10 +154,10 @@ impl EditorSettings {
         if user_settings.tab_size != 0 {
             self.tab_size = user_settings.tab_size;
         }
-        if user_settings.use_spaces {
+        if user_settings.use_spaces != self.use_spaces {
             self.use_spaces = user_settings.use_spaces;
         }
-        if user_settings.rainbow_delimiters {
+        if user_settings.rainbow_delimiters != self.rainbow_delimiters {
             self.rainbow_delimiters = user_settings.rainbow_delimiters;
         }
         if user_settings.font_settings.is_some() {
@@ -142,6 +166,19 @@ impl EditorSettings {
         if user_settings.default_mode != "Normal" {
             self.default_mode = user_settings.default_mode;
         }
+        self.pairs.extend(user_settings.pairs)
+    }
+
+    fn pairs_to_string(&self) -> String {
+        let pairs = self.pairs.iter().map(|(key, value)| {
+            if key.contains('\'') {
+                return format!("[\"{}\", \"{}\"]", key, value);
+            } else {
+                format!("[\'{}\', \'{}\']", key, value)
+            }
+        }).collect::<Vec<String>>().join(", ");
+
+        pairs
     }
 
 }
@@ -224,6 +261,22 @@ fn parse_settings(table: &toml::Value, values: &[&str]) -> EditorSettings {
         default_mode = "Normal".to_string();
     }
 
+    let pairs = if let Some(pairs_table) = table.get(values[6]) {
+        let mut pairs = HashMap::new();
+
+        for pair in pairs_table.as_array().unwrap() {
+            let pair = pair.as_array().unwrap();
+            let key = pair[0].as_str().unwrap().to_string();
+            let value = pair[1].as_str().unwrap().to_string();
+
+            pairs.insert(key, value);
+        }
+
+        pairs
+    } else {
+        HashMap::new()
+    };
+
     EditorSettings {
         number_line,
         tab_size,
@@ -231,6 +284,7 @@ fn parse_settings(table: &toml::Value, values: &[&str]) -> EditorSettings {
         rainbow_delimiters,
         font_settings,
         default_mode,
+        pairs,
     }
 }
 

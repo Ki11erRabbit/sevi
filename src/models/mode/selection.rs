@@ -105,24 +105,24 @@ impl SelectionMode {
             "cancel" => {
                 self.key_buffer.clear();
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             },
             "left" => {
-                pane.execute_command(&format!("move left 1"));
+                pane.execute_command(&format!("move left {}", self.number_buffer));
                 self.add_selection(pane);
             },
             "right" => {
-                pane.execute_command(&format!("move right 1"));
+                pane.execute_command(&format!("move right {}", self.number_buffer));
                 self.add_selection(pane);
             },
             "up" => {
-                pane.execute_command(&format!("move up 1"));
+                pane.execute_command(&format!("move up {}", self.number_buffer));
                 self.add_selection(pane);
             },
             "down" => {
-                pane.execute_command(&format!("move down 1"));
+                pane.execute_command(&format!("move down {}", self.number_buffer));
                 self.add_selection(pane);
             },
             "start_of_file" => {
@@ -134,40 +134,105 @@ impl SelectionMode {
                 self.add_selection(pane);
             },
             "page_up" => {
-                pane.execute_command(&format!("move page_up 1"));
+                pane.execute_command(&format!("move page_up {}", self.number_buffer));
+                self.number_buffer.clear();
                 self.add_selection(pane);
             },
             "page_down" => {
-                pane.execute_command(&format!("move page_down 1"));
+                pane.execute_command(&format!("move page_down {}", self.number_buffer));
+                self.number_buffer.clear();
+                self.add_selection(pane);
+            },"half_page_up" => {
+                pane.execute_command(&format!("move half_page_up {}", self.number_buffer));
+                self.number_buffer.clear();
+                self.add_selection(pane);
+            },
+            "half_page_down" => {
+                pane.execute_command(&format!("move half_page_down {}", self.number_buffer));
+                self.number_buffer.clear();
+                self.add_selection(pane);
+            },
+            "start_of_line" => {
+                pane.execute_command("move start_of_line");
+                self.add_selection(pane);
+            },
+            "end_of_line" => {
+                pane.execute_command("move end_of_line");
+                self.add_selection(pane);
+            },
+            "up_line_start" => {
+                pane.execute_command("move up_line_start");
+                self.add_selection(pane);
+            },
+            "down_line_start" => {
+                pane.execute_command("move down_line_start");
+                self.add_selection(pane);
+            },
+            "next_word_front" => {
+                pane.execute_command(format!("move next_word_front {}", self.number_buffer).as_str());
+                self.number_buffer.clear();
+                self.add_selection(pane);
+            },
+            "next_word_back" => {
+                pane.execute_command(format!("move next_word_back {}", self.number_buffer).as_str());
+                self.number_buffer.clear();
+                self.add_selection(pane);
+            },
+            "previous_word_front" => {
+                pane.execute_command(format!("move prev_word_front {}", self.number_buffer).as_str());
+                self.number_buffer.clear();
+                self.add_selection(pane);
+            },
+            "previous_word_back" => {
+                pane.execute_command(format!("move prev_word_back {}", self.number_buffer).as_str());
+                self.number_buffer.clear();
                 self.add_selection(pane);
             },
             "copy" => {
                 pane.execute_command(&format!("copy selection"));
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             }
             "delete" => {
                 pane.execute_command("delete selection");
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");    }
             "cut" => {
                 pane.execute_command(&format!("copy selection"));
                 pane.execute_command("delete selection");
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             }
             "paste" => {
                 pane.execute_command("paste selection");
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
+            }
+            "mirror_mode" => {
+                let command = match self.selection_type {
+                    SelectionType::Normal => "selection_normal_mirror",
+                    SelectionType::Line => "selection_line_mirror",
+                    SelectionType::Block => "selection_block_mirror",
+                };
+
+                pane.execute_command(&format!("change_mode mirror {}", command));
+            }
+            "pair_mode" => {
+                let command = match self.selection_type {
+                    SelectionType::Normal => "selection_normal_pair",
+                    SelectionType::Line => "selection_line_pair",
+                    SelectionType::Block => "selection_block_pair",
+                };
+
+                pane.execute_command(&format!("change_mode pair {}", command));
             }
             _ => {}
         }
@@ -222,7 +287,7 @@ impl TextMode for SelectionMode {
             } => {
                 self.key_buffer.clear();
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             },
@@ -261,7 +326,7 @@ impl TextMode for SelectionMode {
     }
 
     fn start(&mut self, pane: &mut dyn TextPane) {
-        pane.execute_command("clear_selection");
+
         match self.selection_type {
             SelectionType::Line => {
                 let (_, row) = pane.get_cursor();

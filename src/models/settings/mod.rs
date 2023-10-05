@@ -1,9 +1,10 @@
-
+use crate::models::settings::colors::EditorColors;
 use self::editor_settings::EditorSettings;
 use self::mode_keybindings::ModeKeybindings;
 
 pub mod editor_settings;
 pub mod mode_keybindings;
+pub mod colors;
 //pub mod language_formats;
 //pub mod colors;
 
@@ -18,9 +19,9 @@ pub struct Settings {
     pub mode_keybindings: ModeKeybindings,
     /*/// The different formats for different programming languages
     /// (e.g. Kernel, Google, Microsoft, etc.)
-    pub language_formats: LanguageFormats,
+    pub language_formats: LanguageFormats,*/
     /// The colors for the editor
-    pub colors: Colors,*/
+    pub colors: EditorColors
 }
 
 
@@ -31,8 +32,8 @@ impl Default for Settings {
         Settings {
             editor_settings: EditorSettings::new(),
             mode_keybindings: ModeKeybindings::new(),
-            /*language_formats: LanguageFormats::default(),
-            colors: Colors::default(),*/
+            /*language_formats: LanguageFormats::default(),*/
+            colors: EditorColors::new(),
         }
     }
 }

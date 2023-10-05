@@ -79,6 +79,29 @@ impl Style {
 
         self
     }
+
+    pub fn config_file(&self) -> String {
+        let mut output = String::new();
+
+        if let Some(fg) = self.fg {
+            output.push_str(&format!("fg = {}\n", fg.config_file()));
+        }
+
+        if let Some(bg) = self.bg {
+            output.push_str(&format!("bg = {}\n", bg.config_file()));
+        }
+
+        if let Some(underline_color) = self.underline_color {
+            output.push_str(&format!("underline_color = {}\n", underline_color.config_file()));
+        }
+
+        if !self.add_modifier.is_empty() {
+            output.push_str(&format!("modifiers = {}\n", self.add_modifier.config_file()));
+        }
+
+
+        output
+    }
 }
 
 impl Default for Style {
@@ -86,6 +109,46 @@ impl Default for Style {
         Style::new()
     }
 }
+
+pub fn parse_style(table: &toml::Value) -> Result<Style,String> {
+    let table = table.as_table().ok_or("style was not a table".to_string())?;
+    let mut style = Style::new();
+
+    match table.get("fg") {
+        Some(value) => {
+            let value = color::parse_color(value)?;
+            style = style.fg(value);
+        },
+        None => {},
+    }
+
+    match table.get("bg") {
+        Some(value) => {
+            let value = color::parse_color(value)?;
+            style = style.bg(value);
+        },
+        None => {},
+    }
+
+    match table.get("underline_color") {
+        Some(value) => {
+            let value = color::parse_color(value)?;
+            style = style.underline_color(value);
+        },
+        None => {},
+    }
+
+    match table.get("modifiers") {
+        Some(value) => {
+            let value = text_modifier::parse_modifier(value)?;
+            style = style.add_modifier(value);
+        },
+        None => {},
+    }
+
+    Ok(style)
+}
+
 
 //TODO: Add conditional Compilation for TUI
 impl Into<tuirealm::tui::style::Style> for Style {
@@ -137,6 +200,14 @@ impl<'a> StyledSpan<'a> {
 
     pub fn len(&self) -> usize {
         self.text.len()
+    }
+
+    pub fn chars(&self) -> std::str::Chars<'_> {
+        self.text.chars()
+    }
+
+    pub fn drop(&mut self, char_index: usize) {
+        self.text = self.text.chars().skip(char_index).collect::<String>().into();
     }
 
 
@@ -212,6 +283,31 @@ impl<'a> StyledLine<'a> {
 
     pub fn len(&self) -> usize {
         self.spans.iter().map(|s| s.len()).sum()
+    }
+
+    pub fn insert(&mut self, index: usize, span: StyledSpan<'a>) {
+        self.spans.insert(index, span);
+    }
+
+    pub fn drop(&mut self, mut char_index: usize) {
+        let mut span_index = 0;
+        while char_index > 0 {
+            if span_index >= self.spans.len() {
+                break;
+            }
+            let span = &mut self.spans[span_index];
+            let char_count = span.chars().count();
+
+            if char_index >= char_count {
+                char_index -= char_count;
+                span_index += 1;
+            } else {
+                span.drop(char_index);
+                char_index = 0;
+            }
+        }
+
+        self.spans.drain(0..span_index);
     }
 }
 
@@ -290,6 +386,14 @@ impl<'a> StyledText<'a> {
 
     pub fn len(&self) -> usize {
         self.lines.iter().map(|l| l.len()).sum()
+    }
+
+    pub fn rows(&self) -> usize {
+        self.lines.len()
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut StyledLine<'a>> {
+        self.lines.iter_mut()
     }
 }
 

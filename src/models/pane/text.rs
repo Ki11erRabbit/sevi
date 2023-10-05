@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::path::PathBuf;
 use std::str::SplitWhitespace;
 use std::sync::mpsc::{Sender, Receiver};
-use crate::models::style::StyledText;
+use crate::models::style::{StyledLine, StyledSpan, StyledText};
 use crate::models::cursor::Cursor;
 use crate::models::key::KeyEvent;
 use crate::models::pane::TextPane;
@@ -18,10 +18,12 @@ use crate::models::{AppEvent, Rect};
 use crate::models::file::file::ReplaceSelections;
 use crate::models::mode::command::CommandMode;
 use crate::models::mode::insert::InsertMode;
+use crate::models::mode::mirror::MirrorMode;
 use crate::models::settings::Settings;
 use crate::models::mode::TextMode;
 use crate::models::mode::normal::NormalMode;
 use crate::models::mode::Mode;
+use crate::models::mode::pair::PairMode;
 use crate::models::mode::search::{SearchMode, SearchType};
 use crate::models::mode::selection::{SelectionMode, SelectionType};
 use crate::models::settings::editor_settings::NumberLineStyle;
@@ -58,12 +60,18 @@ impl TextBuffer {
         selection_mode.borrow_mut().add_settings(settings.clone());
         let search_mode = Rc::new(RefCell::new(SearchMode::new()));
         search_mode.borrow_mut().add_settings(settings.clone());
+        let mirror_mode = Rc::new(RefCell::new(MirrorMode::new()));
+        mirror_mode.borrow_mut().add_settings(settings.clone());
+        let pair_mode = Rc::new(RefCell::new(PairMode::new()));
+        pair_mode.borrow_mut().add_settings(settings.clone());
 
         let normal_mode: Rc<RefCell<dyn TextMode>> = normal_mode.clone();
         let command_mode: Rc<RefCell<dyn TextMode>> = command_mode.clone();
         let insert_mode: Rc<RefCell<dyn TextMode>> = insert_mode.clone();
         let selection_mode: Rc<RefCell<dyn TextMode>> = selection_mode.clone();
         let search_mode: Rc<RefCell<dyn TextMode>> = search_mode.clone();
+        let mirror_mode: Rc<RefCell<dyn TextMode>> = mirror_mode.clone();
+        let pair_mode: Rc<RefCell<dyn TextMode>> = pair_mode.clone();
 
 
         let mut modes = HashMap::new();
@@ -72,6 +80,8 @@ impl TextBuffer {
         modes.insert("Insert".to_string(), insert_mode);
         modes.insert("Selection".to_string(), selection_mode);
         modes.insert("Search".to_string(), search_mode);
+        modes.insert("Mirror".to_string(), mirror_mode);
+        modes.insert("Pair".to_string(), pair_mode);
 
 
         let mode = {
@@ -122,12 +132,15 @@ impl TextBuffer {
         match command_name {
             "qa!" => {
                 self.sender.send(AppEvent::ForceQuit).expect("Failed to send force quit event");
+                self.file.set_safe_close();
             }
             "q" => {
                 self.sender.send(AppEvent::Close).expect("Failed to send quit event");
+                self.file.set_safe_close();
             }
             "q!" => {
                 self.sender.send(AppEvent::ForceClose).expect("Failed to send force quit event");
+                self.file.set_safe_close();
             }
             "e" => {
                 let path = command_args.next();
@@ -202,8 +215,9 @@ impl TextBuffer {
                             return;
                         }
                     }
-                    self.sender.send(AppEvent::Close).expect("Failed to send quit event");
                 }
+                self.sender.send(AppEvent::Close).expect("Failed to send quit event");
+                self.file.set_safe_close();
             }
             "w!q" => {
                 if let Some(path) = command_args.next() {
@@ -227,8 +241,9 @@ impl TextBuffer {
                             return
                         }
                     }
-                    self.sender.send(AppEvent::Close).expect("Failed to send quit event");
                 }
+                self.sender.send(AppEvent::Close).expect("Failed to send quit event");
+                self.file.set_safe_close();
             }
             "w!q!" => {
                 if let Some(path) = command_args.next() {
@@ -250,8 +265,9 @@ impl TextBuffer {
                             self.send_info_message(msg.as_str());
                         }
                     }
-                    self.sender.send(AppEvent::ForceClose).expect("Failed to send force quit event");
                 }
+                self.sender.send(AppEvent::ForceClose).expect("Failed to send force quit event");
+                self.file.set_safe_close();
             }
             "wq!" => {
                 if let Some(path) = command_args.next() {
@@ -273,8 +289,23 @@ impl TextBuffer {
                             self.send_info_message(msg.as_str());
                         }
                     }
-                    self.sender.send(AppEvent::ForceClose).expect("Failed to send force quit event");
+
                 }
+                self.sender.send(AppEvent::ForceClose).expect("Failed to send force quit event");
+                self.file.set_safe_close();
+            }
+            "recover" => {
+                match self.file.recover() {
+                    Ok(_) => {
+                        self.send_info_message("File recovered");
+                    }
+                    Err(msg) => {
+                        self.send_info_message(msg.as_str());
+                    }
+                }
+            }
+            "help" | "h" => {
+                self.sender.send(AppEvent::CreateHelpFile).expect("Failed to send create help file event");
             }
             _ => {}
         }
@@ -386,8 +417,7 @@ impl TextBuffer {
                             let word = match self.file.get_word(byte_offset) {
                                 Some(word) => word.to_string(),
                                 None => {
-                                    // TODO: send message to be displayed
-                                    eprintln!("No word found at cursor position");
+                                    self.send_info_message("No word found at cursor position");
 
                                     return;
                                 },
@@ -593,11 +623,24 @@ impl TextBuffer {
                     },
                     "insert_below" => {
                         self.mode = self.modes.get("Insert").unwrap().clone();
+                        let (_, row) = self.get_cursor();
+
+                        let byte_offset = self.file.get_byte_offset(1+row, 0).unwrap_or(0);
+                        self.insert_char(byte_offset, '\n');
+
                         self.cursor.move_cursor(CursorMovement::Down, 1, &self.file);
+                        self.cursor.move_cursor(CursorMovement::LineStart, 1, &self.file);
                     },
                     "insert_above" => {
                         self.mode = self.modes.get("Insert").unwrap().clone();
-                        self.cursor.move_cursor(CursorMovement::Up, 1, &self.file);
+                        let (_, row) = self.get_cursor();
+
+                        let byte_offset = self.file.get_byte_offset(row, 0).unwrap_or(0);
+                        self.insert_char(byte_offset, '\n');
+
+                        self.cursor.move_cursor(CursorMovement::LineStart, 1, &self.file);
+
+                        //self.cursor.move_cursor(CursorMovement::Up, 1, &self.file);
                     },
                     "selection_normal" => {
                         let mode= self.modes.get("Selection").unwrap().clone();
@@ -628,6 +671,36 @@ impl TextBuffer {
                     "search_up" => {
                         let mode = self.modes.get("Search").unwrap().clone();
                         mode.borrow_mut().add_special(&SearchType::Backward);
+                        self.mode = mode;
+                    }
+                    "mirror" => {
+                        let mode = self.modes.get("Mirror").unwrap().clone();
+                        if let Some(return_to) = command_args.next() {
+                            mode.borrow_mut().add_special(&return_to.to_string());
+                        }
+                        self.mode = mode;
+                    }
+                    "pair" => {
+                        let mode = self.modes.get("Pair").unwrap().clone();
+                        if let Some(return_to) = command_args.next() {
+                            let return_to = return_to.to_string();
+                            mode.borrow_mut().add_special(&return_to);
+                        }
+                        self.mode = mode;
+                    }
+                    "selection_normal_mirror" | "selection_normal_pair" => {
+                        let mode= self.modes.get("Selection").unwrap().clone();
+                        mode.borrow_mut().add_special(&SelectionType::Normal);
+                        self.mode = mode;
+                    }
+                    "selection_line_mirror" | "selection_line_pair" => {
+                        let mode= self.modes.get("Selection").unwrap().clone();
+                        mode.borrow_mut().add_special(&SelectionType::Line);
+                        self.mode = mode;
+                    }
+                    "selection_block_mirror" | "selection_block_pair" => {
+                        let mode= self.modes.get("Selection").unwrap().clone();
+                        mode.borrow_mut().add_special(&SelectionType::Block);
                         self.mode = mode;
                     }
                     _ => panic!("Invalid mode"),
@@ -686,6 +759,8 @@ impl TextBuffer {
                     }
                     return;
                 }
+
+
                 let direction = match direction {
                     Some("up") => CursorMovement::Up,
                     Some("down") => CursorMovement::Down,
@@ -699,10 +774,24 @@ impl TextBuffer {
                     Some("half_page_down") => CursorMovement::HalfPageDown,
                     Some("start_of_line") => CursorMovement::LineStart,
                     Some("end_of_line") => CursorMovement::LineEnd,
+                    Some("up_line_start") => {
+                        self.cursor.move_cursor(CursorMovement::LineStart, 1, &self.file);
+                        CursorMovement::Up
+                    }
+                    Some("down_line_start") => {
+                        self.cursor.move_cursor(CursorMovement::LineStart, 1, &self.file);
+                        CursorMovement::Down
+                    }
+                    Some("next_word_front") => CursorMovement::WordFrontRight,
+                    Some("next_word_back") => CursorMovement::WordBackRight,
+                    Some("prev_word_front") => CursorMovement::WordFrontLeft,
+                    Some("prev_word_back") =>  CursorMovement::WordBackLeft,
                     _ => panic!("Invalid direction"),
                 };
 
-                let amount = command_args.next().unwrap_or("1").parse::<usize>().unwrap_or(1);
+                let arg = command_args.next();
+                let amount = arg.unwrap_or("1").parse::<usize>().unwrap_or(1);
+
 
                 //todo: add to jump table when doing large movements
 
@@ -726,6 +815,7 @@ impl TextBuffer {
 
 impl Pane for TextBuffer {
     fn execute_command(&mut self, command: &str) {
+        self.sender.send(AppEvent::RemoveInfoDisplay).expect("Failed to send remove info display event");
         let mut command_args = command.split_whitespace();
         let command = command_args.next().unwrap_or("");
 
@@ -754,8 +844,16 @@ impl Pane for TextBuffer {
         let mode = mode.borrow();
         let (name, first, second) = mode.update_status(self);
 
+        let settings = self.settings.clone();
+        let settings = settings.borrow();
 
-        (StyledText::from(name),StyledText::from(first), StyledText::from(second))
+        let name = StyledText::from(vec![StyledLine::from(vec![StyledSpan::styled(name, settings.colors.status_bar.mode.get(&mode.get_name()).unwrap().clone())])]);
+
+        let first = StyledText::from(vec![StyledLine::from(vec![StyledSpan::styled(first, settings.colors.status_bar.first)])]);
+        let second = StyledText::from(vec![StyledLine::from(vec![StyledSpan::styled(second, settings.colors.status_bar.second)])]);
+
+
+        (name,first, second)
     }
 
     fn get_scroll_amount(&self) -> Option<(usize, usize)> {
@@ -807,7 +905,11 @@ impl TextPane for TextBuffer {
     }
 
     fn scroll(&mut self, rect: Rect) {
-        self.cursor.scroll(rect);
+        let mut cursor = self.cursor.clone();
+
+        cursor.scroll(self, rect);
+
+        self.cursor = cursor;
     }
 
     fn backspace(&mut self) {
@@ -873,7 +975,6 @@ impl TextPane for TextBuffer {
 
     fn get_current_byte_position(&self) -> usize {
         let (col, row) = self.get_cursor();
-        eprintln!("Cursor: {}, {}", col, row);
 
         self.file.get_byte_offset(row, col).expect("Cursor was in an invalid position")
     }

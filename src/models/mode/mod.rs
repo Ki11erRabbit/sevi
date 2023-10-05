@@ -11,6 +11,8 @@ pub mod command;
 pub mod insert;
 pub mod selection;
 pub mod search;
+pub mod mirror;
+pub mod pair;
 
 
 pub trait Mode {

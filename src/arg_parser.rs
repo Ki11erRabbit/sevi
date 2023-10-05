@@ -26,6 +26,8 @@ impl Args {
             crate::models::settings::editor_settings::EditorSettings::create_default_config_file().expect("Could not create default config file");
             println!("Generating Keybindings");
             crate::models::settings::mode_keybindings::ModeKeybindings::create_default_config_file().expect("Could not create default config file");
+            println!("Generating Colors");
+            crate::models::settings::colors::EditorColors::create_default_config_file().expect("Could not create default config file");
             performed_command = true;
         }
         if performed_command {

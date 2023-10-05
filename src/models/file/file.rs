@@ -1,21 +1,48 @@
 use std::cell::RefCell;
 use std::collections::BTreeSet;
+use std::fmt;
+use std::fmt::Formatter;
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::rc::Rc;
 use tree_sitter::Parser;
 use crate::models::file::buffer::Buffer;
 use crate::models::settings::Settings;
-use crate::models::style::{Style, StyledLine, StyledSpan, StyledText};
-use crate::models::style::color::Color;
+use crate::models::style::{StyledLine, StyledSpan, StyledText};
 
-
+#[derive(Debug)]
+pub enum FileError {
+    FileDoesNotExist,
+    Directory,
+    RecoverFileFound(File),
+}
 pub trait ReplaceSelections<S> {
     fn replace_selections(&mut self, selections: S);
 }
 
+pub trait InsertPairs<P> {
+    fn insert_pairs(&mut self, pairs: P);
+}
+
+
+#[derive(Debug)]
 pub struct LSPInfo {
 
 }
+
+impl fmt::Debug for File {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("File")
+            .field("path", &self.path)
+            .field("buffer", &self.buffer)
+            .field("lsp_info", &self.lsp_info)
+            .field("language", &self.language)
+            .field("highlights", &self.highlights)
+            .field("saved", &self.saved)
+            .finish()
+    }
+}
+
 pub struct File {
     path: Option<PathBuf>,
     language: Option<String>,
@@ -24,12 +51,40 @@ pub struct File {
     settings: Rc<RefCell<Settings>>,
     highlights: BTreeSet<usize>,
     saved: bool,
+    safe_close: bool,
 }
 
 impl File {
-    pub fn new(path: Option<PathBuf>, settings: Rc<RefCell<Settings>>) -> Self {
+    pub fn new(path: Option<PathBuf>, settings: Rc<RefCell<Settings>>) -> Result<Self,FileError> {
         match path {
             Some(path) => {
+                if path.is_dir() {
+                    return Err(FileError::Directory);
+                }
+                if !path.is_file() {
+                    return Err(FileError::FileDoesNotExist);
+                }
+
+                let parent = path.parent();
+                let file_name = path.file_name().unwrap();
+                let file_name = file_name.to_str().unwrap();
+
+                let recover_file_path = match parent {
+                    Some(parent) => {
+                        PathBuf::from(format!("{}##{}", parent.display(), file_name))
+                    }
+                    None => {
+                        PathBuf::from(format!("##{}", file_name))
+                    }
+                };
+
+                let recovered_file;
+
+                if recover_file_path.exists() {
+                    recovered_file = true;
+                } else {
+                    recovered_file = false;
+                }
                 let string = std::fs::read_to_string(&path).unwrap();
 
                 let file_type = path.extension().and_then(|ext| ext.to_str()).unwrap_or("txt").to_string();
@@ -200,7 +255,8 @@ impl File {
 
                 let lsp_info = None;
 
-                Self {
+
+                let file = Self {
                     path: Some(path),
                     buffer,
                     lsp_info,
@@ -208,6 +264,13 @@ impl File {
                     settings,
                     highlights: BTreeSet::new(),
                     saved: true,
+                    safe_close: false,
+                };
+
+                if recovered_file {
+                    Err(FileError::RecoverFileFound(file))
+                } else {
+                    return Ok(file);
                 }
             }
             None => {
@@ -215,7 +278,7 @@ impl File {
                 buffer.add_new_rope();
                 buffer.add_new_rope();
 
-                Self {
+                Ok(Self {
                     path: None,
                     buffer,
                     lsp_info: None,
@@ -223,11 +286,18 @@ impl File {
                     settings,
                     highlights: BTreeSet::new(),
                     saved: true,
-                }
+                    safe_close: false,
+                })
             }
         }
     }
 
+    pub fn set_safe_close(&mut self) {
+        self.safe_close = true;
+    }
+    pub fn set_path(&mut self, path: PathBuf) {
+        self.path = Some(path);
+    }
 
     pub fn save(&mut self, file_path: Option<PathBuf>, force: bool) -> Result<(), String> {
         match file_path {
@@ -304,6 +374,11 @@ impl File {
     pub fn get_until_prev_word(&self, byte_offset: usize) -> Option<String> {
         self.buffer.get_until_prev_word(byte_offset).map(|word| word.to_string())
     }
+
+    pub fn get_highlights(&self) -> BTreeSet<usize> {
+        self.highlights.clone()
+    }
+
     pub fn get_highlighted(&self) -> Option<Vec<String>> {
         if self.highlights.is_empty() {
             return None;
@@ -540,6 +615,7 @@ impl File {
         self.saved = false;
     }
 
+
     pub fn undo(&mut self) {
         self.buffer.undo();
         self.saved = false;
@@ -550,14 +626,609 @@ impl File {
         self.saved = false;
     }
 
+    pub fn next_word_front(&self, mut byte_position: usize, mut amount: usize) -> usize {
+        while amount > 0 {
+            byte_position = self.buffer.next_word_front(byte_position);
+            amount -= 1;
+        }
+        byte_position
+    }
+
+    pub fn next_word_back(&self, mut byte_position: usize, mut amount: usize) -> usize {
+
+
+        while amount > 0 {
+            byte_position = self.buffer.next_word_back(byte_position);
+            amount -= 1;
+        }
+        byte_position
+    }
+
+    pub fn prev_word_front(&self, mut byte_position: usize, mut amount: usize) -> usize {
+
+        while amount > 0 {
+            byte_position = self.buffer.prev_word_front(byte_position);
+            amount -= 1;
+        }
+        byte_position
+    }
+
+    pub fn prev_word_back(&self, mut byte_position: usize, mut amount: usize) -> usize {
+
+        while amount > 0 {
+            byte_position = self.buffer.prev_word_back(byte_position);
+            amount -= 1;
+        }
+        byte_position
+    }
+
+    fn is_delimiter(&self, b: usize) -> bool {
+        if let Some(c) = self.buffer.get_char_at(b) {
+            match c {
+                '(' => true,
+                ')' => true,
+                '[' => true,
+                ']' => true,
+                '{' => true,
+                '}' => true,
+                // Despite looking similar, they are different characters
+                '｛' => true,
+                '｝' => true,
+                '（' => true,
+                '）' => true,
+                '［' => true,
+                '］' => true,
+                '【' => true,
+                '】' => true,
+                '「' => true,
+                '」' => true,
+                '『' => true,
+                '』' => true,
+                '〝' => true,
+                '〞' => true,
+                '〈' => true,
+                '〉' => true,
+                '《' => true,
+                '》' => true,
+                '〔' => true,
+                '〕' => true,
+                '〖' => true,
+                '〗' => true,
+                '〘' => true,
+                '〙' => true,
+                '〚' => true,
+                '〛' => true,
+                '«' => true,
+                '»' => true,
+                '‹' => true,
+                '›' => true,
+                '"' => true,
+                '\'' => true,
+                '‘' => true,
+                '’' => true,
+                '“' => true,
+                '”' => true,
+                '⁅' => true,
+                '⁆' => true,
+                '〈' => true,
+                '〉' => true,
+                '⎡' => true,
+                '⎤' => true,
+                '⎣' => true,
+                '⎦' => true,
+                '⎢' => true,
+                '⎥' => true,
+                '⎧' => true,
+                '⎨' => true,
+                '⎩' => true,
+                '⎫' => true,
+                '⎬' => true,
+                '⎭' => true,
+                '⎪' => true,
+                '⎰' => true,
+                '⎱' => true,
+                '❬' => true,
+                '❭' => true,
+                '❮' => true,
+                '❯' => true,
+                '❰' => true,
+                '❱' => true,
+                '❴' => true,
+                '❵' => true,
+                '⟦' => true,
+                '⟧' => true,
+                '⟨' => true,
+                '⟩' => true,
+                '❲' => true,
+                '❳' => true,
+                '⦃' => true,
+                '⦄' => true,
+                '⦅' => true,
+                '⦆' => true,
+                '⦇' => true,
+                '⦈' => true,
+                '⦉' => true,
+                '⦊' => true,
+                '⦋' => true,
+                '⦌' => true,
+                '⦍' => true,
+                '⦎' => true,
+                '⦏' => true,
+                '⦐' => true,
+                '⦑' => true,
+                '⦒' => true,
+                '⦗' => true,
+                '⦘' => true,
+                '⧘' => true,
+                '⧙' => true,
+                '⧚' => true,
+                '⧛' => true,
+                '⧼' => true,
+                '⧽' => true,
+                '⸂' => true,
+                '⸃' => true,
+                '⸄' => true,
+                '⸅' => true,
+                '⸉' => true,
+                '⸊' => true,
+                '⸌' => true,
+                '⸍' => true,
+                '⸜' => true,
+                '⸝' => true,
+                '⸠' => true,
+                '⸡' => true,
+                '⸢' => true,
+                '⸣' => true,
+                '⸤' => true,
+                '⸥' => true,
+                '⸦' => true,
+                '⸧' => true,
+                '⸨' => true,
+                '⸩' => true,
+                //todo: add a way to have the user add more of these
+                _ => false,
+            }
+        } else {
+            false
+        }
+    }
+    fn is_pair(left: char, right: char) -> bool {
+        match (left, right) {
+            ('(', ')') => true,
+            ('{', '}') => true,
+            ('[', ']') => true,
+            ('｛', '｝') => true,
+            ('（', '）') => true,
+            ('［', '］') => true,
+            ('【', '】') => true,
+            ('「', '」') => true,
+            ('『', '』') => true,
+            ('〝', '〞') => true,
+            ('〈', '〉') => true,
+            ('《', '》') => true,
+            ('〔', '〕') => true,
+            ('〖', '〗') => true,
+            ('〘', '〙') => true,
+            ('〚', '〛') => true,
+            ('«', '»') => true,
+            ('‹', '›') => true,
+            ('"', '"') => true,
+            ('\'', '\'') => true,
+            ('‘', '’') => true,
+            ('“', '”') => true,
+            ('⁅', '⁆') => true,
+            ('〈','〉') => true,
+            ('⎡', '⎤') => true,
+            ('⎢', '⎥') => true,
+            ('⎣', '⎦') => true,
+            ('⎧', '⎫') => true,
+            ('⎨', '⎬') => true,
+            ('⎩', '⎭') => true,
+            ('⎪', '⎪') => true,
+            ('⎰', '⎱') => true,
+            ('⎱', '⎰') => true,
+            ('❬','❭') => true,
+            ('❮', '❯') => true,
+            ('❰', '❱') => true,
+            ('❴', '❵') => true,
+            ('⟦', '⟧') => true,
+            ('⟨', '⟩') => true,
+            ('❲', '❳') => true,
+            ('⦃', '⦄') => true,
+            ('⦅', '⦆') => true,
+            ('⦇', '⦈') => true,
+            ('⦉', '⦊') => true,
+            ('⦋', '⦌') => true,
+            ('⦍', '⦎') => true,
+            ('⦏', '⦐') => true,
+            ('⦑', '⦒') => true,
+            ('⦗', '⦘') => true,
+            ('⧘', '⧙') => true,
+            ('⧚', '⧛') => true,
+            ('⧼', '⧽') => true,
+            ('⸂', '⸃') => true,
+            ('⸄', '⸅') => true,
+            ('⸉', '⸊') => true,
+            ('⸌', '⸍') => true,
+            ('⸜', '⸝') => true,
+            ('⸠', '⸡') => true,
+            ('⸢', '⸣') => true,
+            ('⸤', '⸥') => true,
+            ('⸦', '⸧') => true,
+            ('⸨', '⸩') => true,
+            _ => false,
+        }
+    }
+
+
+    fn internal_display(&self, text: String, offset: usize) -> StyledText {
+
+        let mut rainbow_delimiters = Vec::new();
+
+        let mut skip_counter = 0;
+
+        let string = text;
+        let mut acc = String::new();
+        let mut output = StyledText::new();
+        let mut line = StyledLine::new();
+        let mut highlight = false;
+
+        for (i, _) in string.bytes().enumerate() {
+            if skip_counter > 0 {
+                skip_counter -= 1;
+                continue;
+            }
+            let i = i + offset;
+
+            let chr = self.buffer.get_char_at(i).unwrap();
+
+            skip_counter = chr.len_utf8() - 1;
+
+            if self.highlights.contains(&i) && !(self.is_delimiter(i) && self.settings.borrow().editor_settings.rainbow_delimiters){
+                if !highlight {
+                    line.push(StyledSpan::from(acc.clone()));
+                    acc.clear();
+                }
+
+                if chr == '\n' {
+                    acc.push(' ');
+                    if highlight {
+                        let settings = self.settings.borrow();
+                        let selection_color = settings.colors.selected;
+
+                        line.push(StyledSpan::styled(acc.clone(),
+                                                     selection_color
+                        ));
+                    } else {
+                        line.push(StyledSpan::from(acc.clone()));
+                    }
+                    output.lines.push(line);
+                    line = StyledLine::new();
+                    acc.clear();
+                } else {
+                    if chr == '\t' {
+                        let settings = self.settings.borrow();
+                        let tab_size = settings.editor_settings.tab_size;
+                        for _ in 0..tab_size {
+                            acc.push(' ');
+                        }
+                    } else if chr == '\r' {
+                        acc.push(' ');
+                    } else {
+                        acc.push(chr);
+                    }
+                }
+                highlight = true;
+
+            } else if self.highlights.contains(&i) && self.is_delimiter(i) && self.settings.borrow().editor_settings.rainbow_delimiters {
+                let settings = self.settings.clone();
+                let settings = settings.borrow();
+
+                if highlight {
+                    let selection_color = settings.colors.selected;
+
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 selection_color
+                    ));
+                    acc.clear();
+                } else {
+                    line.push(StyledSpan::from(acc.clone()));
+                    acc.clear();
+                }
+                highlight = true;
+
+                let color = settings.colors.rainbow_delimiters[rainbow_delimiters.len() % settings.colors.rainbow_delimiters.len()];
+
+                let color = if rainbow_delimiters.is_empty() {
+                    rainbow_delimiters.push((chr, color));
+                    acc.push(chr);
+                    color
+
+                } else {
+                    let last = rainbow_delimiters.last().unwrap();
+                    if Self::is_pair(last.0, chr) {
+                        let color = rainbow_delimiters.pop().unwrap().1;
+                        acc.push(chr);
+                        color
+                    } else {
+                        rainbow_delimiters.push((chr, color));
+                        acc.push(chr);
+                        color
+                    }
+                };
+
+                let selection_color = settings.colors.selected;
+                let selection_color = selection_color.patch(color);
+
+                line.push(StyledSpan::styled(acc.clone(),
+                                             selection_color
+                ));
+                acc.clear();
+            } else if self.is_delimiter(i) && self.settings.borrow().editor_settings.rainbow_delimiters {
+                let settings = self.settings.clone();
+                let settings = settings.borrow();
+
+                if highlight {
+                    let selection_color = settings.colors.selected;
+
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 selection_color
+                    ));
+                    acc.clear();
+                } else {
+                    line.push(StyledSpan::from(acc.clone()));
+                    acc.clear();
+                }
+                highlight = false;
+                let color = settings.colors.rainbow_delimiters[rainbow_delimiters.len() % settings.colors.rainbow_delimiters.len()];
+
+                let color = if rainbow_delimiters.is_empty() {
+                    rainbow_delimiters.push((chr, color));
+                    acc.push(chr);
+                    color
+
+                } else {
+                    let last = rainbow_delimiters.last().unwrap();
+                    if Self::is_pair(last.0, chr) {
+                        let color = rainbow_delimiters.pop().unwrap().1;
+                        acc.push(chr);
+                        color
+                    } else {
+                        rainbow_delimiters.push((chr, color));
+                        acc.push(chr);
+                        color
+                    }
+                };
+
+                line.push(StyledSpan::styled(acc.clone(),
+                                             color
+                ));
+                acc.clear();
+            } else if chr == '\n' {
+                if highlight {
+                    let settings = self.settings.borrow();
+                    let selection_color = settings.colors.selected;
+
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 selection_color
+                    ));
+                } else {
+                    line.push(StyledSpan::from(acc.clone()));
+                }
+                acc.clear();
+                acc.push(' ');
+                line.push(StyledSpan::from(acc.clone()));
+
+                output.lines.push(line);
+                line = StyledLine::new();
+                acc.clear();
+            } else {
+                if highlight {
+                    let settings = self.settings.borrow();
+                    let selection_color = settings.colors.selected;
+
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 selection_color
+                    ));
+                    acc.clear();
+                }
+                highlight = false;
+
+                if chr == '\t' {
+                    let settings = self.settings.borrow();
+                    let tab_size = settings.editor_settings.tab_size;
+                    for _ in 0..tab_size {
+                        acc.push(' ');
+                    }
+                } else if chr == '\r' {
+                    acc.push(' ');
+                } else {
+                    acc.push(chr);
+                }
+            }
+        }
+        if !acc.is_empty() {
+            if !highlight {
+                line.push(StyledSpan::from(acc.clone()));
+                acc.clear();
+            } else {
+                let settings = self.settings.borrow();
+                let selection_color = settings.colors.selected;
+
+                line.push(StyledSpan::styled(acc.clone(),
+                                             selection_color
+                ));
+                acc.clear();
+            }
+            output.lines.push(line);
+        }
+
+
+        output
+    }
     pub fn display(&self) -> StyledText {
+        self.internal_display(self.buffer.to_string(), 0)
+    }
+    /*pub fn display(&self) -> StyledText {
+        // TODO: make this use less heap allocations
+        let mut rainbow_delimiters = Vec::new();
+
+        let mut skip_counter = 0;
+
         let string = self.buffer.to_string();
-        eprintln!("String: {}", string);
+        let mut acc = String::with_capacity(string.len());
+        let mut output = StyledText::new();
+        let mut line = StyledLine::new();
+        //let mut highlight = false;
+
+        for (i, _) in string.bytes().enumerate() {
+            if skip_counter > 0 {
+                skip_counter -= 1;
+                continue;
+            }
+
+            let mut rainbow= false;
+
+            let base_color = if self.is_delimiter(i) && self.settings.borrow().editor_settings.rainbow_delimiters {
+                let settings = self.settings.clone();
+                let settings = settings.borrow();
+
+                let color = settings.colors.rainbow_delimiters[rainbow_delimiters.len() % settings.colors.rainbow_delimiters.len()];
+
+                let chr = self.buffer.get_char_at(i).unwrap();
+                rainbow = true;
+                if rainbow_delimiters.is_empty() {
+                    rainbow_delimiters.push((chr, color));
+                    color
+                } else {
+                    let last = rainbow_delimiters.last().unwrap();
+                    if Self::is_pair(last.0, chr) {
+                        let color = rainbow_delimiters.pop().unwrap().1;
+                        color
+                    } else {
+                        rainbow_delimiters.push((chr, color));
+                        color
+                    }
+                }
+            } else {
+                let settings = self.settings.borrow();
+                let color = settings.colors.buffer_color;
+
+                color
+            };
+
+            let chr = self.buffer.get_char_at(i).unwrap();
+
+            skip_counter = chr.len_utf8() - 1;
+
+            acc.push(chr);
+
+            let color = if self.highlights.contains(&i) {
+                let settings = self.settings.clone();
+                let settings = settings.borrow();
+
+                let selection_color = settings.colors.selected;
+
+
+                if rainbow {
+                    selection_color.patch(base_color)
+                } else {
+                    base_color.patch(selection_color)
+                }
+            } else {
+                base_color
+            };
+            line.push(StyledSpan::styled(acc.clone(),
+                                         color
+            ));
+            acc.clear();
+            if chr == '\n' {
+                output.lines.push(line);
+                line = StyledLine::new();
+            }
+        }
+
+        output
+    }*/
+
+    /*pub fn display(&self) -> StyledText {
+
+        let mut rainbow_delimiters = Vec::new();
+
+        let mut skip_counter = 0;
+
+        let string = self.buffer.to_string();
         let mut acc = String::with_capacity(string.len());
         let mut output = StyledText::new();
         let mut line = StyledLine::new();
         let mut highlight = false;
         for (i, c) in string.bytes().enumerate() {
+            if skip_counter > 0 {
+                skip_counter -= 1;
+                continue;
+            }
+
+
+
+            if self.is_delimiter(i) {
+                if !highlight {
+                    line.push(StyledSpan::from(acc.clone()));
+                    acc.clear();
+                } else {
+                    let settings = self.settings.borrow();
+                    let selection_color = settings.colors.selected;
+
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 selection_color
+                    ));
+                    acc.clear();
+                }
+
+                let char = self.buffer.get_char_at(i).unwrap();
+
+                let settings = self.settings.clone();
+                let settings = settings.borrow();
+
+                let color = settings.colors.rainbow_delimiters[rainbow_delimiters.len() % settings.colors.rainbow_delimiters.len()];
+
+
+                let mut color = if rainbow_delimiters.is_empty() {
+                    rainbow_delimiters.push((char, color));
+                    color
+                } else {
+                    let last = rainbow_delimiters.last().unwrap();
+                    if Self::is_pair(last.0, char) {
+                        let color = rainbow_delimiters.pop().unwrap().1;
+                        color
+                    } else {
+                        rainbow_delimiters.push((char, color));
+                        color
+                    }
+                };
+
+                acc.push(char);
+
+                let color = if highlight {
+                    let mut selection_color = settings.colors.selected;
+                    selection_color.patch(color);
+
+                    selection_color
+                } else {
+                    color
+                };
+
+                line.push(StyledSpan::styled(acc.clone(),
+                                             color
+                ));
+                acc.clear();
+
+
+
+                skip_counter = char.len_utf8();
+
+
+            }
+
             if self.highlights.contains(&i) {
                 if !highlight {
                     line.push(StyledSpan::from(acc.clone()));
@@ -567,9 +1238,11 @@ impl File {
             } else if highlight {
 
                 if highlight {
-                    //TODO: put in a particular style
+                    let settings = self.settings.borrow();
+                    let selection_color = settings.colors.selected;
+
                     line.push(StyledSpan::styled(acc.clone(),
-                                                 Style::default().bg(Color::Magenta)
+                                                 selection_color
                     ));
                     acc.clear();
                 }
@@ -578,8 +1251,11 @@ impl File {
             if c == b'\n' {
                 acc.push(' ');
                 if highlight {
-                    line.push(StyledSpan::styled(acc.clone(),Style::default()
-                        .bg(Color::Magenta)
+                    let settings = self.settings.borrow();
+                    let selection_color = settings.colors.selected;
+
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 selection_color
                     ));
                 } else {
                     line.push(StyledSpan::from(acc.clone()));
@@ -603,8 +1279,11 @@ impl File {
         }
         if !acc.is_empty() {
             if highlight {
-                line.push(StyledSpan::styled(acc.clone(),Style::default()
-                    .bg(Color::Magenta)
+                let settings = self.settings.borrow();
+                let selection_color = settings.colors.selected;
+
+                line.push(StyledSpan::styled(acc.clone(),
+                                             selection_color
                 ));
             } else {
                 line.push(StyledSpan::from(acc.clone()));
@@ -612,7 +1291,7 @@ impl File {
             output.lines.push(line);
         }
         output
-    }
+    }*/
 
     pub fn display_section(&self, start_row: usize, end_row: usize) -> StyledText {
         let mut string = String::new();
@@ -622,38 +1301,46 @@ impl File {
                 string.push_str(&line.to_string());
             }
         }
-        let mut acc = String::with_capacity(string.len());
-        let mut output = StyledText::new();
-        let mut line = StyledLine::new();
-        let mut highlight = false;
-        for (i, c) in string.chars().enumerate() {
-            if self.highlights.contains(&i) {
-                highlight = true;
-            } else if highlight {
-                highlight = false;
-                //TODO: put in a particular style
-                line.push(StyledSpan::styled(acc.clone(),
-                                             Style::default().bg(Color::Magenta)
-                ));
-                acc.clear();
-            }
-            if c == '\n' {
-                if highlight {
-                    line.push(StyledSpan::styled(acc.clone(),Style::default()
-                        .bg(Color::Magenta)
-                    ));
-                } else {
-                    line.push(StyledSpan::from(acc.clone()));
-                }
-                output.lines.push(line);
-                line = StyledLine::new();
-                acc.clear();
-            } else {
-                acc.push(c);
-            }
-        }
-        output
 
+        self.internal_display(string, self.buffer.get_byte_offset(0, start_row).unwrap())
+    }
+
+    pub fn recover(&mut self) -> Result<(), String>{
+
+        let path = match self.path {
+            Some(ref path) => path,
+            None => return Err(String::from("No path to recover from")),
+        };
+
+
+        let parent = path.parent();
+        let file_name = path.file_name().unwrap();
+        let file_name = file_name.to_str().unwrap();
+
+        let recover_file_path = match parent {
+            Some(parent) => {
+                PathBuf::from(format!("{}##{}", parent.display(), file_name))
+            }
+            None => {
+                PathBuf::from(format!("##{}##", file_name))
+            }
+        };
+
+        let mut string = String::new();
+        let mut file = match std::fs::File::open(&recover_file_path) {
+            Ok(file) => file,
+            Err(_) => return Err(String::from("An error occurred while opening the file")),
+        };
+
+        match file.read_to_string(&mut string) {
+            Ok(_) => (),
+            Err(_) => return Err(String::from("An error occured while reading the file")),
+        };
+
+        self.buffer.replace(.., string);
+
+
+        Ok(())
     }
 
 }
@@ -757,6 +1444,166 @@ impl ReplaceSelections<Vec<String>> for File {
 
 
         self.buffer.replace_bulk(ranges, selection);
+
+    }
+}
+
+impl InsertPairs<(&str, &str)> for File {
+    fn insert_pairs(&mut self, pair: (&str, &str)) {
+        let mut ranges = Vec::new();
+
+        let mut iter = self.highlights.iter();
+        let byte = iter.next();
+
+        let mut start = *byte.unwrap();
+        let mut end = *byte.unwrap();
+        let mut last_end = *byte.unwrap();
+
+        while let Some(byte) = iter.next() {
+            if *byte == last_end + 1 {
+                end = *byte;
+                last_end = *byte;
+            } else {
+
+                ranges.push((start, end));
+
+                start = *byte;
+                end = *byte;
+                last_end = *byte;
+            }
+
+            while let Some(byte) = iter.next() {
+                if *byte == last_end + 1 {
+                    end = *byte;
+                    last_end = *byte;
+                } else {
+
+                    ranges.push((start,end));
+
+                    start = *byte;
+                    end = *byte;
+                    last_end = *byte;
+                    break
+                }
+
+            }
+        }
+        if start != end {
+            ranges.push((start, end));
+        }
+
+        let mut pairs = Vec::new();
+        for _ in ranges.iter() {
+            pairs.push(pair);
+        }
+
+        self.buffer.insert_bulk_pair(ranges, pairs);
+    }
+}
+
+impl InsertPairs<Vec<(&str, &str)>> for File {
+    fn insert_pairs(&mut self, mut pairs: Vec<(&str, &str)>) {
+
+        let mut ranges = Vec::new();
+
+        let mut iter = self.highlights.iter();
+        let byte = iter.next();
+
+        let mut start = *byte.unwrap();
+        let mut end = *byte.unwrap();
+        let mut last_end = *byte.unwrap();
+
+        while let Some(byte) = iter.next() {
+            if *byte == last_end + 1 {
+                end = *byte;
+                last_end = *byte;
+            } else {
+                ranges.push((start, end));
+
+                start = *byte;
+                end = *byte;
+                last_end = *byte;
+            }
+
+            while let Some(byte) = iter.next() {
+                if *byte == last_end + 1 {
+                    end = *byte;
+                    last_end = *byte;
+                } else {
+                    ranges.push((start, end));
+
+                    start = *byte;
+                    end = *byte;
+                    last_end = *byte;
+                    break
+                }
+            }
+        }
+        if start != end {
+            ranges.push((start, end));
+        }
+
+        if pairs.len() < ranges.len() {
+            pairs.truncate(ranges.len());
+        } else if pairs.len() > ranges.len() {
+            ranges.truncate(pairs.len());
+        }
+
+        self.buffer.insert_bulk_pair(ranges, pairs);
+    }
+}
+
+impl Drop for File {
+    fn drop(&mut self) {
+        if !self.saved && !self.safe_close {
+            match self.path {
+                Some(ref path) => {
+                    let filename = path.file_name().unwrap().to_str().unwrap();
+                    let parent = path.parent().unwrap().to_str().unwrap();
+                    let path = PathBuf::from(format!("{}##{}",parent, filename));
+                    let mut file = std::fs::File::create(path).unwrap();
+                    file.write_all(self.buffer.to_string().as_bytes()).unwrap();
+                }
+                None => {
+                    // TODO: move this to its own function
+                    let file_ext = match self.language {
+                        None => String::from("txt"),
+                        Some(ref language) => match language.as_str() {
+                            "rust" => String::from("rs"),
+                            "c" => String::from("c"),
+                            "cpp" => String::from("cpp"),
+                            "java" => String::from("java"),
+                            "python" => String::from("py"),
+                            "javascript" => String::from("js"),
+                            "html" => String::from("html"),
+                            "css" => String::from("css"),
+                            "markdown" => String::from("md"),
+                            "latex" => String::from("tex"),
+                            "toml" => String::from("toml"),
+                            "yaml" => String::from("yaml"),
+                            "json" => String::from("json"),
+                            "csv" => String::from("csv"),
+                            "csharp" => String::from("cs"),
+                            "haskell" => String::from("hs"),
+                            "go" => String::from("go"),
+                            "php" => String::from("php"),
+                            "kotlin" => String::from("kt"),
+                            _ => String::from("txt"),
+                        }
+                    };
+
+                    let mut path = PathBuf::from("##untitled");
+                    let mut number = 1;
+                    while path.exists() {
+                        path = PathBuf::from(format!("##untitled{}.{}", number, file_ext));
+                        number += 1;
+                    }
+                    let mut file = std::fs::File::create(path).unwrap();
+                    file.write_all(self.buffer.to_string().as_bytes()).unwrap();
+                }
+            }
+
+        }
 
     }
 }

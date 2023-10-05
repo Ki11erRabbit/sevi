@@ -15,8 +15,9 @@ use crate::components::buffer::Buffer;
 use crate::components::input::InputLayer;
 
 
-use crate::models::{AppEvent, Id, Message};
+use crate::models::{AppEvent, help, Id, Message};
 use crate::models::file::File;
+use crate::models::file::file::FileError;
 use crate::models::pane::{Pane, TextPane};
 use crate::models::pane::text::TextBuffer;
 use crate::threads::registers::RegisterMessage;
@@ -63,7 +64,31 @@ impl Default for Model {
 
         let settings = Rc::new(RefCell::new(settings));
 
-        let file = File::new(path.clone(), settings.clone());
+
+        let file = match File::new(path.clone(), settings.clone()) {
+            Ok(file) => {
+                match path {
+                    None => {},
+                    Some(_) => sender.send(AppEvent::RemoveInfoDisplay).unwrap(),
+                }
+                file
+            },
+            Err(FileError::FileDoesNotExist) => {
+                let mut file = File::new(None, settings.clone()).unwrap();
+                file.set_path(path.clone().unwrap());
+                file
+            }
+            Err(FileError::Directory) => {
+                sender.send(AppEvent::Message("Cannot open directory yet".to_string().into())).unwrap();
+                let file = File::new(None, settings.clone()).unwrap();
+                file
+            }
+            Err(FileError::RecoverFileFound(file)) => {
+                sender.send(AppEvent::Message("Recover file found. Use `:recover` to recover the file".to_string().into())).unwrap();
+                sender.send(AppEvent::RemoveInfoDisplay).unwrap();
+                file
+            }
+        };
 
         let (reg_sender, reg_receiver) = std::sync::mpsc::channel();
         let reg_receiver = Rc::new(reg_receiver);
@@ -92,6 +117,7 @@ impl Default for Model {
                 Buffer::new(pane.clone())
             ),
             vec![
+                Sub::new(SubEventClause::User(AppEvent::RemoveInfoDisplay), SubClause::Always),
                 Sub::new(SubEventClause::User(AppEvent::Scroll), SubClause::Always),
                 Sub::new(SubEventClause::User(AppEvent::Edit), SubClause::Always),
             ],
@@ -165,9 +191,30 @@ impl Model {
 
         let settings = Rc::new(RefCell::new(settings));
 
-        let file = File::new(path.clone(), settings.clone());
-
-
+        let file = match File::new(path.clone(), settings.clone()) {
+            Ok(file) => {
+                match path {
+                    None => {},
+                    Some(_) => sender.send(AppEvent::RemoveInfoDisplay).unwrap(),
+                }
+                file
+            },
+            Err(FileError::FileDoesNotExist) => {
+                let mut file = File::new(None, settings.clone()).unwrap();
+                file.set_path(path.clone().unwrap());
+                file
+            }
+            Err(FileError::Directory) => {
+                sender.send(AppEvent::Message("Cannot open directory yet".to_string().into())).unwrap();
+                let file = File::new(None, settings.clone()).unwrap();
+                file
+            }
+            Err(FileError::RecoverFileFound(file)) => {
+                sender.send(AppEvent::Message("Recover file found. Use `:recover` to recover the file".to_string().into())).unwrap();
+                sender.send(AppEvent::RemoveInfoDisplay).unwrap();
+                file
+            }
+        };
 
 
         let pane = TextBuffer::new(file, sender.clone(), settings.clone(), register_channels.clone());
@@ -193,6 +240,7 @@ impl Model {
                 Buffer::new(pane.clone())
             ),
             vec![
+                Sub::new(SubEventClause::User(AppEvent::RemoveInfoDisplay), SubClause::Always),
                 Sub::new(SubEventClause::User(AppEvent::Scroll), SubClause::Always),
                 Sub::new(SubEventClause::User(AppEvent::Edit), SubClause::Always),
             ],
@@ -299,12 +347,15 @@ impl Model {
 
 impl Update<Message> for Model {
     fn update(&mut self, msg: Option<Message>) -> Option<Message> {
-
         if let Some(msg) = msg {
             match msg {
                 Message::AppClose => {
                     self.quit = true;
                     self.register_channels.0.send(RegisterMessage::Quit).unwrap();
+
+                    for (_, file) in self.files.iter_mut() {
+                        file.set_safe_close();
+                    }
                     None
                 },
                 Message::Redraw => {
@@ -314,8 +365,34 @@ impl Update<Message> for Model {
                 },
                 Message::OpenFile(file) => {
                     let path = PathBuf::from(file.as_ref());
-                    let file = File::new(Some(path), self.settings.clone());
 
+                    if let Some(file) = self.files.remove(&path) {
+                        let file = self.pane.borrow_mut().change_file(file);
+
+                        let path = file.get_path().unwrap_or(PathBuf::from(""));
+
+                        self.files.insert(path, file);
+
+                        return None;
+                    }
+
+                    let file = match File::new(Some(path.clone()), self.settings.clone()) {
+                        Ok(file) => file,
+                        Err(FileError::FileDoesNotExist) => {
+                            let mut file = File::new(None, self.settings.clone()).unwrap();
+                            file.set_path(path);
+                            file
+                        }
+                        Err(FileError::Directory) => {
+                            self.sender.send(AppEvent::Message("Cannot open directory yet".to_string().into())).unwrap();
+                            let file = File::new(None, self.settings.clone()).unwrap();
+                            file
+                        }
+                        Err(FileError::RecoverFileFound(file)) => {
+                            self.sender.send(AppEvent::Message("Recover file found. Use `:recover` to recover the file".to_string().into())).unwrap();
+                            file
+                        }
+                    };
                     let file = self.pane.borrow_mut().change_file(file);
 
                     let path = file.get_path().unwrap_or(PathBuf::from(""));
@@ -325,7 +402,6 @@ impl Update<Message> for Model {
                     None
                 },
                 Message::Close => {
-
                     if !self.pane.borrow().can_close() {
                         self.pane.borrow().send_info_message("File has unsaved changes. `q!` to forcibly close the file or `wq` to save and quit.");
                         return None;
@@ -365,6 +441,28 @@ impl Update<Message> for Model {
                 Message::InfoMessage(msg) => {
                     self.component_channels.0.send(Message::InfoMessage(msg)).unwrap();
                     self.sender.send(AppEvent::InfoMessage).unwrap();
+                    None
+                }
+                Message::OpenHelpFile => {
+
+                    if let Some(file) = self.files.remove(&PathBuf::from("help.txt")) {
+                        let file = self.pane.borrow_mut().change_file(file);
+
+                        let path = file.get_path().unwrap_or(PathBuf::from(""));
+
+                        self.files.insert(path, file);
+
+                        return None;
+                    }
+
+                    let help_file = help::create_help_file(self.settings.clone());
+
+                    let file = self.pane.borrow_mut().change_file(help_file);
+
+                    let path = file.get_path().unwrap_or(PathBuf::from(""));
+
+                    self.files.insert(path, file);
+
                     None
                 }
                 _ => None,

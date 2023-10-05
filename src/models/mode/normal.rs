@@ -86,20 +86,24 @@ impl NormalMode {
             "up_line_start" => {
                 pane.execute_command("move up_line_start");
             },
-            "down_line_end" => {
-                pane.execute_command("move down_line_end");
+            "down_line_start" => {
+                pane.execute_command("move down_line_start");
             },
             "next_word_front" => {
-                pane.execute_command("move next_word_front");
+                pane.execute_command(format!("move next_word_front {}", self.number_buffer).as_str());
+                self.number_buffer.clear();
             },
             "next_word_back" => {
-                pane.execute_command("move next_word_back");
+                pane.execute_command(format!("move next_word_back {}", self.number_buffer).as_str());
+                self.number_buffer.clear();
             },
             "previous_word_front" => {
-                pane.execute_command("move previous_word_front");
+                pane.execute_command(format!("move prev_word_front {}", self.number_buffer).as_str());
+                self.number_buffer.clear();
             },
             "previous_word_back" => {
-                pane.execute_command("move previous_word_back");
+                pane.execute_command(format!("move prev_word_back {}", self.number_buffer).as_str());
+                self.number_buffer.clear();
             },
             "insert_before" => {
                 pane.execute_command("change_mode insert_before");
@@ -293,7 +297,9 @@ impl TextMode for NormalMode {
                                 let settings = self.settings.clone().unwrap();
                                 let mut settings = settings.borrow_mut();
                                 if let Some(command) = settings.mode_keybindings.get(&self.get_name(), &self.key_buffer) {
-                                    self.execute_command(command, pane);
+                                    let command = command.to_string();
+                                    drop(settings);
+                                    self.execute_command(&command, pane);
                                 }
                                 return;
                             }
@@ -322,7 +328,9 @@ impl TextMode for NormalMode {
                 let settings = self.settings.clone().unwrap();
                 let mut settings = settings.borrow_mut();
                 if let Some(command) = settings.mode_keybindings.get(&self.get_name(), &self.key_buffer) {
-                    self.execute_command(command, pane);
+                    let command = command.to_string();
+                    drop(settings);
+                    self.execute_command(&command, pane);
                 }
             }
         }

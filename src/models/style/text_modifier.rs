@@ -17,10 +17,52 @@ bitflags! {
         const HIDDEN =       0b0000000010000000;
         const CROSSED_OUT =  0b0000000100000000;
     }
-
-
 }
 
+
+impl Modifier {
+    pub fn config_file(&self) -> String {
+        let mut modifiers = Vec::new();
+
+        if self.contains(Modifier::BOLD) {
+            modifiers.push("\"bold\"".to_string());
+        }
+
+        if self.contains(Modifier::DIM) {
+            modifiers.push("\"dim\"".to_string());
+        }
+
+        if self.contains(Modifier::ITALIC) {
+            modifiers.push("\"italic\"".to_string());
+        }
+
+        if self.contains(Modifier::UNDERLINE) {
+            modifiers.push("\"underline\"".to_string());
+        }
+
+        if self.contains(Modifier::SLOW_BLINK) {
+            modifiers.push("\"slow_blink\"".to_string());
+        }
+
+        if self.contains(Modifier::RAPID_BLINK) {
+            modifiers.push("\"rapid_blink\"".to_string());
+        }
+
+        if self.contains(Modifier::REVERSED) {
+            modifiers.push("\"reversed\"".to_string());
+        }
+
+        if self.contains(Modifier::HIDDEN) {
+            modifiers.push("\"hidden\"".to_string());
+        }
+
+        if self.contains(Modifier::CROSSED_OUT) {
+            modifiers.push("\"crossed_out\"".to_string());
+        }
+
+        format!("[{}]", modifiers.join(", "))
+    }
+}
 impl fmt::Debug for Modifier {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.is_empty() {
@@ -65,4 +107,38 @@ impl Into<tuirealm::tui::style::Modifier> for Modifier {
         }
         modifier
     }
+}
+
+pub fn parse_modifier(list: &toml::Value) -> Result<Modifier, String> {
+    let mut modifier = Modifier::empty();
+
+    if list.is_array() {
+        let list = list.as_array().ok_or("modifier was not an array".to_string())?;
+
+        for value in list {
+            if value.is_str() {
+                let value = value.as_str().ok_or("modifier was not a string".to_string())?;
+
+                match value {
+                    "bold" => modifier = modifier | Modifier::BOLD,
+                    "dim" => modifier = modifier | Modifier::DIM,
+                    "italic" => modifier = modifier | Modifier::ITALIC,
+                    "underline" => modifier = modifier | Modifier::UNDERLINE,
+                    "slow_blink" => modifier = modifier | Modifier::SLOW_BLINK,
+                    "rapid_blink" => modifier = modifier | Modifier::RAPID_BLINK,
+                    "reversed" => modifier = modifier | Modifier::REVERSED,
+                    "hidden" => modifier = modifier | Modifier::HIDDEN,
+                    "crossed_out" => modifier = modifier | Modifier::CROSSED_OUT,
+                    _ => unreachable!(),
+                }
+            }
+            else {
+                return Err("modifier was not a string".to_string());
+            }
+        }
+    } else {
+        return Err("modifier was not an array".to_string());
+    }
+
+    Ok(modifier)
 }

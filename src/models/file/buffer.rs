@@ -11,6 +11,11 @@ use crop::{Rope, RopeSlice};
 
 
 
+impl fmt::Debug for Buffer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Buffer {{ current: {}, history: {:?},  version: {} }}", self.current, self.history,  self.version)
+    }
+}
 
 
 pub struct Buffer {
@@ -58,7 +63,7 @@ impl Buffer {
         self.tree_sitter_info = Some((parser, trees));
     }
 
-    pub fn get_char_at(&self, byte_offset: usize) -> Option<char> {
+    pub fn get_char_at(&self, mut byte_offset: usize) -> Option<char> {
         let current = &self.history[self.current];
 
         if byte_offset >= current.byte_len() {
@@ -66,9 +71,19 @@ impl Buffer {
         }
         let mut total_bytes = 1;
 
-        while byte_offset + total_bytes < current.byte_len() && current.is_char_boundary(byte_offset + total_bytes) {
-            total_bytes += 1;
+        if current.is_char_boundary(byte_offset) {
+            while byte_offset + total_bytes < current.byte_len() && !current.is_char_boundary(byte_offset + total_bytes) {
+                total_bytes += 1;
+            }
+        } else if !current.is_char_boundary(byte_offset) {
+            while !current.is_char_boundary(byte_offset) && byte_offset > 0 {
+                byte_offset -= 1;
+            }
+            while byte_offset + total_bytes < current.byte_len() && !current.is_char_boundary(byte_offset + total_bytes) {
+                total_bytes += 1;
+            }
         }
+
 
         let bytes = current.byte_slice(byte_offset..byte_offset + total_bytes);
 
@@ -128,19 +143,10 @@ impl Buffer {
         let line_byte = self.history[self.current].byte_of_line(y);
 
         let line = self.history[self.current].line(y);
-        let mut i = 0;
-        let mut col_byte = 0;
-        while i < line.byte_len() {
-            if line.is_char_boundary(i) {
-                if col_byte == x {
-                    break;
-                }
-                col_byte += 1;
-            }
-            i += 1;
-        }
-        eprintln!("line_byte: {}, col_byte: {}", line_byte, col_byte);
-        Some(line_byte + col_byte)
+
+        let line = line.chars().take(x).collect::<String>();
+
+        return Some(line_byte + line.len());
     }
 
     fn get_new_rope(&mut self) -> &mut Rope {
@@ -383,7 +389,6 @@ impl Buffer {
 
 
         for (range, text) in ranges.iter().rev().zip(texts.iter().rev()) {
-            eprintln!("text: {:?}",  text.as_ref());
             let start;
             match range.start_bound() {
                 std::ops::Bound::Included(n) => {
@@ -769,6 +774,20 @@ impl Buffer {
         }
     }
 
+    pub fn insert_pair<T>(&mut self, start: usize, end: usize, text: (T, T)) where T: AsRef<str> {
+        self.get_new_rope();
+        self.history[self.current].insert(end + 1, text.1);
+        self.history[self.current].insert(start, text.0);
+    }
+
+    pub fn insert_bulk_pair<T>(&mut self, ranges: Vec<(usize, usize)>, texts: Vec<(T, T)>) where T: AsRef<str> {
+        self.get_new_rope();
+        for (range, text) in ranges.iter().rev().zip(texts.iter().rev()) {
+            self.history[self.current].insert(range.1 + 1, &text.1);
+            self.history[self.current].insert(range.0, &text.0);
+        }
+    }
+
     pub fn get_version_count(&self) -> usize {
         self.history.len()
     }
@@ -918,9 +937,143 @@ impl Buffer {
         let line_num = self.history[self.current].line_of_byte(byte_offset);
 
         let y = line_num;
-        let x = byte_offset - self.history[self.current].byte_of_line(y);
+        let mut x = byte_offset - self.history[self.current].byte_of_line(y);
+
+        while !self.history[self.current].is_char_boundary(x) {
+            x -= 1;
+        }
 
         Some((x, y))
+    }
+
+    pub fn next_word_front(&self, mut byte_position: usize) -> usize {
+
+        while !self.history[self.current].is_char_boundary(byte_position) {
+            byte_position -= 1;
+        }
+
+        let mut current = self.get_char_at(byte_position);
+        let mut start = byte_position;
+        if let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start += c.len_utf8();
+                current = self.get_char_at(start);
+            }
+        }
+
+        while let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start += c.len_utf8();
+                //current = self.get_char_at(start);
+                break
+            } else {
+                start += c.len_utf8();
+            }
+            current = self.get_char_at(start);
+        }
+        start
+    }
+
+    pub fn prev_word_front(&self, byte_position: usize) -> usize {
+
+        let mut current = self.get_char_at(byte_position);
+        let mut start = byte_position;
+        if let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start = start.saturating_sub(c.len_utf8());
+                current = self.get_char_at(start);
+            }
+        }
+
+        while let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start = start.saturating_sub(c.len_utf8());
+                current = self.get_char_at(start);
+                break
+            } else {
+                start = start.saturating_sub(c.len_utf8());
+            }
+            current = self.get_char_at(start);
+        }
+        while let Some(c) = current {
+            if c.is_alphanumeric() || c == '_' {
+                start = start.saturating_sub(c.len_utf8());
+            } else {
+                start = start.saturating_add(c.len_utf8());
+                break;
+            }
+            current = self.get_char_at(start);
+        }
+
+        start
+    }
+
+    pub fn next_word_back(&self, byte_position: usize) -> usize {
+        let mut current = self.get_char_at(byte_position);
+        let mut start = byte_position;
+
+        if let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start += c.len_utf8();
+                current = self.get_char_at(start);
+            }
+        }
+
+        while let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start += c.len_utf8();
+                current = self.get_char_at(start);
+                break
+            } else {
+                start += c.len_utf8();
+            }
+            current = self.get_char_at(start);
+        }
+        while let Some(c) = current {
+            if c.is_alphanumeric() || c == '_' {
+                start += c.len_utf8();
+            } else {
+                start = start.saturating_sub(c.len_utf8());
+                break;
+            }
+            current = self.get_char_at(start);
+        }
+
+        start
+    }
+
+    pub fn prev_word_back(&self, byte_position: usize) -> usize {
+        let mut current = self.get_char_at(byte_position);
+        let mut start = byte_position;
+
+        if let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start = start.saturating_sub(c.len_utf8());
+                current = self.get_char_at(start);
+            }
+        }
+
+        while let Some(c) = current {
+            if !(c.is_alphanumeric() || c == '_') {
+                start = start.saturating_sub(c.len_utf8());
+                current = self.get_char_at(start);
+                break
+            } else {
+                start = start.saturating_sub(c.len_utf8());
+            }
+            current = self.get_char_at(start);
+        }
+        while let Some(c) = current {
+            if c.is_alphanumeric() || c == '_' {
+                start = start.saturating_sub(c.len_utf8());
+            } else {
+                start = start.saturating_add(c.len_utf8());
+                break;
+            }
+            current = self.get_char_at(start);
+        }
+
+        start
     }
 
 }

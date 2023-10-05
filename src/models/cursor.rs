@@ -1,4 +1,5 @@
 
+use unicode_width::UnicodeWidthStr;
 use crate::models::Rect;
 use crate::models::file::File;
 use crate::models::pane::TextPane;
@@ -30,6 +31,10 @@ pub enum CursorMovement {
     PageDown,
     HalfPageUp,
     HalfPageDown,
+    WordFrontRight,
+    WordFrontLeft,
+    WordBackRight,
+    WordBackLeft,
 }
 
 
@@ -43,6 +48,7 @@ pub struct Cursor {
     row_movement: RowMovement,
     number_line_width: usize,
     gutter_width: usize,
+    height: usize,
 }
 
 
@@ -57,6 +63,7 @@ impl Cursor {
             row_movement: RowMovement::None,
             number_line_width: 0,
             gutter_width: 0,
+            height: 0,
         }
     }
 
@@ -80,7 +87,7 @@ impl Cursor {
             match file.get_line(self.row) {
                 Some(line) => {
                     let mut tab_size = 0;
-                    for c in line.chars().take(self.col) {
+                    for c in line.chars().take(self.col + 1) {
                         if c == '\t' {
                             tab_size += 1;
                         }
@@ -92,23 +99,44 @@ impl Cursor {
         } else {
             0
         };
+        let file = pane.borrow_current_file();
+        let col = match file.get_line(self.row) {
+            None => self.col,
+            Some(line) => {
+                let line = line.chars().take(self.col).collect::<String>();
+                let col = UnicodeWidthStr::width(line.as_str());
+                col
+            }
+        };
 
 
-        (self.col - self.col_offset + self.number_line_width + self.gutter_width + tab_size, self.row - self.row_offset)
+        (col.saturating_sub(self.col_offset) + self.number_line_width + self.gutter_width + tab_size, self.row.saturating_sub(self.row_offset))
     }
 
     pub fn get_scroll_amount(self) -> (usize, usize) {
         (self.col_offset, self.row_offset)
     }
 
-    pub fn scroll(&mut self, rect: Rect) {
+    pub fn scroll(&mut self, pane: &mut dyn TextPane, rect: Rect) {
+
+        self.height = rect.height;
+
+        let file = pane.borrow_current_file();
+        let col = match file.get_line(self.row) {
+            None => self.col,
+            Some(line) => {
+                let line = line.chars().take(self.col).collect::<String>();
+                let col = UnicodeWidthStr::width(line.as_str());
+                col
+            }
+        };
 
         match self.col_movement {
-            ColMovement::Right if rect.width != 0 && ((self.col + self.number_line_width - self.gutter_width) - self.col_offset) >= rect.width => {
-                self.col_offset = (self.col + self.number_line_width - self.gutter_width).saturating_sub(rect.width) + 1;
+            ColMovement::Right if rect.width != 0 && ((col + self.number_line_width - self.gutter_width).saturating_sub(self.col_offset)) >= rect.width => {
+                self.col_offset = (col + self.number_line_width - self.gutter_width).saturating_sub(rect.width) + 1;
             }
-            ColMovement::Left if (self.col.saturating_sub(self.col_offset)) == 0 => {
-                self.col_offset = self.col;
+            ColMovement::Left if (col.saturating_sub(self.col_offset)) == 0 => {
+                self.col_offset = col;
             }
             _ => {}
         }
@@ -130,6 +158,7 @@ impl Cursor {
     }
 
 
+    /// TODO: fix page movement
     pub fn move_cursor(&mut self, direction: CursorMovement, n: usize, file: &File) {
         let number_of_lines = file.get_line_count();
 
@@ -197,31 +226,87 @@ impl Cursor {
 
                 self.col = number_of_cols;
             }
-            /*CursorMovement::PageUp => {
+            CursorMovement::PageUp => {
                 self.row_movement = RowMovement::Up;
                 if self.row > 0 {
-                    self.row = self.row.saturating_sub(n);
+                    self.row = self.row.saturating_sub(self.height * n);
                 }
             }
             CursorMovement::PageDown => {
                 self.row_movement = RowMovement::Down;
                 if self.row < number_of_lines - 1 {
-                    self.row = self.row.saturating_add(n);
+                    self.row = (self.row.saturating_add(self.height * n) % number_of_lines).min(number_of_lines - 1);
                 }
             }
             CursorMovement::HalfPageUp => {
                 self.row_movement = RowMovement::Up;
                 if self.row > 0 {
-                    self.row = self.row.saturating_sub(n / 2);
+                    self.row = self.row.saturating_sub((self.height/ 2) * n);
                 }
             }
             CursorMovement::HalfPageDown => {
                 self.row_movement = RowMovement::Down;
                 if self.row < number_of_lines - 1 {
-                    self.row = self.row.saturating_add(n / 2);
+                    self.row = (self.row.saturating_add((self.height / 2) * n) % number_of_lines).min(number_of_lines - 1);
                 }
-            }*/
-            _ => {}
+            }
+            CursorMovement::WordFrontRight => {
+                self.col_movement = ColMovement::Right;
+                let byte_position = file.get_byte_offset(self.row, self.col).expect("Invalid byte offset");
+
+                let byte_position = file.next_word_front(byte_position, n);
+
+                let (col, row) = file.get_cursor(byte_position).expect("Invalid cursor position");
+                if row > self.row {
+                    self.row_movement = RowMovement::Down;
+                    self.col_movement = ColMovement::Left;
+                }
+                self.row = row;
+                self.col = col;
+
+            }
+            CursorMovement::WordFrontLeft => {
+                self.col_movement = ColMovement::Left;
+                let byte_position = file.get_byte_offset(self.row, self.col).expect("Invalid byte offset");
+
+                let byte_position = file.prev_word_front(byte_position, n);
+
+                let (col, row) = file.get_cursor(byte_position).expect("Invalid cursor position");
+                if row < self.row {
+                    self.row_movement = RowMovement::Up;
+                    self.col_movement = ColMovement::Right;
+                }
+                self.row = row;
+                self.col = col;
+            }
+            CursorMovement::WordBackRight => {
+                self.col_movement = ColMovement::Right;
+                let byte_position = file.get_byte_offset(self.row, self.col).expect("Invalid byte offset");
+
+                let byte_position = file.next_word_back(byte_position, n);
+
+                let (col, row) = file.get_cursor(byte_position).expect("Invalid cursor position");
+                if row > self.row {
+                    self.row_movement = RowMovement::Down;
+                    self.col_movement = ColMovement::Left;
+                }
+                self.row = row;
+                self.col = col;
+            }
+            CursorMovement::WordBackLeft => {
+                self.col_movement = ColMovement::Left;
+                let byte_position = file.get_byte_offset(self.row, self.col).expect("Invalid byte offset");
+
+                let byte_position = file.prev_word_back(byte_position, n);
+
+                let (col, row) = file.get_cursor(byte_position).expect("Invalid cursor position");
+                if row < self.row {
+                    self.row_movement = RowMovement::Up;
+                    self.col_movement = ColMovement::Right;
+                }
+                self.row = row;
+                self.col = col;
+            }
         }
 
 

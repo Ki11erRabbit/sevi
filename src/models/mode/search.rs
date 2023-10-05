@@ -32,6 +32,7 @@ pub struct SearchMode {
     found_pos: BTreeSet<usize>,
     number_buffer: String,
     searched_whole_file: bool,
+    moving_cursor: bool,
 }
 
 
@@ -46,6 +47,7 @@ impl SearchMode {
             found_pos: BTreeSet::new(),
             number_buffer: String::new(),
             searched_whole_file: false,
+            moving_cursor: false,
         }
     }
 
@@ -69,25 +71,29 @@ impl SearchMode {
                 self.search_string.clear();
                 self.edit_pos = 0;
                 let settings = self.settings.clone().unwrap();
-                let mut settings = settings.borrow();
+                let settings = settings.borrow();
                 pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
             }
             "left" => {
                 //Todo: make sure that we move by the right byte size
                 self.edit_pos = self.edit_pos.saturating_sub(1);
+                self.moving_cursor = false;
             }
             "right" => {
                 if self.edit_pos < self.search_string.len() {
                     //Todo: make sure that we move by the right byte size
                     self.edit_pos += 1;
                 }
+                self.moving_cursor = false;
             }
             "up" => {
                 self.edit_pos = 0;
+                self.moving_cursor = false;
             }
             "down" => {
                 self.edit_pos = self.search_string.len();
+                self.moving_cursor = false;
             }
             "backspace" => {
                 if self.edit_pos > 0 {
@@ -96,26 +102,34 @@ impl SearchMode {
                 } else if self.search_string.len() == 0 && self.edit_pos == 0 {
                     self.search_string.clear();
                     self.edit_pos = 0;
-                    pane.execute_command("change_mode Normal");
+                    let settings = self.settings.clone().unwrap();
+                    let settings = settings.borrow();
+                    pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                     pane.execute_command("clear_selection");
                 }
                 self.try_search(pane);
+                self.moving_cursor = false;
             }
             "delete" => {
                 if self.edit_pos < self.search_string.len() {
                     self.search_string.remove(self.edit_pos);
                 }
+                self.moving_cursor = false;
             }
             "copy" => {
                 pane.execute_command(&format!("copy selection {}", self.number_buffer));
-                pane.execute_command("change_mode Normal");
+                let settings = self.settings.clone().unwrap();
+                let settings = settings.borrow();
+                pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
                 self.search_string.clear();
                 self.edit_pos = 0;
             }
             "delete_search" => {
                 pane.execute_command("delete selection");
-                pane.execute_command("change_mode Normal");
+                let settings = self.settings.clone().unwrap();
+                let settings = settings.borrow();
+                pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
                 self.search_string.clear();
                 self.edit_pos = 0;
@@ -123,14 +137,18 @@ impl SearchMode {
             "cut" => {
                 pane.execute_command(&format!("copy selection"));
                 pane.execute_command("delete selection");
-                pane.execute_command("change_mode Normal");
+                let settings = self.settings.clone().unwrap();
+                let settings = settings.borrow();
+                pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
                 self.search_string.clear();
                 self.edit_pos = 0;
             }
             "paste" => {
                 pane.execute_command(&format!("paste selection {}", self.number_buffer));
-                pane.execute_command("change_mode Normal");
+                let settings = self.settings.clone().unwrap();
+                let settings = settings.borrow();
+                pane.execute_command(&format!("change_mode {}", settings.editor_settings.default_mode));
                 pane.execute_command("clear_selection");
                 self.search_string.clear();
                 self.edit_pos = 0;
@@ -138,10 +156,28 @@ impl SearchMode {
             "next_match" => {
                 self.next_match(pane);
                 self.key_buffer.clear();
+                self.moving_cursor = true;
             }
             "previous_match" => {
                 self.previous_match(pane);
                 self.key_buffer.clear();
+                self.moving_cursor = true;
+            }
+            "mirror_mode" => {
+                let command = match self.search_type {
+                    SearchType::Forward => "search_down",
+                    SearchType::Backward => "search_up",
+                };
+
+                pane.execute_command(&format!("change_mode mirror {}", command));
+            }
+            "pair_mode" => {
+                let command = match self.search_type {
+                    SearchType::Forward => "search_down",
+                    SearchType::Backward => "search_up",
+                };
+
+                pane.execute_command(&format!("change_mode pair {}", command));
             }
             _ => {}
         }
@@ -206,7 +242,6 @@ impl SearchMode {
 
             let mut counter = 0;
             while let Some(byte) = iter.next() {
-                eprintln!("{} {}", *byte, pane.get_current_byte_position());
 
                 if *byte < pane.get_current_byte_position() {
                     continue
@@ -234,7 +269,6 @@ impl SearchMode {
 
                 let mut counter = 0;
                 while let Some(byte) = iter.next() {
-                    eprintln!("{} {}", *byte, pane.get_current_byte_position());
 
                     if *byte > pane.get_current_byte_position() {
                         continue
@@ -283,6 +317,9 @@ impl Mode for SearchMode {
     }
 
     fn influence_cursor(&self) -> Option<usize> {
+        if self.moving_cursor {
+            return None;
+        }
         let offset = self.get_name().chars().count() + 2 + self.edit_pos;
         Some(offset)
     }
@@ -303,6 +340,7 @@ impl TextMode for SearchMode {
                     self.execute_command(&command, pane);
                     self.key_buffer.clear();
                 } else {
+                    self.moving_cursor = false;
                     drop(settings);
                     match key.key {
                         Key::Char(c) => {
@@ -328,5 +366,8 @@ impl TextMode for SearchMode {
     }
 
     fn start(&mut self, _pane: &mut dyn TextPane) {
+        self.moving_cursor = false;
+        self.searched_whole_file = false;
+        self.found_pos.clear();
     }
 }
