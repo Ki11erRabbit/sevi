@@ -129,7 +129,7 @@ pub static HELP_TEXT: [&str;194] = ["You can save this file by typing \":w<Enter
     "                \"Absolute\" - The number bar displays the absolute line number.\n",
     "                \"Relative\" - The number bar displays the relative line number.\n",
     "        tab_size - This setting controls the size of a tab. This is an integer.\n",
-    "        use_spaces - This setting controls whether spaces are used instead of tabs.",
+    "        use_spaces - This setting controls whether spaces are used instead of tabs.\n",
     "                It is a boolean value.\n",
     "        rainbow_delimiters - This setting controls whether rainbow delimiters are used.\n",
     "                It is a boolean value. Rainbow delimiters, or Rainbow Parenthesis is a plugin\n",
