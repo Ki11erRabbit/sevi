@@ -346,6 +346,21 @@ impl TextBuffer {
                             multi = Some(multii);
                             text
                         },
+                        RegisterMessage::RegisterResult(None, None) => {
+                            match message {
+                                RegisterMessage::GetClipboard => {
+                                    self.send_info_message("No text in clipboard");
+                                }
+                                RegisterMessage::GetNamed(reg) => {
+                                    self.send_info_message(format!("No text in register {}", reg).as_str());
+                                }
+                                RegisterMessage::GetNumbered(reg) => {
+                                    self.send_info_message(format!("No text in register {}", reg).as_str());
+                                }
+                                _ => {}
+                            }
+                            return;
+                        }
                         _ => return,
                     };
 
