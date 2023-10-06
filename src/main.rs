@@ -14,6 +14,7 @@ pub mod components;
 pub mod widgets;
 pub mod threads;
 mod arg_parser;
+pub mod lsp;
 
 
 fn main() {

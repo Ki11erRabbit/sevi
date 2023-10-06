@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use tuirealm::{Attribute, AttrValue, Component, Event, Frame, MockComponent, Props, State};
 use tuirealm::command::{Cmd, CmdResult};
-use tuirealm::props::TextSpan;
 use tuirealm::tui::layout::Rect;
 use tuirealm::tui::prelude::Text;
 use tuirealm::tui::widgets::Paragraph;

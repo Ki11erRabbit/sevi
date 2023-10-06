@@ -13,6 +13,7 @@ pub mod cursor;
 pub mod status_bar;
 pub mod text_buffer;
 pub mod help;
+pub mod lsp;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Id {

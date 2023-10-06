@@ -1,4 +1,5 @@
 pub mod registers;
+pub mod lsp;
 
 /// This is a trait that simplifies the interface of passing messages both ways
 pub trait Mailbox<M> {
