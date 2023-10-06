@@ -31,6 +31,8 @@ pub enum LspRequest {
     GotoTypeDefinition(Box<str>, (usize, usize)),
     /// Requires a URI and a position
     GotoImplementation(Box<str>, (usize, usize)),
+    /// Semantic tokens are for syntax highlighting, and take a uri
+    SemanticTokens(Box<str>),
 
 }
 
@@ -90,7 +92,7 @@ impl Drop for LspController {
     fn drop(&mut self) {
         //eprintln!("Dropping lsp controller");
         for (_, client) in self.clients.iter_mut() {
-            drop(client);
+            client.send_exit().unwrap();
         }
     }
 }
@@ -313,6 +315,9 @@ impl LspController {
                     },
                     LspRequest::GotoImplementation(uri, pos) => {
                         client.goto_implementation(uri, pos)?;
+                    },
+                    LspRequest::SemanticTokens(uri) => {
+                        client.request_semantic_tokens(uri)?;
                     },
                 }
             },

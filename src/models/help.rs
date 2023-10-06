@@ -1,8 +1,10 @@
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::mpsc::{Receiver, Sender};
 use crate::models::file::File;
 use crate::models::settings::Settings;
+use crate::threads::lsp::LspControllerMessage;
 
 //---------------------------------------|----------------------------------------
 pub static TITLE_TEXT: &str = "\n                             SEVI - main help file\n\n";
@@ -217,10 +219,10 @@ pub static HELP_TEXT: [&str;199] = ["You can save this file by typing \":w<Enter
 
 
 
-pub fn create_help_file(settings: Rc<RefCell<Settings>>) -> File {
+pub fn create_help_file(settings: Rc<RefCell<Settings>>, lsp_channels: (Sender<LspControllerMessage>, Rc<Receiver<LspControllerMessage>>)) -> File {
     let total_text = String::from(TITLE_TEXT) + &HELP_TEXT.join("");
 
-    let mut file = File::new(None, settings).unwrap();
+    let mut file = File::new(None, settings, lsp_channels).unwrap();
 
     file.set_path(PathBuf::from("help.txt"));
     file.insert_after(0, total_text);

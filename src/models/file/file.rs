@@ -5,10 +5,13 @@ use std::fmt::Formatter;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 use tree_sitter::Parser;
 use crate::models::file::buffer::Buffer;
 use crate::models::settings::Settings;
 use crate::models::style::{StyledLine, StyledSpan, StyledText};
+use crate::threads::lsp::LspControllerMessage;
 
 #[derive(Debug)]
 pub enum FileError {
@@ -26,8 +29,9 @@ pub trait InsertPairs<P> {
 
 
 #[derive(Debug)]
-pub struct LSPInfo {
-
+pub struct LspInfo {
+    pub lsp_channels: (Sender<LspControllerMessage>, Rc<Receiver<LspControllerMessage>>),
+    pub lsp_client: Option<Arc<Receiver<LspControllerMessage>>>
 }
 
 impl fmt::Debug for File {
@@ -47,7 +51,7 @@ pub struct File {
     path: Option<PathBuf>,
     language: Option<String>,
     buffer: Buffer,
-    lsp_info: Option<LSPInfo>,
+    lsp_info: LspInfo,
     settings: Rc<RefCell<Settings>>,
     highlights: BTreeSet<usize>,
     saved: bool,
@@ -55,7 +59,9 @@ pub struct File {
 }
 
 impl File {
-    pub fn new(path: Option<PathBuf>, settings: Rc<RefCell<Settings>>) -> Result<Self,FileError> {
+    pub fn new(path: Option<PathBuf>,
+               settings: Rc<RefCell<Settings>>,
+               lsp_channels:(Sender<LspControllerMessage>, Rc<Receiver<LspControllerMessage>>)) -> Result<Self,FileError> {
         match path {
             Some(path) => {
                 if path.is_dir() {
@@ -89,7 +95,7 @@ impl File {
 
                 let file_type = path.extension().and_then(|ext| ext.to_str()).unwrap_or("txt").to_string();
 
-                let (language, mut buffer) = match file_type.as_str() {
+                let (language, mut buffer, lsp_info) = match file_type.as_str() {
                     /*"scm" => {
                         let language = unsafe { tree_sitter_scheme() };
                         let mut buffer = Buffer::new(string);
@@ -114,7 +120,38 @@ impl File {
 
                         buffer.set_tree_sitter(parser);
 
-                        (Some("rust".to_string()), buffer)
+                        lsp_channels.0.send(LspControllerMessage::CreateClient(String::from("rust").into())).unwrap();
+
+                        let lsp_client;
+
+                        loop {
+                            match lsp_channels.1.try_recv() {
+                                Ok(LspControllerMessage::ClientCreated(client)) => {
+                                    lsp_client = Some(client);
+                                    break;
+                                },
+                                Ok(LspControllerMessage::NoClient) => {
+                                    lsp_client = None;
+                                    break;
+                                },
+                                Ok(_) => {},
+                                Err(TryRecvError::Empty) => {
+                                    continue;
+                                },
+                                Err(TryRecvError::Disconnected) => {
+                                    unreachable!();
+                                }
+                            }
+                        }
+
+                        let lsp_info = LspInfo {
+                            lsp_channels,
+                            lsp_client,
+                        };
+
+
+
+                        (Some("rust".to_string()), buffer, lsp_info)
                     },
                     "c" | "h" => {
                         let language = tree_sitter_c::language();
@@ -128,7 +165,36 @@ impl File {
 
                         buffer.set_tree_sitter(parser);
 
-                        (Some("c".to_string()), buffer)
+                        lsp_channels.0.send(LspControllerMessage::CreateClient(String::from("c").into())).unwrap();
+
+                        let lsp_client;
+
+                        loop {
+                            match lsp_channels.1.try_recv() {
+                                Ok(LspControllerMessage::ClientCreated(client)) => {
+                                    lsp_client = Some(client);
+                                    break;
+                                },
+                                Ok(LspControllerMessage::NoClient) => {
+                                    lsp_client = None;
+                                    break;
+                                },
+                                Ok(_) => {},
+                                Err(TryRecvError::Empty) => {
+                                    continue;
+                                },
+                                Err(TryRecvError::Disconnected) => {
+                                    unreachable!();
+                                }
+                            }
+                        }
+
+                        let lsp_info = LspInfo {
+                            lsp_channels,
+                            lsp_client,
+                        };
+
+                        (Some("c".to_string()), buffer, lsp_info)
                     },
                     "cpp" | "hpp" => {
                         let language = tree_sitter_cpp::language();
@@ -142,7 +208,37 @@ impl File {
 
                         buffer.set_tree_sitter(parser);
 
-                        (Some("cpp".to_string()), buffer)
+
+                        lsp_channels.0.send(LspControllerMessage::CreateClient(String::from("cpp").into())).unwrap();
+
+                        let lsp_client;
+
+                        loop {
+                            match lsp_channels.1.try_recv() {
+                                Ok(LspControllerMessage::ClientCreated(client)) => {
+                                    lsp_client = Some(client);
+                                    break;
+                                },
+                                Ok(LspControllerMessage::NoClient) => {
+                                    lsp_client = None;
+                                    break;
+                                },
+                                Ok(_) => {},
+                                Err(TryRecvError::Empty) => {
+                                    continue;
+                                },
+                                Err(TryRecvError::Disconnected) => {
+                                    unreachable!();
+                                }
+                            }
+                        }
+
+                        let lsp_info = LspInfo {
+                            lsp_channels,
+                            lsp_client,
+                        };
+
+                        (Some("cpp".to_string()), buffer, lsp_info)
                     },
                     "py" => {
                         let language = tree_sitter_python::language();
@@ -156,7 +252,36 @@ impl File {
 
                         buffer.set_tree_sitter(parser);
 
-                        (Some("python".to_string()), buffer)
+                        lsp_channels.0.send(LspControllerMessage::CreateClient(String::from("python").into())).unwrap();
+
+                        let lsp_client;
+
+                        loop {
+                            match lsp_channels.1.try_recv() {
+                                Ok(LspControllerMessage::ClientCreated(client)) => {
+                                    lsp_client = Some(client);
+                                    break;
+                                },
+                                Ok(LspControllerMessage::NoClient) => {
+                                    lsp_client = None;
+                                    break;
+                                },
+                                Ok(_) => {},
+                                Err(TryRecvError::Empty) => {
+                                    continue;
+                                },
+                                Err(TryRecvError::Disconnected) => {
+                                    unreachable!();
+                                }
+                            }
+                        }
+
+                        let lsp_info = LspInfo {
+                            lsp_channels,
+                            lsp_client,
+                        };
+
+                        (Some("python".to_string()), buffer, lsp_info)
                     },
                     "lsp" => {
                         let language = tree_sitter_commonlisp::language();
@@ -170,7 +295,36 @@ impl File {
 
                         buffer.set_tree_sitter(parser);
 
-                        (Some("commonlisp".to_string()), buffer)
+                        lsp_channels.0.send(LspControllerMessage::CreateClient(String::from("commonlisp").into())).unwrap();
+
+                        let lsp_client;
+
+                        loop {
+                            match lsp_channels.1.try_recv() {
+                                Ok(LspControllerMessage::ClientCreated(client)) => {
+                                    lsp_client = Some(client);
+                                    break;
+                                },
+                                Ok(LspControllerMessage::NoClient) => {
+                                    lsp_client = None;
+                                    break;
+                                },
+                                Ok(_) => {},
+                                Err(TryRecvError::Empty) => {
+                                    continue;
+                                },
+                                Err(TryRecvError::Disconnected) => {
+                                    unreachable!();
+                                }
+                            }
+                        }
+
+                        let lsp_info = LspInfo {
+                            lsp_channels,
+                            lsp_client,
+                        };
+
+                        (Some("commonlisp".to_string()), buffer, lsp_info)
                     },
                     "swift" => {
                         let language = tree_sitter_swift::language();
@@ -184,7 +338,37 @@ impl File {
 
                         buffer.set_tree_sitter(parser);
 
-                        (Some("swift".to_string()), buffer)
+                        lsp_channels.0.send(LspControllerMessage::CreateClient(String::from("swift").into())).unwrap();
+
+                        let lsp_client;
+
+                        loop {
+                            match lsp_channels.1.try_recv() {
+                                Ok(LspControllerMessage::ClientCreated(client)) => {
+                                    lsp_client = Some(client);
+                                    break;
+                                },
+                                Ok(LspControllerMessage::NoClient) => {
+                                    lsp_client = None;
+                                    break;
+                                },
+                                Ok(_) => {},
+                                Err(TryRecvError::Empty) => {
+                                    continue;
+                                },
+                                Err(TryRecvError::Disconnected) => {
+                                    unreachable!();
+                                }
+                            }
+                        }
+
+                        let lsp_info = LspInfo {
+                            lsp_channels,
+                            lsp_client,
+                        };
+
+
+                        (Some("swift".to_string()), buffer, lsp_info)
                     },
                     "go" => {
                         let language = tree_sitter_go::language();
@@ -198,7 +382,37 @@ impl File {
 
                         buffer.set_tree_sitter(parser);
 
-                        (Some("go".to_string()), buffer)
+                        lsp_channels.0.send(LspControllerMessage::CreateClient(String::from("go").into())).unwrap();
+
+                        let lsp_client;
+
+                        loop {
+                            match lsp_channels.1.try_recv() {
+                                Ok(LspControllerMessage::ClientCreated(client)) => {
+                                    lsp_client = Some(client);
+                                    break;
+                                },
+                                Ok(LspControllerMessage::NoClient) => {
+                                    lsp_client = None;
+                                    break;
+                                },
+                                Ok(_) => {},
+                                Err(TryRecvError::Empty) => {
+                                    continue;
+                                },
+                                Err(TryRecvError::Disconnected) => {
+                                    unreachable!();
+                                }
+                            }
+                        }
+
+                        let lsp_info = LspInfo {
+                            lsp_channels,
+                            lsp_client,
+                        };
+
+
+                        (Some("go".to_string()), buffer, lsp_info)
                     },
                     "sh" => {
                         let language = tree_sitter_bash::language();
@@ -212,7 +426,37 @@ impl File {
 
                         buffer.set_tree_sitter(parser);
 
-                        (Some("bash".to_string()), buffer)
+                        lsp_channels.0.send(LspControllerMessage::CreateClient(String::from("bash").into())).unwrap();
+
+                        let lsp_client;
+
+                        loop {
+                            match lsp_channels.1.try_recv() {
+                                Ok(LspControllerMessage::ClientCreated(client)) => {
+                                    lsp_client = Some(client);
+                                    break;
+                                },
+                                Ok(LspControllerMessage::NoClient) => {
+                                    lsp_client = None;
+                                    break;
+                                },
+                                Ok(_) => {},
+                                Err(TryRecvError::Empty) => {
+                                    continue;
+                                },
+                                Err(TryRecvError::Disconnected) => {
+                                    unreachable!();
+                                }
+                            }
+                        }
+
+                        let lsp_info = LspInfo {
+                            lsp_channels,
+                            lsp_client,
+                        };
+
+
+                        (Some("bash".to_string()), buffer, lsp_info)
                     },
                     "js" => {
                         let language = tree_sitter_javascript::language();
@@ -226,7 +470,37 @@ impl File {
 
                         buffer.set_tree_sitter(parser);
 
-                        (Some("javascript".to_string()), buffer)
+                        lsp_channels.0.send(LspControllerMessage::CreateClient(String::from("javascript").into())).unwrap();
+
+                        let lsp_client;
+
+                        loop {
+                            match lsp_channels.1.try_recv() {
+                                Ok(LspControllerMessage::ClientCreated(client)) => {
+                                    lsp_client = Some(client);
+                                    break;
+                                },
+                                Ok(LspControllerMessage::NoClient) => {
+                                    lsp_client = None;
+                                    break;
+                                },
+                                Ok(_) => {},
+                                Err(TryRecvError::Empty) => {
+                                    continue;
+                                },
+                                Err(TryRecvError::Disconnected) => {
+                                    unreachable!();
+                                }
+                            }
+                        }
+
+                        let lsp_info = LspInfo {
+                            lsp_channels,
+                            lsp_client,
+                        };
+
+
+                        (Some("javascript".to_string()), buffer, lsp_info)
                     },
                     "cs" => {
                         let language = tree_sitter_c_sharp::language();
@@ -240,20 +514,52 @@ impl File {
 
                         buffer.set_tree_sitter(parser);
 
-                        (Some("csharp".to_string()), buffer)
+                        lsp_channels.0.send(LspControllerMessage::CreateClient(String::from("c#").into())).unwrap();
+
+                        let lsp_client;
+
+                        loop {
+                            match lsp_channels.1.try_recv() {
+                                Ok(LspControllerMessage::ClientCreated(client)) => {
+                                    lsp_client = Some(client);
+                                    break;
+                                },
+                                Ok(LspControllerMessage::NoClient) => {
+                                    lsp_client = None;
+                                    break;
+                                },
+                                Ok(_) => {},
+                                Err(TryRecvError::Empty) => {
+                                    continue;
+                                },
+                                Err(TryRecvError::Disconnected) => {
+                                    unreachable!();
+                                }
+                            }
+                        }
+
+                        let lsp_info = LspInfo {
+                            lsp_channels,
+                            lsp_client,
+                        };
+
+                        (Some("csharp".to_string()), buffer, lsp_info)
                     },
                     "txt" | _ => {
                         let mut buffer = Buffer::from(string);
                         buffer.set_settings(settings.clone());
 
-                        (None, buffer)
+                        let lsp_info = LspInfo {
+                            lsp_channels,
+                            lsp_client: None,
+                        };
+
+                        (None, buffer, lsp_info)
                     }
                 };
 
                 buffer.add_new_rope();
                 buffer.add_new_rope();
-
-                let lsp_info = None;
 
 
                 let file = Self {
@@ -281,7 +587,10 @@ impl File {
                 Ok(Self {
                     path: None,
                     buffer,
-                    lsp_info: None,
+                    lsp_info: LspInfo {
+                        lsp_channels,
+                        lsp_client: None,
+                    },
                     language: None,
                     settings,
                     highlights: BTreeSet::new(),
@@ -660,6 +969,10 @@ impl File {
             amount -= 1;
         }
         byte_position
+    }
+
+    /// This function is where we query our Lsp Channels to see what information we can get
+    pub fn refresh(&mut self) {
     }
 
     fn is_delimiter(&self, b: usize) -> bool {

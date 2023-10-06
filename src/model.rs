@@ -20,6 +20,7 @@ use crate::models::file::File;
 use crate::models::file::file::FileError;
 use crate::models::pane::{Pane, TextPane};
 use crate::models::pane::text::TextBuffer;
+use crate::threads::lsp::LspControllerMessage;
 use crate::threads::registers::RegisterMessage;
 
 pub struct AppEventPort{
@@ -46,9 +47,10 @@ pub struct Model {
     pub files: HashMap<PathBuf, File>,
     pub register_channels: (Sender<RegisterMessage>, Rc<Receiver<RegisterMessage>>),
     pub component_channels: (Sender<Message>, Rc<Receiver<Message>>),
+    pub lsp_channels: (Sender<LspControllerMessage>, Rc<Receiver<LspControllerMessage>>),
 }
 
-impl Default for Model {
+/*impl Default for Model {
     fn default() -> Self {
         let args: Vec<String> = env::args().collect();
         let path = if args.len() > 1 {
@@ -161,7 +163,7 @@ impl Default for Model {
 
         }
     }
-}
+}*/
 
 impl Drop for Model {
     fn drop(&mut self) {
@@ -176,7 +178,9 @@ impl Drop for Model {
 
 impl Model {
 
-    pub fn new(path: Option<PathBuf>, register_channels: (Sender<RegisterMessage>, Rc<Receiver<RegisterMessage>>)) -> Self {
+    pub fn new(path: Option<PathBuf>,
+               register_channels: (Sender<RegisterMessage>, Rc<Receiver<RegisterMessage>>),
+                lsp_channels: (Sender<LspControllerMessage>, Rc<Receiver<LspControllerMessage>>)) -> Self {
         /*let args: Vec<String> = env::args().collect();
         let path = if args.len() > 1 {
             let path = PathBuf::from(args[1].clone());
@@ -191,7 +195,7 @@ impl Model {
 
         let settings = Rc::new(RefCell::new(settings));
 
-        let file = match File::new(path.clone(), settings.clone()) {
+        let file = match File::new(path.clone(), settings.clone(), lsp_channels.clone()) {
             Ok(file) => {
                 match path {
                     None => {},
@@ -200,13 +204,13 @@ impl Model {
                 file
             },
             Err(FileError::FileDoesNotExist) => {
-                let mut file = File::new(None, settings.clone()).unwrap();
+                let mut file = File::new(None, settings.clone(), lsp_channels.clone()).unwrap();
                 file.set_path(path.clone().unwrap());
                 file
             }
             Err(FileError::Directory) => {
                 sender.send(AppEvent::Message("Cannot open directory yet".to_string().into())).unwrap();
-                let file = File::new(None, settings.clone()).unwrap();
+                let file = File::new(None, settings.clone(), lsp_channels.clone()).unwrap();
                 file
             }
             Err(FileError::RecoverFileFound(file)) => {
@@ -277,6 +281,7 @@ impl Model {
             files: HashMap::new(),
             register_channels,
             component_channels: (component_sender, component_receiver),
+            lsp_channels,
 
         }
     }
@@ -356,6 +361,9 @@ impl Update<Message> for Model {
                     for (_, file) in self.files.iter_mut() {
                         file.set_safe_close();
                     }
+
+                    self.lsp_channels.0.send(LspControllerMessage::Exit).unwrap();
+
                     None
                 },
                 Message::Redraw => {
@@ -376,16 +384,16 @@ impl Update<Message> for Model {
                         return None;
                     }
 
-                    let file = match File::new(Some(path.clone()), self.settings.clone()) {
+                    let file = match File::new(Some(path.clone()), self.settings.clone(), self.lsp_channels.clone()) {
                         Ok(file) => file,
                         Err(FileError::FileDoesNotExist) => {
-                            let mut file = File::new(None, self.settings.clone()).unwrap();
+                            let mut file = File::new(None, self.settings.clone(), self.lsp_channels.clone()).unwrap();
                             file.set_path(path);
                             file
                         }
                         Err(FileError::Directory) => {
                             self.sender.send(AppEvent::Message("Cannot open directory yet".to_string().into())).unwrap();
-                            let file = File::new(None, self.settings.clone()).unwrap();
+                            let file = File::new(None, self.settings.clone(), self.lsp_channels.clone()).unwrap();
                             file
                         }
                         Err(FileError::RecoverFileFound(file)) => {
@@ -413,8 +421,9 @@ impl Update<Message> for Model {
                         let file = self.files.remove(&key).unwrap();
                         let _ = self.pane.borrow_mut().change_file(file);
                     } else {
-                        self.quit = true;
-                        self.register_channels.0.send(RegisterMessage::Quit).unwrap();
+                        //self.quit = true;
+                        //self.register_channels.0.send(RegisterMessage::Quit).unwrap();
+                        return Some(Message::AppClose);
                     }
                     None
                 }
@@ -425,8 +434,9 @@ impl Update<Message> for Model {
                         let file = self.files.remove(&key).unwrap();
                         let _ = self.pane.borrow_mut().change_file(file);
                     } else {
-                        self.quit = true;
-                        self.register_channels.0.send(RegisterMessage::Quit).unwrap();
+                        //self.quit = true;
+                        //self.register_channels.0.send(RegisterMessage::Quit).unwrap();
+                        return Some(Message::AppClose);
                     }
                     None
                 }
@@ -455,7 +465,7 @@ impl Update<Message> for Model {
                         return None;
                     }
 
-                    let help_file = help::create_help_file(self.settings.clone());
+                    let help_file = help::create_help_file(self.settings.clone(), self.lsp_channels.clone());
 
                     let file = self.pane.borrow_mut().change_file(help_file);
 

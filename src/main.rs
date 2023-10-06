@@ -1,9 +1,11 @@
+use std::rc::Rc;
 use clap::Parser;
 use model::Model;
 use tuirealm::{PollStrategy, Update};
 
 
 use crate::models::Message;
+use crate::threads::lsp::LspController;
 
 pub mod model;
 
@@ -31,9 +33,36 @@ fn main() {
         register.run();
     });
 
+    let mut controller = LspController::new();
+
+    let (lsp_sender, lsp_receiver) = std::sync::mpsc::channel();
+    let (lsp_controller_sender, lsp_controller_receiver) = std::sync::mpsc::channel();
+
+    controller.set_listen(lsp_receiver);
+    controller.set_response(lsp_controller_sender);
+
+    let lsp_listener = Rc::new(lsp_controller_receiver);
+
+    let lsp_channels = (lsp_sender, lsp_listener);
+
+    let lsp_handle = std::thread::spawn(move || {
+        let tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        let tokio_handle =tokio_runtime.spawn_blocking(move || {
+            match controller.run() {
+                Ok(_) => {},
+                Err(e) => {
+                    eprintln!("Error: {:?}", e);
+                }
+            }
+            drop(controller);
+        });
+        tokio_runtime.block_on(tokio_handle).unwrap();
+    });
+
+
     let path = args.get_path();
 
-    let mut model = Model::new(path,shared);
+    let mut model = Model::new(path,shared, lsp_channels);
 
     model.initialize();
 
@@ -64,4 +93,5 @@ fn main() {
             
     }
     registers_handle.join().unwrap();
+    lsp_handle.join().unwrap();
 }

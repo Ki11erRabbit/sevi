@@ -119,8 +119,8 @@ impl Client {
             "method": "initialize",
             "params": {
                 "ClientInfo": {
-                    "name": "vi",
-                    "version": "0.0.1",
+                    "name": "sevi",
+                    "version": "0.14.0",
                 },
                 "capabilities": {
                     "diagnostics": {
@@ -165,7 +165,10 @@ impl Client {
                             },
                         },
                         "semanticTokens": {
-                            "requests": {},
+
+                            "requests": {
+                                "full": true,
+                            },
                             "tokenTypes:": [
                                 // General
                                 "namespace",
@@ -261,7 +264,7 @@ impl Client {
                                 "trait",
                                 "unsafe",
                             ],
-                            "tokenFormat": [
+                            "formats": [
                                 "relative",
                             ],
                             "overlappingTokenSupport": false,
@@ -275,7 +278,7 @@ impl Client {
         });
         self.send_message(message)?;
 
-        self.send_inialized()?;
+        self.send_initialized()?;
 
         Ok(())
     }
@@ -471,8 +474,23 @@ impl Client {
         Ok(())
     }
 
+    pub fn request_semantic_tokens(&mut self, uri: Box<str>) -> io::Result<()> {
+        let message = serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 7,
+            "method": "textDocument/semanticTokens/full",
+            "params": {
+                "textDocument": {
+                    "uri": uri,
+                },
+            },
+        });
+        self.send_message(message)?;
+        Ok(())
+    }
 
-    pub fn send_inialized(&mut self) -> io::Result<()> {
+
+    pub fn send_initialized(&mut self) -> io::Result<()> {
         let message = serde_json::json!({
             "jsonrpc": "2.0",
             "method": "initialized",
@@ -500,4 +518,5 @@ impl Client {
         self.send_message(message)?;
         Ok(())
     }
+
 }
