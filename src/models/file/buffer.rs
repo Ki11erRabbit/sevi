@@ -703,7 +703,7 @@ impl Buffer {
         match tree_sitter_info.as_mut() {
             None => {
                 let line_byte = self.history[self.current].byte_of_line(row);
-                let line_len = self.history[self.current].line_len();
+                let line_len = self.get_line_count() - 1;
                 let next_line_byte = if row + 1 < line_len {
                     self.history[self.current].byte_of_line(row + 1)
                 } else {
@@ -714,7 +714,7 @@ impl Buffer {
             Some((parser, trees)) => {
 
                 let line_byte = self.history[self.current].byte_of_line(row);
-                let line_len = self.history[self.current].line_len();
+                let line_len = self.get_line_count() - 1;
                 let next_line_byte = if row + 1 < line_len {
                     self.history[self.current].byte_of_line(row + 1)
                 } else {
