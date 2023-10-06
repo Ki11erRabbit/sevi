@@ -24,6 +24,7 @@ pub struct Buffer {
     tree_sitter_info: Option<(tree_sitter::Parser, Vec<tree_sitter::Tree>)>,
     settings: Rc<RefCell<Settings>>,
     version: usize,
+    num_lines: RefCell<Option<usize>>,
 }
 
 
@@ -35,6 +36,7 @@ impl Buffer {
             tree_sitter_info: None,
             settings,
             version: 0,
+            num_lines: RefCell::new(None),
         }
     }
 
@@ -118,11 +120,22 @@ impl Buffer {
     }
 
     pub fn get_line_count(&self) -> usize {
-        let mut num_lines = self.history[self.current].line_len();
+        /*let mut num_lines = self.get_line_count() - 1;
         if let Some('\n') = self.history[self.current].chars().last() {
             num_lines += 1;
+        }*/
+
+        let num_lines = *self.num_lines.borrow();
+        match num_lines {
+            None => {
+                let num_lines = self.history[self.current].raw_lines().count();
+                *self.num_lines.borrow_mut() = Some(num_lines);
+                num_lines
+            },
+            Some(num_lines) => {
+                num_lines
+            }
         }
-        num_lines
     }
 
     pub fn get_char_count(&self) -> usize {
@@ -135,7 +148,7 @@ impl Buffer {
 
 
     pub fn get_byte_offset(&self, x: usize, y: usize) -> Option<usize> {
-        if y >= self.history[self.current].line_len() {
+        if y >= self.get_line_count() - 1 {
             return Some(self.history[self.current].byte_len());
         }
 
@@ -202,6 +215,10 @@ impl Buffer {
     }
 
     pub fn insert_current<T>(&mut self, byte_offset: usize, text: T) where T: AsRef<str> {
+        if text.as_ref().contains('\n') {
+            *self.num_lines.borrow_mut() = None;
+        }
+
         if self.current == 0 {
             self.get_new_rope();
         }
@@ -261,6 +278,8 @@ impl Buffer {
     }
 
     fn delete_internal<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
+        *self.num_lines.borrow_mut() = None;
+
         let mut tree_sitter_info = self.tree_sitter_info.take();
 
         match tree_sitter_info.as_mut() {
@@ -279,12 +298,26 @@ impl Buffer {
                     },
                 }
 
+                let end = match range.end_bound() {
+                    std::ops::Bound::Included(n) => {
+                        *n
+                    },
+                    std::ops::Bound::Excluded(n) => {
+                        *n - 1
+                    },
+                    std::ops::Bound::Unbounded => {
+                        self.history[self.current].byte_len()
+                    },
+                };
+
+                if self.history[self.current].byte_slice(start..=end).chars().collect::<String>().contains('\n') {
+                    *self.num_lines.borrow_mut() = None;
+                }
 
                 let line_num = self.history[self.current].line_of_byte(start);
 
                 let y = line_num;
                 let x = start - self.history[self.current].byte_of_line(y);
-
 
                 self.history[self.current].delete(range);
 
@@ -324,6 +357,10 @@ impl Buffer {
     }
 
     fn replace_internal<R, T>(&mut self, range:R, text: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
+        if text.as_ref().contains('\n') {
+            *self.num_lines.borrow_mut() = None;
+        }
+
         let mut tree_sitter_info = self.tree_sitter_info.take();
 
         match tree_sitter_info.as_mut() {
@@ -340,6 +377,21 @@ impl Buffer {
                     std::ops::Bound::Unbounded => {
                         start = 0;
                     },
+                }
+                let end = match range.end_bound() {
+                    std::ops::Bound::Included(n) => {
+                        *n
+                    },
+                    std::ops::Bound::Excluded(n) => {
+                        *n - 1
+                    },
+                    std::ops::Bound::Unbounded => {
+                        self.history[self.current].byte_len()
+                    },
+                };
+
+                if self.history[self.current].byte_slice(start..=end).chars().collect::<String>().contains('\n') {
+                    *self.num_lines.borrow_mut() = None;
                 }
 
 
@@ -502,6 +554,9 @@ impl Buffer {
     }
 
     pub fn insert<T>(&mut self, byte_offset: usize, text: T) where T: AsRef<str> {
+        if text.as_ref().contains('\n') {
+            *self.num_lines.borrow_mut() = None;
+        }
         self.get_new_rope();
         
         let mut tree_sitter_info = self.tree_sitter_info.take();
@@ -640,6 +695,7 @@ impl Buffer {
         out
     }
     pub fn delete_line(&mut self, row: usize) {
+        *self.num_lines.borrow_mut() = None;
         self.get_new_rope();
 
         let mut tree_sitter_info = self.tree_sitter_info.take();
@@ -750,6 +806,7 @@ impl Buffer {
     pub fn insert_chain<T>(&mut self, values: Vec<(usize, T)>)
         where T: AsRef<str>
     {
+        *self.num_lines.borrow_mut() = None;
         let buffer = self.get_new_rope();
         for (offset, text) in values.iter().rev() {
             buffer.insert(*offset, text.as_ref());
@@ -759,6 +816,7 @@ impl Buffer {
     pub fn delete_chain<R>(&mut self, values: Box<[R]>)
         where R: std::ops::RangeBounds<usize> + Copy
     {
+        *self.num_lines.borrow_mut() = None;
         let buffer = self.get_new_rope();
         for range in values.iter().rev() {
             buffer.delete(*range);
@@ -768,6 +826,7 @@ impl Buffer {
     pub fn replace_chain<R, T>(&mut self, values: Box<[(R, T)]>)
         where R: std::ops::RangeBounds<usize> + Copy, T: AsRef<str>
     {
+        *self.num_lines.borrow_mut() = None;
         let buffer = self.get_new_rope();
         for (range, text) in values.iter().rev() {
             buffer.replace(*range, text.as_ref());
@@ -794,7 +853,7 @@ impl Buffer {
 
 
     pub fn get_row(&self, row: usize) -> Option<BufferSlice> {
-        if row >= self.history[self.current].line_len() {
+        if row >= self.get_line_count() - 1 {
             return None;
         }
 
@@ -804,7 +863,7 @@ impl Buffer {
 
     pub fn get_row_special(&self, row: usize, col_offset: usize, cols: usize) -> Option<BufferSlice> {
         
-        if row >= self.history[self.current].line_len() {
+        if row >= self.get_line_count() - 1 {
             return None;
         }
         let line = self.history[self.current].line(row);
@@ -1090,6 +1149,7 @@ impl From<&str> for Buffer {
             settings: Rc::new(RefCell::new(Settings::default())),
             tree_sitter_info: None,
             version: 0,
+            num_lines: RefCell::new(None),
 
         }
     }
@@ -1103,6 +1163,7 @@ impl From<String> for Buffer {
             settings: Rc::new(RefCell::new(Settings::default())),
             tree_sitter_info: None,
             version: 0,
+            num_lines: RefCell::new(None),
         }
     }
 }
@@ -1115,6 +1176,7 @@ impl From<&String> for Buffer {
             settings: Rc::new(RefCell::new(Settings::default())),
             tree_sitter_info: None,
             version: 0,
+            num_lines: RefCell::new(None),
         }
     }
 }
