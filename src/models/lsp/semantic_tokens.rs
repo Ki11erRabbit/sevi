@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 
 pub struct SemanticTokensRaw {
     pub result_id: Option<String>,
