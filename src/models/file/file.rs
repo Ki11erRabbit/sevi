@@ -58,7 +58,7 @@ pub struct File {
     saved: bool,
     safe_close: bool,
     /// Syntax highlights are stored in a hashmap with the key being column and row
-    syntax_highlights: HashMap<usize, String>
+    syntax_highlights: BTreeMap<usize, String>
 }
 
 impl File {
@@ -586,7 +586,7 @@ impl File {
                     highlights: BTreeSet::new(),
                     saved: true,
                     safe_close: false,
-                    syntax_highlights: HashMap::new(),
+                    syntax_highlights: BTreeMap::new(),
                 };
 
 
@@ -636,7 +636,7 @@ impl File {
                     highlights: BTreeSet::new(),
                     saved: true,
                     safe_close: false,
-                    syntax_highlights: HashMap::new(),
+                    syntax_highlights: BTreeMap::new(),
                 })
             }
         }
@@ -1060,10 +1060,27 @@ impl File {
 
                         if !tokens.is_empty() {
                             self.syntax_highlights.clear();
+                            let mut col = 0;
+                            let mut start_col = 0;
+                            let mut row = 0;
                             for token in tokens.data {
-                                let (range, line) = token.generate_range();
+                                let (range,start,  line) = token.generate_range();
+                                if line != 0 || row == 0 {
+                                    start_col = start;
+                                } else {
+                                    start_col += start;
+                                }
+                                col = start_col;
+                                row += line;
                                 for i in range {
-                                    self.syntax_highlights.insert(self.get_byte_offset(line, i).unwrap(), token.token_type.clone());
+
+                                    let byte_offset = self.get_byte_offset(row, col).unwrap();
+                                    eprintln!("col: {}, row: {}", col, row);
+                                    eprintln!("{}: {}", byte_offset, token.token_type);
+                                    if !self.syntax_highlights.contains_key(&byte_offset) {
+                                        self.syntax_highlights.insert(byte_offset, token.token_type.clone());
+                                    }
+                                    col += 1;
                                 }
                             }
 

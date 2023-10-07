@@ -58,6 +58,8 @@ impl SemanticTokensRaw {
 
         let mut tokens = Vec::new();
 
+
+
         for int in &self.data {
             match counter {
                 0 => {
@@ -78,6 +80,8 @@ impl SemanticTokensRaw {
                 },
                 4 => {
                     token_modifiers = *int;
+                    eprintln!("[{}, {}, {}, {}, {}]", line, start_character, length, token_type, token_modifiers);
+
                     let mut tok_modifiers = Vec::new();
 
                     for modifier in modifiers.iter() {
@@ -85,6 +89,7 @@ impl SemanticTokensRaw {
                             tok_modifiers.push(modifier.1.clone());
                         }
                     }
+                    token_modifiers = 0;
                     let token_modifiers = tok_modifiers;
 
 
@@ -97,6 +102,10 @@ impl SemanticTokensRaw {
                     };
                     tokens.push(token);
                     counter = 0;
+                    line = 0;
+                    start_character = 0;
+                    length = 0;
+                    token_type = 0;
                 },
                 _ => unreachable!("SemanticTokensRaw: counter is out of bounds"),
             }
@@ -123,10 +132,11 @@ pub struct SemanticToken {
 }
 
 impl SemanticToken {
-    pub fn generate_range(&self) -> (RangeInclusive<usize>, usize) {
-        let range = self.start_character..=self.start_character + self.length;
+    pub fn generate_range(&self) -> (Range<usize>, usize, usize) {
 
-        (range, self.line)
+        let range = 0..self.length;
+
+        (range, self.start_character, self.line)
     }
 }
 

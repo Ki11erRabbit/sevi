@@ -174,6 +174,7 @@ pub fn process_json(json: Value) -> io::Result<LspMessage> {
                 let obj = json["result"].clone();
                 //eprintln!("semantic tokens");
 
+
                 let semantic_tokens: SemanticTokensRaw = match serde_json::from_value(obj) {
                     Ok(value) => value,
                     Err(e) => {

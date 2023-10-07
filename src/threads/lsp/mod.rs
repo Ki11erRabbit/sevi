@@ -217,6 +217,7 @@ impl LspController {
                             provider.legend.into()
                         }
                     };
+                    //eprintln!("{:#?}", semantic_token_legend);
 
                     self.semantic_tokens.insert(language.clone(), semantic_token_legend);
 

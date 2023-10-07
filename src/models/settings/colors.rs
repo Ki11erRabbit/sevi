@@ -128,8 +128,8 @@ impl EditorColors {
         syntax_highlighting.insert("property".to_string(), Style::new().fg(Color::LightMagenta));
         syntax_highlighting.insert("enumMember".to_string(), Style::new().fg(Color::Magenta));
         syntax_highlighting.insert("event".to_string(), Style::new());
-        syntax_highlighting.insert("function".to_string(), Style::new());
-        syntax_highlighting.insert("method".to_string(), Style::new());
+        syntax_highlighting.insert("function".to_string(), Style::new().fg(Color::LightMagenta));
+        syntax_highlighting.insert("method".to_string(), Style::new().fg(Color::LightMagenta));
         syntax_highlighting.insert("macro".to_string(), Style::new().fg(Color::LightCyan).add_modifier(crate::models::style::text_modifier::Modifier::BOLD));
         syntax_highlighting.insert("keyword".to_string(), Style::new().fg(Color::LightBlue));
         syntax_highlighting.insert("modifier".to_string(), Style::new().fg(Color::Magenta));
