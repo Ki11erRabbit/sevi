@@ -122,7 +122,12 @@ impl EditorColors {
             SHR::new(vec!["library".to_string(),"defaultLibrary".to_string(),"declaration".to_string(),"crateRoot".to_string()],Style::new().fg(Color::LightMagenta)),
         ]);
         syntax_highlighting.insert("type".to_string(), vec![SHR::new(Vec::new(),Style::new().fg(Color::Yellow))]);
-        syntax_highlighting.insert("class".to_string(), vec![SHR::new(vec!["declaration".to_string()],Style::new().fg(Color::Yellow))]);
+        syntax_highlighting.insert("class".to_string(), vec![
+            SHR::new(vec![
+                "declaration".to_string(),
+                "globalScope".to_string()
+            ],Style::new().fg(Color::Yellow))
+        ]);
         syntax_highlighting.insert("enum".to_string(), vec![SHR::new(vec!["declaration".to_string(),"public".to_string(), "library".to_string()],Style::new().fg(Color::Yellow))]);
         syntax_highlighting.insert("interface".to_string(), vec![SHR::new(vec!["declaration".to_string(),"library".to_string()],Style::new().fg(Color::Yellow))]);
         syntax_highlighting.insert("struct".to_string(), vec![SHR::new(vec!["declaration".to_string(),"public".to_string(), "library".to_string()],Style::new().fg(Color::Yellow))]);
@@ -203,7 +208,40 @@ impl EditorColors {
         syntax_highlighting.insert("unresolvedReference".to_string(), vec![SHR::new(Vec::new(), Style::new().fg(Color::LightRed))]);
         //variable
 
+        // C/C++ Specific
+        //0 variable
+        //1 variable
+        //2 parameter
+        //3 function
+        //4 method
+        //5 function
+        syntax_highlighting.insert("property".to_string(), vec![
+            SHR::new(vec![],Style::new().fg(Color::LightMagenta)),
 
+        ]);
+
+        //7 variable
+        //8 class
+        //9 interface
+        //10 enum
+        //11 enumMember
+        //12 type
+        //13 type
+        syntax_highlighting.insert("unknown".to_string(), vec![
+            SHR::new(vec![],Style::new().fg(Color::Red)),
+        ]);
+        //15 namespace
+        //16 typeParameter
+        syntax_highlighting.insert("concept".to_string(), vec![
+            SHR::new(vec![],Style::new().fg(Color::Red)),
+
+        ]);
+        //18 type
+        //19 macro
+        //20 modifier
+        //21 operator
+        //22 comment
+        //
 
 
 

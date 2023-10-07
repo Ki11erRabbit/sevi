@@ -111,6 +111,8 @@ impl SemanticTokensRaw {
             }
         }
 
+        //eprintln!("SemanticTokens: {:#?}", tokens);
+
         SemanticTokens {
             result_id: self.resultId,
             data: tokens,

@@ -97,7 +97,7 @@ pub fn process_json(json: Value) -> io::Result<LspMessage> {
                         return Ok(LspMessage::None);
                     }
                 };
-                //eprintln!("capabilities: {:#?}", capabilities);
+                eprintln!("capabilities: {:#?}", capabilities);
 
                 Ok(LspMessage::Capabilities(capabilities))
             }
@@ -174,6 +174,7 @@ pub fn process_json(json: Value) -> io::Result<LspMessage> {
                 let obj = json["result"].clone();
                 //eprintln!("semantic tokens");
 
+                //eprintln!("semantic tokens: {:#?}", obj);
 
                 let semantic_tokens: SemanticTokensRaw = match serde_json::from_value(obj) {
                     Ok(value) => value,

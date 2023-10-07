@@ -33,10 +33,25 @@ impl Client {
 
 impl Drop for Client {
     fn drop(&mut self) {
-        self.send_shutdown().expect("Failed to send shutdown");
-        self.send_exit().expect("Failed to send exit");
+        match self.send_shutdown() {
+            Ok(_) => {},
+            Err(err) => {
+                eprintln!("Failed to send shutdown: {}", err);
+            },
+        }
+        match self.send_exit() {
+            Ok(_) => {},
+            Err(err) => {
+                eprintln!("Failed to send exit: {}", err);
+            },
+        };
         let future = async {
-            self.child.wait().await.expect("Failed to wait for child");
+            match self.child.wait().await {
+                Ok(_) => {},
+                Err(err) => {
+                    eprintln!("Failed to wait for child: {}", err);
+                },
+            };
         };
         block_on(future);
     }
@@ -97,20 +112,29 @@ impl Client {
 
     pub fn send_message(&mut self, message: serde_json::Value) -> io::Result<()> {
         //eprintln!("Sending message");
+        let mut error = None;
         let future = async {
             let message = serde_json::to_string(&message).expect("Failed to serialize json");
             let message = format!("Content-Length: {}\r\n\r\n{}", message.len(), message);
-            self.input.write_all(message.as_bytes()).await.expect("Failed to write");
+            match self.input.write_all(message.as_bytes()).await {
+                Ok(_) => {},
+                Err(err) => {
+                    error = Some(err);
+                },
+            }
             match self.input.flush().await {
                 Ok(_) => {},
                 Err(err) => {
-                    eprintln!("Failed to flush: {}", err);
+                    error = Some(err);
                 },
             }
 
         };
         block_on(future);
-        Ok(())
+        match error {
+            Some(err) => Err(err),
+            None => Ok(()),
+        }
     }
     pub fn initialize(&mut self) -> io::Result<()> {
         let message = serde_json::json!({

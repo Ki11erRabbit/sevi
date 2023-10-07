@@ -558,6 +558,50 @@ impl File {
 
                         (Some("csharp".to_string()), buffer, lsp_info)
                     },
+                    "hs" => {
+                        /*let language = tree_sitter_haskell::language();
+
+                        let mut parser = Parser::new();
+
+                        parser.set_language(language).unwrap();*/
+
+                        let mut buffer = Buffer::from(string);
+                        buffer.set_settings(settings.clone());
+
+                        //buffer.set_tree_sitter(parser);
+
+                        lsp_channels.0.send(LspControllerMessage::CreateClient(String::from("haskell").into())).unwrap();
+
+                        let lsp_client;
+
+                        loop {
+                            match lsp_channels.1.try_recv() {
+                                Ok(LspControllerMessage::ClientCreated(client)) => {
+                                    lsp_client = Some(client);
+                                    break;
+                                },
+                                Ok(LspControllerMessage::NoClient) => {
+                                    lsp_client = None;
+                                    break;
+                                },
+                                Ok(_) => {},
+                                Err(TryRecvError::Empty) => {
+                                    continue;
+                                },
+                                Err(TryRecvError::Disconnected) => {
+                                    unreachable!();
+                                }
+                            }
+                        }
+
+                        let lsp_info = LspInfo {
+                            lsp_channels,
+                            lsp_client,
+                            first_pass: true,
+                        };
+
+                        (Some("haskell".to_string()), buffer, lsp_info)
+                    }
                     "txt" | _ => {
                         let mut buffer = Buffer::from(string);
                         buffer.set_settings(settings.clone());
@@ -1043,7 +1087,12 @@ impl File {
 
                         let message = LspControllerMessage::Request(self.language.clone().unwrap().into(), request);
 
-                        self.lsp_info.lsp_channels.0.send(message).unwrap();
+                        match self.lsp_info.lsp_channels.0.send(message) {
+                            Ok(_) => {},
+                            Err(_) => {
+                                return Err("LSP Client Disconnected".to_string());
+                            }
+                        };
                     }
                 }
 
@@ -1079,7 +1128,7 @@ impl File {
 
                                     let byte_offset = self.get_byte_offset(row, col).unwrap();
                                     //eprintln!("col: {}, row: {}", col, row);
-                                    //eprintln!("{}: {}", byte_offset, token.token_type);
+                                    //eprintln!("{}: {}, {:?}", byte_offset, token.token_type, token.token_modifiers);
                                     if !self.syntax_highlights.contains_key(&byte_offset) {
                                         self.syntax_highlights.insert(byte_offset, (token.token_type.clone(), token.token_modifiers.clone()));
                                     }
@@ -1354,6 +1403,9 @@ impl File {
             if self.syntax_highlights.contains_key(&i) {
                 let rules =  &settings.colors.syntax_highlighting[&self.syntax_highlights[&i].0];
                 let modifiers = &self.syntax_highlights[&i].1;
+                eprint!("{:?}: ", chr);
+                eprintln!("{}", &self.syntax_highlights[&i].0);
+                eprintln!("{:?}", modifiers);
                 for rule in rules {
                     if rule.can_apply(modifiers) {
                         color = color.patch(rule.style);
@@ -1388,6 +1440,9 @@ impl File {
             ));
             acc.clear();
 
+        }
+        if !acc.is_empty() {
+            line.push(StyledSpan::from(acc.clone()));
         }
 
         output
