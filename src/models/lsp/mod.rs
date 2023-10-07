@@ -177,7 +177,7 @@ pub fn process_json(json: Value) -> io::Result<LspMessage> {
                 let semantic_tokens: SemanticTokensRaw = match serde_json::from_value(obj) {
                     Ok(value) => value,
                     Err(e) => {
-                        //eprintln!("Semantic Tokens Error: {:?}", e);
+                        eprintln!("Semantic Tokens Error: {:?}", e);
                         return Ok(LspMessage::None);
                     }
                 };

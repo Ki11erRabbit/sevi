@@ -20,7 +20,8 @@ impl Default for EditorColors {
                 Style::new().fg(Color::LightGreen),
                 Style::new().fg(Color::LightYellow),
                 Style::new().fg(Color::LightRed),
-            ]
+            ],
+            syntax_highlighting: Self::generate_default_syntax_highlighting(),
         }
     }
 }
@@ -30,6 +31,7 @@ pub struct EditorColors {
     pub number_bar: NumberBarColor,
     pub status_bar: StatusBarColor,
     pub rainbow_delimiters: Vec<Style>,
+    pub syntax_highlighting: HashMap<String, Style>,
 }
 
 impl EditorColors {
@@ -109,6 +111,96 @@ impl EditorColors {
         self.number_bar.merge(other.number_bar);
         self.status_bar.merge(other.status_bar);
         self.rainbow_delimiters = other.rainbow_delimiters;
+    }
+
+    fn generate_default_syntax_highlighting() -> HashMap<String, Style> {
+        let mut syntax_highlighting = HashMap::new();
+        // built in
+        syntax_highlighting.insert("namespace".to_string(), Style::new().fg(Color::LightMagenta));
+        syntax_highlighting.insert("type".to_string(), Style::new().fg(Color::Yellow));
+        syntax_highlighting.insert("class".to_string(), Style::new().fg(Color::Yellow));
+        syntax_highlighting.insert("enum".to_string(), Style::new().fg(Color::Yellow));
+        syntax_highlighting.insert("interface".to_string(), Style::new().fg(Color::Yellow));
+        syntax_highlighting.insert("struct".to_string(), Style::new().fg(Color::Yellow));
+        syntax_highlighting.insert("typeParameter".to_string(), Style::new().fg(Color::Yellow).add_modifier(crate::models::style::text_modifier::Modifier::BOLD));
+        syntax_highlighting.insert("parameter".to_string(), Style::new().fg(Color::LightMagenta));
+        syntax_highlighting.insert("variable".to_string(), Style::new().fg(Color::LightMagenta));
+        syntax_highlighting.insert("property".to_string(), Style::new().fg(Color::LightMagenta));
+        syntax_highlighting.insert("enumMember".to_string(), Style::new().fg(Color::Magenta));
+        syntax_highlighting.insert("event".to_string(), Style::new());
+        syntax_highlighting.insert("function".to_string(), Style::new());
+        syntax_highlighting.insert("method".to_string(), Style::new());
+        syntax_highlighting.insert("macro".to_string(), Style::new().fg(Color::LightCyan).add_modifier(crate::models::style::text_modifier::Modifier::BOLD));
+        syntax_highlighting.insert("keyword".to_string(), Style::new().fg(Color::LightBlue));
+        syntax_highlighting.insert("modifier".to_string(), Style::new().fg(Color::Magenta));
+        syntax_highlighting.insert("comment".to_string(), Style::new().fg(Color::DarkGray));
+        syntax_highlighting.insert("string".to_string(), Style::new().fg(Color::LightGreen));
+        syntax_highlighting.insert("number".to_string(), Style::new());
+        syntax_highlighting.insert("regexp".to_string(), Style::new().fg(Color::Yellow));
+        syntax_highlighting.insert("operator".to_string(), Style::new());
+        syntax_highlighting.insert("decorator".to_string(), Style::new());
+
+        // Rust Specific
+        syntax_highlighting.insert("attribute".to_string(), Style::new().fg(Color::LightBlue).add_modifier(crate::models::style::text_modifier::Modifier::BOLD));
+        //enum
+        //function
+        syntax_highlighting.insert("derive".to_string(), Style::new().fg(Color::LightBlue).add_modifier(crate::models::style::text_modifier::Modifier::BOLD));
+        //macro
+        //method
+        //namespace
+        //struct
+        syntax_highlighting.insert("trait".to_string(), Style::new().fg(Color::Yellow));
+        syntax_highlighting.insert("typeAlias".to_string(), Style::new().fg(Color::Yellow));
+        syntax_highlighting.insert("union".to_string(), Style::new().fg(Color::Yellow));
+
+        syntax_highlighting.insert("boolean".to_string(), Style::new().fg(Color::LightBlue));
+        syntax_highlighting.insert("character".to_string(), Style::new().fg(Color::LightGreen));
+        //string
+        syntax_highlighting.insert("escapeSequence".to_string(), Style::new().fg(Color::LightYellow));
+        syntax_highlighting.insert("formatSpecifier".to_string(), Style::new().fg(Color::LightYellow));
+
+        //operator
+        syntax_highlighting.insert("arithmetic".to_string(), Style::new());
+        syntax_highlighting.insert("bitwise".to_string(), Style::new());
+        syntax_highlighting.insert("comparison".to_string(), Style::new());
+        syntax_highlighting.insert("logical".to_string(), Style::new());
+
+        syntax_highlighting.insert("punctuation".to_string(), Style::new());
+        syntax_highlighting.insert("attributeBracket".to_string(), Style::new().fg(Color::LightCyan).add_modifier(crate::models::style::text_modifier::Modifier::BOLD));
+        syntax_highlighting.insert("angle".to_string(), Style::new().fg(Color::LightCyan));
+        syntax_highlighting.insert("brace".to_string(), Style::new());
+        syntax_highlighting.insert("bracket".to_string(), Style::new());
+        syntax_highlighting.insert("parenthesis".to_string(), Style::new());
+        syntax_highlighting.insert("colon".to_string(), Style::new());
+        syntax_highlighting.insert("comma".to_string(), Style::new());
+        syntax_highlighting.insert("dot".to_string(), Style::new());
+        syntax_highlighting.insert("semi".to_string(), Style::new());
+        syntax_highlighting.insert("macroBang".to_string(), Style::new().fg(Color::LightCyan).add_modifier(crate::models::style::text_modifier::Modifier::BOLD));
+
+        syntax_highlighting.insert("builtinAttribute".to_string(), Style::new().fg(Color::LightCyan).add_modifier(crate::models::style::text_modifier::Modifier::BOLD));
+        syntax_highlighting.insert("builtinType".to_string(), Style::new().fg(Color::Yellow));
+        //comment
+        syntax_highlighting.insert("constParameter".to_string(), Style::new());
+        syntax_highlighting.insert("deriveHelper".to_string(), Style::new().fg(Color::LightCyan).add_modifier(crate::models::style::text_modifier::Modifier::BOLD));
+        //enumMember
+        syntax_highlighting.insert("generic".to_string(), Style::new().fg(Color::Yellow).add_modifier(crate::models::style::text_modifier::Modifier::BOLD));
+        //keyword
+        syntax_highlighting.insert("label".to_string(), Style::new().fg(Color::LightMagenta));
+        syntax_highlighting.insert("lifetime".to_string(), Style::new().fg(Color::LightMagenta));
+        //parameter
+        //property
+        syntax_highlighting.insert("selfKeyword".to_string(), Style::new().fg(Color::Yellow).add_modifier(crate::models::style::text_modifier::Modifier::BOLD));
+        syntax_highlighting.insert("selfTypeKeyword".to_string(), Style::new().fg(Color::LightBlue));
+        syntax_highlighting.insert("toolModule".to_string(), Style::new());
+        //typeParameter
+        syntax_highlighting.insert("unresolvedReference".to_string(), Style::new().fg(Color::LightRed));
+        //variable
+
+
+
+
+
+        syntax_highlighting
     }
 }
 

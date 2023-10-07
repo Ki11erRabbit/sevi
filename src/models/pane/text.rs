@@ -879,10 +879,10 @@ impl Pane for TextBuffer {
         let number_line_width = self.get_number_line_width();
         self.cursor.set_number_line_width(number_line_width);
         match self.file.refresh() {
-            Ok(_) => {},
-            Err(message) => {
+            Ok(Some(message)) | Err(message) => {
                 self.send_info_message(message.as_str());
             }
+            Ok(_) => {},
         }
     }
 

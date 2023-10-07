@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
 use std::fmt::Formatter;
 use std::io::{Read, Write};
@@ -57,6 +57,8 @@ pub struct File {
     highlights: BTreeSet<usize>,
     saved: bool,
     safe_close: bool,
+    /// Syntax highlights are stored in a hashmap with the key being column and row
+    syntax_highlights: HashMap<(usize, usize), String>
 }
 
 impl File {
@@ -584,6 +586,7 @@ impl File {
                     highlights: BTreeSet::new(),
                     saved: true,
                     safe_close: false,
+                    syntax_highlights: HashMap::new(),
                 };
 
 
@@ -633,6 +636,7 @@ impl File {
                     highlights: BTreeSet::new(),
                     saved: true,
                     safe_close: false,
+                    syntax_highlights: HashMap::new(),
                 })
             }
         }
@@ -978,7 +982,6 @@ impl File {
             None => format!("untitled://{}", working_dir.display()),
             Some(file_name) => {
                 let uri = format!("file://{}/{}", working_dir.display(), file_name.display());
-                eprintln!("{}", uri);
                 uri
             },
         }
@@ -1021,7 +1024,7 @@ impl File {
     }
 
     /// This function is where we query our Lsp Channels to see what information we can get
-    pub fn refresh(&mut self) -> Result<(), String> {
+    pub fn refresh(&mut self) -> Result<Option<String>, String> {
 
         let lsp_client = self.lsp_info.lsp_client.take();
 
@@ -1029,7 +1032,7 @@ impl File {
             None => {},
             Some(client) => {
 
-                if !self.saved || self.lsp_info.first_pass {
+                if !self.saved || self.lsp_info.first_pass || self.syntax_highlights.is_empty() {
                     self.lsp_info.first_pass = false;
                     let uri = self.generate_uri();
                     let uri = uri.into_boxed_str();
@@ -1045,7 +1048,7 @@ impl File {
                     Ok(message) => message,
                     Err(TryRecvError::Empty) => {
                         self.lsp_info.lsp_client = lsp_client;
-                        return Ok(());
+                        return Ok(None);
                     },
                     Err(TryRecvError::Disconnected) => {
                         return Err("LSP Client Disconnected".to_string());
@@ -1054,9 +1057,23 @@ impl File {
 
                 match message {
                     LspControllerMessage::Response(LspResponse::SemanticTokens(tokens)) => {
-                        eprintln!("Got tokens");
-                        if tokens.is_empty() {
-                            //self.lsp_info.first_pass = true;
+
+                        eprintln!("{:?}", tokens);
+
+                        if !tokens.is_empty() {
+                            eprintln!("Got tokens");
+                            self.syntax_highlights.clear();
+                            for token in tokens.data {
+                                let (range, line) = token.generate_range();
+                                for i in range {
+                                    self.syntax_highlights.insert((i, line), token.token_type.clone());
+                                }
+
+                            }
+
+                            return Ok(Some("Syntax Highlighting initialization successful".to_string()));
+                        } else {
+                            self.lsp_info.first_pass = true;
                         }
                     },
                     _ => {},
@@ -1067,7 +1084,7 @@ impl File {
 
         self.lsp_info.lsp_client = lsp_client;
 
-        Ok(())
+        Ok(None)
     }
 
     fn is_delimiter(&self, b: usize) -> bool {
@@ -1269,7 +1286,7 @@ impl File {
     }
 
 
-    fn internal_display(&self, text: String, offset: usize) -> StyledText {
+    fn internal_display(&self, text: String, offset: usize, mut row: usize) -> StyledText {
 
         let mut rainbow_delimiters = Vec::new();
 
@@ -1281,12 +1298,15 @@ impl File {
         let mut line = StyledLine::new();
         let mut highlight = false;
 
+        let mut column = 0;
+
         for (i, _) in string.bytes().enumerate() {
             if skip_counter > 0 {
                 skip_counter -= 1;
                 continue;
             }
             let i = i + offset;
+            column += 1;
 
             let chr = self.buffer.get_char_at(i).unwrap();
 
@@ -1299,6 +1319,8 @@ impl File {
                 }
 
                 if chr == '\n' {
+                    row += 1;
+                    column = 0;
                     acc.push(' ');
                     if highlight {
                         let settings = self.settings.borrow();
@@ -1412,7 +1434,43 @@ impl File {
                                              color
                 ));
                 acc.clear();
+            } else if self.syntax_highlights.contains_key(&(column, row)) {
+                let settings = self.settings.clone();
+                let settings = settings.borrow();
+
+                if highlight {
+                    let selection_color = settings.colors.selected;
+
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 selection_color
+                    ));
+                    acc.clear();
+                } else {
+                    line.push(StyledSpan::from(acc.clone()));
+                    acc.clear();
+                }
+
+                let token_type = self.syntax_highlights.get(&(column, row)).unwrap();
+                acc.push(chr);
+
+                let color = settings.colors.syntax_highlighting[token_type];
+                if highlight {
+                    let selection_color = settings.colors.selected;
+
+                    let selection_color = selection_color.patch(color);
+
+                    line.push(StyledSpan::styled(acc.clone(),
+                                                 selection_color
+                    ));
+                } else {
+                    line.push(StyledSpan::styled(acc.clone(),
+                         color
+                    ));
+                }
+                acc.clear();
             } else if chr == '\n' {
+                row += 1;
+                column = 0;
                 if highlight {
                     let settings = self.settings.borrow();
                     let selection_color = settings.colors.selected;
@@ -1475,7 +1533,7 @@ impl File {
         output
     }
     pub fn display(&self) -> StyledText {
-        self.internal_display(self.buffer.to_string(), 0)
+        self.internal_display(self.buffer.to_string(), 0, 0)
     }
     /*pub fn display(&self) -> StyledText {
         // TODO: make this use less heap allocations
@@ -1710,7 +1768,7 @@ impl File {
             }
         }
 
-        self.internal_display(string, self.buffer.get_byte_offset(0, start_row).unwrap())
+        self.internal_display(string, self.buffer.get_byte_offset(0, start_row).unwrap(), start_row)
     }
 
     pub fn recover(&mut self) -> Result<(), String>{

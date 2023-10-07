@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::ops::Range;
 use serde::Deserialize;
 
 #[allow(non_snake_case)]
@@ -59,10 +60,22 @@ impl SemanticTokensRaw {
 
         for int in &self.data {
             match counter {
-                0 => line = *int as usize,
-                1 => start_character = *int as usize,
-                2 => length = *int as usize,
-                3 => token_type = *int,
+                0 => {
+                    line = *int as usize;
+                    counter += 1;
+                },
+                1 => {
+                    start_character = *int as usize;
+                    counter += 1;
+                },
+                2 => {
+                    length = *int as usize;
+                    counter += 1;
+                },
+                3 => {
+                    token_type = *int;
+                    counter += 1;
+                },
                 4 => {
                     token_modifiers = *int;
                     let mut tok_modifiers = Vec::new();
@@ -93,8 +106,6 @@ impl SemanticTokensRaw {
             result_id: self.resultId,
             data: tokens,
         }
-
-
     }
 }
 
@@ -109,6 +120,14 @@ pub struct SemanticToken {
     pub length: usize,
     pub token_type: String,
     pub token_modifiers: Vec<String>,
+}
+
+impl SemanticToken {
+    pub fn generate_range(&self) -> (Range<usize>, usize) {
+        let range = self.start_character..self.start_character + self.length;
+
+        (range, self.line)
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]

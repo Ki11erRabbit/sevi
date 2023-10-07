@@ -220,12 +220,13 @@ impl LspController {
 
                     self.semantic_tokens.insert(language.clone(), semantic_token_legend);
 
-                    eprintln!("{:#?}", self.semantic_tokens);
+                   //eprintln!("{:#?}", self.semantic_tokens);
                 }
                 LspMessage::SemanticTokens(tokens) => {
                     //eprintln!("Got semantic tokens");
                     let sender = self.server_channels.get(language).unwrap().0.clone();
                     let token_legend = self.semantic_tokens.get(language).unwrap().clone();
+
 
                     let semantic_tokens = tokens.to_semantic_tokens(&token_legend.token_types, &token_legend.token_modifiers);
 
