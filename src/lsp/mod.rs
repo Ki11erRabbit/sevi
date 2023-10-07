@@ -89,9 +89,9 @@ impl Client {
         value.await
     }
 
-    pub async fn figure_out_capabilities(&mut self) -> io::Result<()> {
-        self.process_messages().await?;
-        Ok(())
+    pub async fn figure_out_capabilities(&mut self) -> io::Result<serde_json::Value> {
+        let capabilities = self.process_messages().await?;
+        Ok(capabilities)
     }
 
 
@@ -164,114 +164,6 @@ impl Client {
                                 ],
                             },
                         },
-                        "semanticTokens": {
-
-                            "requests": {
-                                "full": true,
-                            },
-                            "tokenTypes:": [
-                                // General
-                                "namespace",
-                                "type",
-                                "class",
-                                "enum",
-                                "interface",
-                                "struct",
-                                "typeParameter",
-                                "parameter",
-                                "variable",
-                                "property",
-                                "enumMember",
-                                "event",
-                                "function",
-                                "method",
-                                "macro",
-                                "keyword",
-                                "modifier",
-                                "comment",
-                                "string",
-                                "number",
-                                "regexp",
-                                "operator",
-                                "decorator",
-                                // Rust specific
-                                "attribute",
-                                "derive",
-                                "trait",
-                                "typeAlias",
-                                "union",
-                                "boolean",
-                                "character",
-                                "escapeSequence",
-                                "formatSpecifier",
-                                "arithmetic",
-                                "bitwise",
-                                "comparison",
-                                "logical",
-                                "punctuation",
-                                "attributeBracket",
-                                "angle",
-                                "brace",
-                                "bracket",
-                                "parenthesis",
-                                "colon",
-                                "comma",
-                                "dot",
-                                "semi",
-                                "macroBang",
-                                "builtinAttribute",
-                                "builtinType",
-                                "constParameter",
-                                "deriveHelper",
-                                "enumMember",
-                                "generic",
-                                "keyword",
-                                "label",
-                                "lifetime",
-                                "selfKeyword",
-                                "selfTypeKeyword",
-                                "toolModule",
-                                "unresolvedReference",
-                                "variable",
-                            ],
-                            "tokenModifiers": [
-                                // General
-                                "declaration",
-                                "definition",
-                                "documentation",
-                                "readonly",
-                                "static",
-                                "deprecated",
-                                "abstract",
-                                "async",
-                                "modification",
-                                "documentation",
-                                "defaultLibrary",
-                                // Rust specific
-                                "attribute",
-                                "callable",
-                                "constant",
-                                "consuming",
-                                "controlFlow",
-                                "crateRoot",
-                                "injected",
-                                "intraDocLink",
-                                "library",
-                                "macro",
-                                "mutable",
-                                "public",
-                                "reference",
-                                "trait",
-                                "unsafe",
-                            ],
-                            "formats": [
-                                "relative",
-                            ],
-                            "overlappingTokenSupport": false,
-                            "multilineTokenSupport": true,
-                            "serverCancelSupport": false,
-                            "augmentsSyntaxTokens": false,
-                        }
                     },
                 },
             },

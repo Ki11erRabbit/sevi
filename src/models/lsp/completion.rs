@@ -3,6 +3,26 @@ use serde_json::Value;
 use crate::models::lsp::documentation::DocumentationType;
 use crate::models::lsp::LspRange;
 
+
+#[allow(non_snake_case)]
+#[derive(Debug, Deserialize, PartialEq, Clone)]
+pub struct PartialCompletionList {
+    pub isIncomplete: bool,
+    pub items: Vec<PartialCompletionItem>,
+}
+
+impl Into<CompletionList> for PartialCompletionList {
+fn into(self) -> CompletionList {
+        let mut items = Vec::new();
+        for item in self.items {
+            items.push(item.into());
+        }
+        CompletionList {
+            isIncomplete: self.isIncomplete,
+            items,
+        }
+    }
+}
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct CompletionList {

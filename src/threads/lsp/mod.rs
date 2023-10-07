@@ -13,6 +13,7 @@ use crate::models::lsp::{LspMessage, process_json};
 use crate::models::lsp::completion::CompletionList;
 use crate::models::lsp::diagnostic::Diagnostics;
 use crate::models::lsp::location::LocationResponse;
+use crate::models::lsp::semantic_tokens::{SemanticTokens, SemanticTokensLegend};
 
 pub enum LspRequest {
     /// Tells the server to shutdown
@@ -42,6 +43,7 @@ pub enum LspResponse {
     PublishDiagnostics(Diagnostics),
     Completion(CompletionList),
     Location(LocationResponse),
+    SemanticTokens(SemanticTokens),
 
 }
 
@@ -101,6 +103,7 @@ unsafe impl Send for LspController {}
 
 pub struct LspController {
     clients: HashMap<String, Client>,
+    semantic_tokens: HashMap<String, SemanticTokensLegend>,
     //channels: (Sender<ControllerMessage>, Receiver<ControllerMessage>),
     listen: Option<Receiver<LspControllerMessage>>,
     response: Option<Sender<LspControllerMessage>>,
@@ -113,6 +116,7 @@ impl LspController {
     pub fn new() -> Self {
         LspController {
             clients: HashMap::new(),
+            semantic_tokens: HashMap::new(),
             //channels: std::sync::mpsc::channel(),
             listen: None,
             response: None,
@@ -205,6 +209,28 @@ impl LspController {
                 LspMessage::None => {
                     ////eprintln!("Got none");
                     continue;
+                }
+                LspMessage::Capabilities(capabilities) => {
+                    let semantic_token_legend = match capabilities.semanticTokensProvider {
+                        None => continue,
+                        Some(provider) => {
+                            provider.legend.into()
+                        }
+                    };
+
+                    self.semantic_tokens.insert(language.clone(), semantic_token_legend);
+
+                    eprintln!("{:#?}", self.semantic_tokens);
+                }
+                LspMessage::SemanticTokens(tokens) => {
+                    //eprintln!("Got semantic tokens");
+                    let sender = self.server_channels.get(language).unwrap().0.clone();
+
+                    let message = LspControllerMessage::Response(
+                        LspResponse::SemanticTokens(tokens)
+                    );
+
+                    sender.send(message).expect("Failed to send semantic tokens");
                 }
             }
         }

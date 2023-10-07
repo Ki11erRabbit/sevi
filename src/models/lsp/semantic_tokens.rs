@@ -1,8 +1,47 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use serde::Deserialize;
 
+#[allow(non_snake_case)]
+#[derive(Debug, PartialEq, Clone, Deserialize)]
+pub struct SemanticTokensLegendRaw {
+    pub tokenTypes: Vec<String>,
+    pub tokenModifiers: Vec<String>,
+}
+
+impl Into<SemanticTokensLegend> for SemanticTokensLegendRaw {
+    fn into(self) -> SemanticTokensLegend {
+        let mut token_types = HashMap::new();
+        let mut token_modifiers = Vec::new();
+
+        for (index, token_type) in self.tokenTypes.iter().enumerate() {
+            token_types.insert(index as u32, token_type.clone());
+        }
+
+        let mut bit = 1;
+
+        for token_modifier in self.tokenModifiers.iter() {
+            token_modifiers.push((bit, token_modifier.clone()));
+            bit <<= 1;
+        }
+
+        SemanticTokensLegend {
+            token_types,
+            token_modifiers,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct SemanticTokensLegend {
+    pub token_types: HashMap<u32, String>,
+    pub token_modifiers: Vec<(u32, String)>,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct SemanticTokensRaw {
-    pub result_id: Option<String>,
+    pub resultId: Option<String>,
     pub data: Vec<u32>,
 }
 
@@ -51,7 +90,7 @@ impl SemanticTokensRaw {
         }
 
         SemanticTokens {
-            result_id: self.result_id,
+            result_id: self.resultId,
             data: tokens,
         }
 
