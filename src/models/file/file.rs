@@ -11,7 +11,7 @@ use tree_sitter::Parser;
 use crate::models::file::buffer::Buffer;
 use crate::models::settings::Settings;
 use crate::models::style::{StyledLine, StyledSpan, StyledText};
-use crate::threads::lsp::LspControllerMessage;
+use crate::threads::lsp::{LspControllerMessage, LspNotification, LspRequest, LspResponse};
 
 #[derive(Debug)]
 pub enum FileError {
@@ -31,7 +31,8 @@ pub trait InsertPairs<P> {
 #[derive(Debug)]
 pub struct LspInfo {
     pub lsp_channels: (Sender<LspControllerMessage>, Rc<Receiver<LspControllerMessage>>),
-    pub lsp_client: Option<Arc<Receiver<LspControllerMessage>>>
+    pub lsp_client: Option<Arc<Receiver<LspControllerMessage>>>,
+    pub first_pass: bool,
 }
 
 impl fmt::Debug for File {
@@ -147,6 +148,7 @@ impl File {
                         let lsp_info = LspInfo {
                             lsp_channels,
                             lsp_client,
+                            first_pass: true,
                         };
 
 
@@ -192,6 +194,7 @@ impl File {
                         let lsp_info = LspInfo {
                             lsp_channels,
                             lsp_client,
+                            first_pass: true,
                         };
 
                         (Some("c".to_string()), buffer, lsp_info)
@@ -236,6 +239,7 @@ impl File {
                         let lsp_info = LspInfo {
                             lsp_channels,
                             lsp_client,
+                            first_pass: true,
                         };
 
                         (Some("cpp".to_string()), buffer, lsp_info)
@@ -279,6 +283,7 @@ impl File {
                         let lsp_info = LspInfo {
                             lsp_channels,
                             lsp_client,
+                            first_pass: true,
                         };
 
                         (Some("python".to_string()), buffer, lsp_info)
@@ -322,6 +327,7 @@ impl File {
                         let lsp_info = LspInfo {
                             lsp_channels,
                             lsp_client,
+                            first_pass: true,
                         };
 
                         (Some("commonlisp".to_string()), buffer, lsp_info)
@@ -365,6 +371,7 @@ impl File {
                         let lsp_info = LspInfo {
                             lsp_channels,
                             lsp_client,
+                            first_pass: true,
                         };
 
 
@@ -409,6 +416,7 @@ impl File {
                         let lsp_info = LspInfo {
                             lsp_channels,
                             lsp_client,
+                            first_pass: true,
                         };
 
 
@@ -453,6 +461,7 @@ impl File {
                         let lsp_info = LspInfo {
                             lsp_channels,
                             lsp_client,
+                            first_pass: true,
                         };
 
 
@@ -497,6 +506,7 @@ impl File {
                         let lsp_info = LspInfo {
                             lsp_channels,
                             lsp_client,
+                            first_pass: true,
                         };
 
 
@@ -541,6 +551,7 @@ impl File {
                         let lsp_info = LspInfo {
                             lsp_channels,
                             lsp_client,
+                            first_pass: true,
                         };
 
                         (Some("csharp".to_string()), buffer, lsp_info)
@@ -552,6 +563,7 @@ impl File {
                         let lsp_info = LspInfo {
                             lsp_channels,
                             lsp_client: None,
+                            first_pass: true,
                         };
 
                         (None, buffer, lsp_info)
@@ -560,6 +572,7 @@ impl File {
 
                 buffer.add_new_rope();
                 buffer.add_new_rope();
+
 
 
                 let file = Self {
@@ -572,6 +585,29 @@ impl File {
                     saved: true,
                     safe_close: false,
                 };
+
+
+
+                match file.lsp_info.lsp_client {
+                    Some(_) => {
+                        let uri = file.generate_uri();
+                        let text = file.buffer.to_string().into_boxed_str();
+
+                        let notification = LspNotification::Open(uri.clone().into(), text);
+
+                        let language = file.language.clone().unwrap().into_boxed_str();
+                        let message = LspControllerMessage::Notification(language, notification);
+
+                        file.lsp_info.lsp_channels.0.send(message).unwrap();
+
+                        let request = LspRequest::SemanticTokens(uri.into());
+
+                        let message = LspControllerMessage::Request(file.language.clone().unwrap().into(), request);
+
+                        file.lsp_info.lsp_channels.0.send(message).unwrap();
+                    },
+                    None => {},
+                }
 
                 if recovered_file {
                     Err(FileError::RecoverFileFound(file))
@@ -590,6 +626,7 @@ impl File {
                     lsp_info: LspInfo {
                         lsp_channels,
                         lsp_client: None,
+                        first_pass: true,
                     },
                     language: None,
                     settings,
@@ -935,6 +972,18 @@ impl File {
         self.saved = false;
     }
 
+    fn generate_uri(& self) -> String {
+        let working_dir = std::env::current_dir().unwrap();
+        match &self.path {
+            None => format!("untitled://{}", working_dir.display()),
+            Some(file_name) => {
+                let uri = format!("file://{}/{}", working_dir.display(), file_name.display());
+                eprintln!("{}", uri);
+                uri
+            },
+        }
+    }
+
     pub fn next_word_front(&self, mut byte_position: usize, mut amount: usize) -> usize {
         while amount > 0 {
             byte_position = self.buffer.next_word_front(byte_position);
@@ -972,7 +1021,53 @@ impl File {
     }
 
     /// This function is where we query our Lsp Channels to see what information we can get
-    pub fn refresh(&mut self) {
+    pub fn refresh(&mut self) -> Result<(), String> {
+
+        let lsp_client = self.lsp_info.lsp_client.take();
+
+        match &lsp_client {
+            None => {},
+            Some(client) => {
+
+                if !self.saved || self.lsp_info.first_pass {
+                    self.lsp_info.first_pass = false;
+                    let uri = self.generate_uri();
+                    let uri = uri.into_boxed_str();
+
+                    let request = LspRequest::SemanticTokens(uri);
+
+                    let message = LspControllerMessage::Request(self.language.clone().unwrap().into(), request);
+
+                    self.lsp_info.lsp_channels.0.send(message).unwrap();
+                }
+
+                let message = match client.try_recv() {
+                    Ok(message) => message,
+                    Err(TryRecvError::Empty) => {
+                        self.lsp_info.lsp_client = lsp_client;
+                        return Ok(());
+                    },
+                    Err(TryRecvError::Disconnected) => {
+                        return Err("LSP Client Disconnected".to_string());
+                    }
+                };
+
+                match message {
+                    LspControllerMessage::Response(LspResponse::SemanticTokens(tokens)) => {
+                        eprintln!("Got tokens");
+                        if tokens.is_empty() {
+                            //self.lsp_info.first_pass = true;
+                        }
+                    },
+                    _ => {},
+                }
+
+            }
+        }
+
+        self.lsp_info.lsp_client = lsp_client;
+
+        Ok(())
     }
 
     fn is_delimiter(&self, b: usize) -> bool {

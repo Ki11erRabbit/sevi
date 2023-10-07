@@ -337,7 +337,7 @@ impl Model {
             }
         }
 
-        self.pane.borrow_mut().refresh();
+        //self.pane.borrow_mut().refresh();
 
     }
 

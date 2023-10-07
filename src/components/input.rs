@@ -65,6 +65,9 @@ impl Component<Message, AppEvent> for InputLayer {
             Event::User(AppEvent::CreateHelpFile) => {
                 Some(Message::OpenHelpFile)
             }
+            Event::Tick => {
+                Some(Message::Tick)
+            }
             _ => None,
         }
     }

@@ -12,7 +12,7 @@ use crate::models::lsp::capabilities::Capabilities;
 use crate::models::lsp::completion::{CompletionList, PartialCompletionList};
 use crate::models::lsp::diagnostic::Diagnostics;
 use crate::models::lsp::location::{Location, LocationLink, LocationResponse};
-use crate::models::lsp::semantic_tokens::SemanticTokens;
+use crate::models::lsp::semantic_tokens::{SemanticTokens, SemanticTokensRaw};
 
 
 #[derive(Debug, Deserialize, PartialEq, Hash, Eq, Clone, Copy)]
@@ -43,13 +43,13 @@ pub enum LspMessage {
     Diagnostics(Diagnostics),
     Completions(CompletionList),
     Location(LocationResponse),
-    SemanticTokens(SemanticTokens),
+    SemanticTokens(SemanticTokensRaw),
 
 }
 
 pub fn process_json(json: Value) -> io::Result<LspMessage> {
 
-    eprintln!("json: {:#?}", json);
+    //eprintln!("json: {:#?}", json);
 
     if json["method"] != Value::Null {
 
@@ -170,6 +170,19 @@ pub fn process_json(json: Value) -> io::Result<LspMessage> {
 
 
             },
+            7 => {
+                let obj = json["result"].clone();
+                //eprintln!("semantic tokens");
+
+                let semantic_tokens: SemanticTokensRaw = match serde_json::from_value(obj) {
+                    Ok(value) => value,
+                    Err(e) => {
+                        //eprintln!("Semantic Tokens Error: {:?}", e);
+                        return Ok(LspMessage::None);
+                    }
+                };
+                Ok(LspMessage::SemanticTokens(semantic_tokens))
+            }
             _ => {
                 //eprintln!("Unknown id: {}", id);
                 Ok(LspMessage::None)

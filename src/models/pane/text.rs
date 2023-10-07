@@ -878,7 +878,12 @@ impl Pane for TextBuffer {
     fn refresh(&mut self) {
         let number_line_width = self.get_number_line_width();
         self.cursor.set_number_line_width(number_line_width);
-        self.file.refresh();
+        match self.file.refresh() {
+            Ok(_) => {},
+            Err(message) => {
+                self.send_info_message(message.as_str());
+            }
+        }
     }
 
     fn get_settings(&self) -> Rc<RefCell<Settings>> {

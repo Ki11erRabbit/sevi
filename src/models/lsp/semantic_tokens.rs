@@ -39,7 +39,7 @@ pub struct SemanticTokensLegend {
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Deserialize)]
 pub struct SemanticTokensRaw {
     pub resultId: Option<String>,
     pub data: Vec<u32>,
@@ -47,7 +47,7 @@ pub struct SemanticTokensRaw {
 
 impl SemanticTokensRaw {
 
-    pub fn to_semantic_tokens(self, token_types: HashMap<u32, String>, modifiers: Vec<(u32, String)>) -> SemanticTokens {
+    pub fn to_semantic_tokens(self, token_types: &HashMap<u32, String>, modifiers: &Vec<(u32, String)>) -> SemanticTokens {
         let mut counter = 0;
         let mut line = 0;
         let mut start_character = 0;
@@ -67,7 +67,7 @@ impl SemanticTokensRaw {
                     token_modifiers = *int;
                     let mut tok_modifiers = Vec::new();
 
-                    for modifier in &modifiers {
+                    for modifier in modifiers.iter() {
                         if token_modifiers & modifier.0 == modifier.0 {
                             tok_modifiers.push(modifier.1.clone());
                         }
@@ -102,7 +102,7 @@ pub struct SemanticTokensPartialResultRaw {
     data: Vec<u32>,
 }
 
-
+#[derive(Debug, PartialEq, Clone)]
 pub struct SemanticToken {
     pub line: usize,
     pub start_character: usize,
@@ -111,7 +111,14 @@ pub struct SemanticToken {
     pub token_modifiers: Vec<String>,
 }
 
+#[derive(Debug, PartialEq, Clone)]
 pub struct SemanticTokens {
     pub result_id: Option<String>,
     pub data: Vec<SemanticToken>,
+}
+
+impl SemanticTokens {
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
 }
