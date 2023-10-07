@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::ops::Range;
+use std::ops::{Range, RangeInclusive};
 use serde::Deserialize;
 
 #[allow(non_snake_case)]
@@ -123,8 +123,8 @@ pub struct SemanticToken {
 }
 
 impl SemanticToken {
-    pub fn generate_range(&self) -> (Range<usize>, usize) {
-        let range = self.start_character..self.start_character + self.length;
+    pub fn generate_range(&self) -> (RangeInclusive<usize>, usize) {
+        let range = self.start_character..=self.start_character + self.length;
 
         (range, self.line)
     }

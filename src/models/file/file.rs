@@ -58,7 +58,7 @@ pub struct File {
     saved: bool,
     safe_close: bool,
     /// Syntax highlights are stored in a hashmap with the key being column and row
-    syntax_highlights: HashMap<(usize, usize), String>
+    syntax_highlights: HashMap<usize, String>
 }
 
 impl File {
@@ -1058,22 +1058,19 @@ impl File {
                 match message {
                     LspControllerMessage::Response(LspResponse::SemanticTokens(tokens)) => {
 
-                        eprintln!("{:?}", tokens);
-
                         if !tokens.is_empty() {
-                            eprintln!("Got tokens");
                             self.syntax_highlights.clear();
                             for token in tokens.data {
                                 let (range, line) = token.generate_range();
                                 for i in range {
-                                    self.syntax_highlights.insert((i, line), token.token_type.clone());
+                                    self.syntax_highlights.insert(self.get_byte_offset(line, i).unwrap(), token.token_type.clone());
                                 }
-
                             }
+
+                            eprintln!("{:#?}", self.syntax_highlights);
 
                             return Ok(Some("Syntax Highlighting initialization successful".to_string()));
                         } else {
-                            self.lsp_info.first_pass = true;
                         }
                     },
                     _ => {},
@@ -1286,7 +1283,90 @@ impl File {
     }
 
 
-    fn internal_display(&self, text: String, offset: usize, mut row: usize) -> StyledText {
+    fn internal_display(&self, text: String, offset: usize) -> StyledText {
+        let mut rainbow_delimiters = Vec::new();
+
+        let mut skip_counter = 0;
+
+        let string = text;
+        let mut acc = String::new();
+        let mut output = StyledText::new();
+        let mut line = StyledLine::new();
+        let mut highlight = false;
+        for (i, _) in string.bytes().enumerate() {
+            if skip_counter > 0 {
+                skip_counter -= 1;
+                continue;
+            }
+            let i = i + offset;
+
+            let chr = self.buffer.get_char_at(i).unwrap();
+
+            skip_counter = chr.len_utf8() - 1;
+
+            let settings = self.settings.clone();
+            let settings = settings.borrow();
+
+            let mut color = settings.colors.buffer_color;
+
+            if self.highlights.contains(&i) {
+                let selection_color = settings.colors.selected;
+                color = color.patch(selection_color);
+            }
+            if self.is_delimiter(i) {
+                let delim_color = settings.colors.rainbow_delimiters[rainbow_delimiters.len() % settings.colors.rainbow_delimiters.len()];
+
+                let delim_color = if rainbow_delimiters.is_empty() {
+                    rainbow_delimiters.push((chr, delim_color));
+                    delim_color
+                } else {
+                    let last = rainbow_delimiters.last().unwrap();
+                    if Self::is_pair(last.0, chr) {
+                        let delim_color = rainbow_delimiters.pop().unwrap().1;
+                        delim_color
+                    } else {
+                        rainbow_delimiters.push((chr, delim_color));
+                        delim_color
+                    }
+                };
+                color = color.patch(delim_color);
+            }
+            if self.syntax_highlights.contains_key(&i) {
+                let syntax_color = settings.colors.syntax_highlighting[&self.syntax_highlights[&i]];
+                color = color.patch(syntax_color);
+            }
+
+            if chr == '\n' {
+                acc.push(' ');
+                line.push(StyledSpan::styled(acc.clone(),
+                                             color
+                ));
+                output.lines.push(line);
+                line = StyledLine::new();
+                acc.clear();
+                continue;
+            } else if chr == '\t' {
+                let tab_size = settings.editor_settings.tab_size;
+                for _ in 0..tab_size {
+                    acc.push(' ');
+                }
+            } else if chr == '\r' {
+                acc.push(' ');
+            } else {
+                acc.push(chr);
+            }
+
+            line.push(StyledSpan::styled(acc.clone(),
+                                         color
+            ));
+            acc.clear();
+
+        }
+
+        output
+    }
+
+    /*fn internal_display(&self, text: String, offset: usize) -> StyledText {
 
         let mut rainbow_delimiters = Vec::new();
 
@@ -1298,15 +1378,12 @@ impl File {
         let mut line = StyledLine::new();
         let mut highlight = false;
 
-        let mut column = 0;
-
         for (i, _) in string.bytes().enumerate() {
             if skip_counter > 0 {
                 skip_counter -= 1;
                 continue;
             }
             let i = i + offset;
-            column += 1;
 
             let chr = self.buffer.get_char_at(i).unwrap();
 
@@ -1319,8 +1396,6 @@ impl File {
                 }
 
                 if chr == '\n' {
-                    row += 1;
-                    column = 0;
                     acc.push(' ');
                     if highlight {
                         let settings = self.settings.borrow();
@@ -1349,6 +1424,7 @@ impl File {
                     }
                 }
                 highlight = true;
+
 
             } else if self.highlights.contains(&i) && self.is_delimiter(i) && self.settings.borrow().editor_settings.rainbow_delimiters {
                 let settings = self.settings.clone();
@@ -1434,43 +1510,7 @@ impl File {
                                              color
                 ));
                 acc.clear();
-            } else if self.syntax_highlights.contains_key(&(column, row)) {
-                let settings = self.settings.clone();
-                let settings = settings.borrow();
-
-                if highlight {
-                    let selection_color = settings.colors.selected;
-
-                    line.push(StyledSpan::styled(acc.clone(),
-                                                 selection_color
-                    ));
-                    acc.clear();
-                } else {
-                    line.push(StyledSpan::from(acc.clone()));
-                    acc.clear();
-                }
-
-                let token_type = self.syntax_highlights.get(&(column, row)).unwrap();
-                acc.push(chr);
-
-                let color = settings.colors.syntax_highlighting[token_type];
-                if highlight {
-                    let selection_color = settings.colors.selected;
-
-                    let selection_color = selection_color.patch(color);
-
-                    line.push(StyledSpan::styled(acc.clone(),
-                                                 selection_color
-                    ));
-                } else {
-                    line.push(StyledSpan::styled(acc.clone(),
-                         color
-                    ));
-                }
-                acc.clear();
             } else if chr == '\n' {
-                row += 1;
-                column = 0;
                 if highlight {
                     let settings = self.settings.borrow();
                     let selection_color = settings.colors.selected;
@@ -1531,9 +1571,9 @@ impl File {
 
 
         output
-    }
+    }*/
     pub fn display(&self) -> StyledText {
-        self.internal_display(self.buffer.to_string(), 0, 0)
+        self.internal_display(self.buffer.to_string(), 0)
     }
     /*pub fn display(&self) -> StyledText {
         // TODO: make this use less heap allocations
@@ -1768,7 +1808,7 @@ impl File {
             }
         }
 
-        self.internal_display(string, self.buffer.get_byte_offset(0, start_row).unwrap(), start_row)
+        self.internal_display(string, self.buffer.get_byte_offset(0, start_row).unwrap())
     }
 
     pub fn recover(&mut self) -> Result<(), String>{
