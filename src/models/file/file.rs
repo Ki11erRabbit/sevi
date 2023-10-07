@@ -58,7 +58,7 @@ pub struct File {
     saved: bool,
     safe_close: bool,
     /// Syntax highlights are stored in a hashmap with the key being column and row
-    syntax_highlights: BTreeMap<usize, String>
+    syntax_highlights: BTreeMap<usize, (String, Vec<String>)>
 }
 
 impl File {
@@ -1078,7 +1078,7 @@ impl File {
                                     eprintln!("col: {}, row: {}", col, row);
                                     eprintln!("{}: {}", byte_offset, token.token_type);
                                     if !self.syntax_highlights.contains_key(&byte_offset) {
-                                        self.syntax_highlights.insert(byte_offset, token.token_type.clone());
+                                        self.syntax_highlights.insert(byte_offset, (token.token_type.clone(), token.token_modifiers.clone()));
                                     }
                                     col += 1;
                                 }
@@ -1349,8 +1349,14 @@ impl File {
                 color = color.patch(delim_color);
             }
             if self.syntax_highlights.contains_key(&i) {
-                let syntax_color = settings.colors.syntax_highlighting[&self.syntax_highlights[&i]];
-                color = color.patch(syntax_color);
+                let rules =  &settings.colors.syntax_highlighting[&self.syntax_highlights[&i].0];
+                for rule in rules {
+                    let modifiers = &self.syntax_highlights[&i].1;
+                    if rule.can_apply(modifiers) {
+                        color = color.patch(rule.style);
+                        break;
+                    }
+                }
             }
 
             if chr == '\n' {
