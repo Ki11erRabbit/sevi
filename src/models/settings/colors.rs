@@ -117,18 +117,23 @@ impl EditorColors {
         use SyntaxHighlightRule as SHR;
         let mut syntax_highlighting = HashMap::new();
         // built in
-        syntax_highlighting.insert("namespace".to_string(), vec![SHR::new(Vec::new(),Style::new().fg(Color::LightMagenta))]);
-
+        syntax_highlighting.insert("namespace".to_string(), vec![
+            SHR::new(vec![],Style::new().fg(Color::LightMagenta)),
+            SHR::new(vec!["library".to_string(),"defaultLibrary".to_string(),"declaration".to_string(),"crateRoot".to_string()],Style::new().fg(Color::LightMagenta)),
+        ]);
         syntax_highlighting.insert("type".to_string(), vec![SHR::new(Vec::new(),Style::new().fg(Color::Yellow))]);
         syntax_highlighting.insert("class".to_string(), vec![SHR::new(vec!["declaration".to_string()],Style::new().fg(Color::Yellow))]);
-        syntax_highlighting.insert("enum".to_string(), vec![SHR::new(vec!["declaration".to_string()],Style::new().fg(Color::Yellow))]);
-        syntax_highlighting.insert("interface".to_string(), vec![SHR::new(vec!["declaration".to_string()],Style::new().fg(Color::Yellow))]);
-        syntax_highlighting.insert("struct".to_string(), vec![SHR::new(vec!["declaration".to_string()],Style::new().fg(Color::Yellow))]);
+        syntax_highlighting.insert("enum".to_string(), vec![SHR::new(vec!["declaration".to_string(),"public".to_string(), "library".to_string()],Style::new().fg(Color::Yellow))]);
+        syntax_highlighting.insert("interface".to_string(), vec![SHR::new(vec!["declaration".to_string(),"library".to_string()],Style::new().fg(Color::Yellow))]);
+        syntax_highlighting.insert("struct".to_string(), vec![SHR::new(vec!["declaration".to_string(),"public".to_string(), "library".to_string()],Style::new().fg(Color::Yellow))]);
         syntax_highlighting.insert("typeParameter".to_string(), vec![SHR::new(Vec::new(), Style::new().fg(Color::Yellow).add_modifier(crate::models::style::text_modifier::Modifier::BOLD))]);
         syntax_highlighting.insert("parameter".to_string(), vec![SHR::new(vec!["declaration".to_string()],Style::new().fg(Color::LightMagenta))]);
         syntax_highlighting.insert("variable".to_string(), vec![SHR::new(vec!["declaration".to_string()],Style::new().fg(Color::LightMagenta))]);
         syntax_highlighting.insert("property".to_string(), vec![SHR::new(vec!["declaration".to_string()],Style::new().fg(Color::LightMagenta))]);
-        syntax_highlighting.insert("enumMember".to_string(), vec![SHR::new(vec!["declaration".to_string()],Style::new().fg(Color::LightMagenta))]);
+        syntax_highlighting.insert("enumMember".to_string(), vec![
+            SHR::new(vec!["declaration".to_string()],Style::new().fg(Color::LightMagenta)),
+            SHR::new(vec!["defaultLibrary".to_string(), "library".to_string()],Style::new().fg(Color::Yellow))
+        ]);
         syntax_highlighting.insert("event".to_string(), vec![SHR::new(vec![],Style::new())]);
         syntax_highlighting.insert("function".to_string(), vec![SHR::new(vec!["declaration".to_string()],Style::new().fg(Color::LightMagenta))]);
         syntax_highlighting.insert("method".to_string(), vec![SHR::new(vec!["declaration".to_string()],Style::new().fg(Color::LightMagenta))]);
@@ -191,8 +196,8 @@ impl EditorColors {
         syntax_highlighting.insert("lifetime".to_string(), vec![SHR::new(Vec::new(), Style::new().fg(Color::LightMagenta))]);
         //parameter
         //property
-        syntax_highlighting.insert("selfKeyword".to_string(), vec![SHR::new(Vec::new(), Style::new().fg(Color::Yellow).add_modifier(crate::models::style::text_modifier::Modifier::BOLD))]);
-        syntax_highlighting.insert("selfTypeKeyword".to_string(), vec![SHR::new(Vec::new(), Style::new().fg(Color::LightBlue))]);
+        syntax_highlighting.insert("selfKeyword".to_string(), vec![SHR::new(Vec::new(), Style::new().fg(Color::LightBlue))]);
+        syntax_highlighting.insert("selfTypeKeyword".to_string(), vec![SHR::new(Vec::new(), Style::new().fg(Color::Yellow))]);
         syntax_highlighting.insert("toolModule".to_string(), vec![SHR::new(Vec::new(), Style::new())]);
         //typeParameter
         syntax_highlighting.insert("unresolvedReference".to_string(), vec![SHR::new(Vec::new(), Style::new().fg(Color::LightRed))]);
@@ -221,7 +226,18 @@ impl SyntaxHighlightRule {
     }
 
     pub fn can_apply(&self, modifiers: &Vec<String>) -> bool {
-        self.modifiers.is_empty() || self.modifiers.iter().all(|x| modifiers.contains(x))
+        if self.modifiers.is_empty() {
+            return true;
+        } else {
+            let mut acc = false;
+            for modifier in self.modifiers.iter() {
+                if modifiers.contains(modifier) {
+                    acc = true;
+                }
+            }
+            acc
+        }
+        //modifiers.is_empty() || self.modifiers.iter().all(|x| modifiers.contains(x))
     }
 }
 

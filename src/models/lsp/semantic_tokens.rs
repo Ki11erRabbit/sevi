@@ -80,7 +80,7 @@ impl SemanticTokensRaw {
                 },
                 4 => {
                     token_modifiers = *int;
-                    eprintln!("[{}, {}, {}, {}, {}]", line, start_character, length, token_type, token_modifiers);
+                    //eprintln!("[{}, {}, {}, {}, {}]", line, start_character, length, token_type, token_modifiers);
 
                     let mut tok_modifiers = Vec::new();
 

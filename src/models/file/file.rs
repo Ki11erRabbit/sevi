@@ -1037,11 +1037,14 @@ impl File {
                     let uri = self.generate_uri();
                     let uri = uri.into_boxed_str();
 
-                    let request = LspRequest::SemanticTokens(uri);
 
-                    let message = LspControllerMessage::Request(self.language.clone().unwrap().into(), request);
+                    if self.syntax_highlights.is_empty() || !self.saved {
+                        let request = LspRequest::SemanticTokens(uri.clone().into());
 
-                    self.lsp_info.lsp_channels.0.send(message).unwrap();
+                        let message = LspControllerMessage::Request(self.language.clone().unwrap().into(), request);
+
+                        self.lsp_info.lsp_channels.0.send(message).unwrap();
+                    }
                 }
 
                 let message = match client.try_recv() {
@@ -1075,8 +1078,8 @@ impl File {
                                 for i in range {
 
                                     let byte_offset = self.get_byte_offset(row, col).unwrap();
-                                    eprintln!("col: {}, row: {}", col, row);
-                                    eprintln!("{}: {}", byte_offset, token.token_type);
+                                    //eprintln!("col: {}, row: {}", col, row);
+                                    //eprintln!("{}: {}", byte_offset, token.token_type);
                                     if !self.syntax_highlights.contains_key(&byte_offset) {
                                         self.syntax_highlights.insert(byte_offset, (token.token_type.clone(), token.token_modifiers.clone()));
                                     }
@@ -1084,7 +1087,7 @@ impl File {
                                 }
                             }
 
-                            eprintln!("{:#?}", self.syntax_highlights);
+                            //eprintln!("{:#?}", self.syntax_highlights);
 
                             return Ok(Some("Syntax Highlighting initialization successful".to_string()));
                         } else {
@@ -1350,14 +1353,15 @@ impl File {
             }
             if self.syntax_highlights.contains_key(&i) {
                 let rules =  &settings.colors.syntax_highlighting[&self.syntax_highlights[&i].0];
+                let modifiers = &self.syntax_highlights[&i].1;
                 for rule in rules {
-                    let modifiers = &self.syntax_highlights[&i].1;
                     if rule.can_apply(modifiers) {
                         color = color.patch(rule.style);
                         break;
                     }
                 }
             }
+
 
             if chr == '\n' {
                 acc.push(' ');
