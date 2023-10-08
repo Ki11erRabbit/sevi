@@ -12,7 +12,7 @@ use crate::models::lsp::capabilities::Capabilities;
 use crate::models::lsp::completion::{CompletionList, PartialCompletionList};
 use crate::models::lsp::diagnostic::Diagnostics;
 use crate::models::lsp::location::{Location, LocationLink, LocationResponse};
-use crate::models::lsp::semantic_tokens::{SemanticTokens, SemanticTokensRaw};
+use crate::models::lsp::semantic_tokens::SemanticTokensRaw;
 
 
 #[derive(Debug, Deserialize, PartialEq, Hash, Eq, Clone, Copy)]
@@ -61,7 +61,7 @@ pub fn process_json(json: Value) -> io::Result<LspMessage> {
 
                 let diagnostics: Diagnostics = match serde_json::from_value(obj) {
                     Ok(value) => value,
-                    Err(e) => {
+                    Err(_) => {
                         //eprintln!("Error: {:?}", e);
                         return Ok(LspMessage::None);
                     }
@@ -78,7 +78,7 @@ pub fn process_json(json: Value) -> io::Result<LspMessage> {
     else if json["id"] != Value::Null {
         let id: usize = match serde_json::from_value(json["id"].clone()) {
             Ok(value) => value,
-            Err(e) => {
+            Err(_) => {
                 //eprintln!("Id Error: {:?}", e);
                 return Ok(LspMessage::None);
             }
@@ -97,7 +97,7 @@ pub fn process_json(json: Value) -> io::Result<LspMessage> {
                         return Ok(LspMessage::None);
                     }
                 };
-                eprintln!("capabilities: {:#?}", capabilities);
+                //eprintln!("capabilities: {:#?}", capabilities);
 
                 Ok(LspMessage::Capabilities(capabilities))
             }
@@ -107,7 +107,7 @@ pub fn process_json(json: Value) -> io::Result<LspMessage> {
 
                 let completion_list: PartialCompletionList = match serde_json::from_value(obj) {
                     Ok(value) => value,
-                    Err(e) => {
+                    Err(_) => {
                         //eprintln!("Completion Error: {:?}", e);
                         return Ok(LspMessage::None);
                     }
@@ -120,7 +120,7 @@ pub fn process_json(json: Value) -> io::Result<LspMessage> {
                 if obj.is_array() {
                     let locations: Vec<Location> = match serde_json::from_value(obj) {
                         Ok(value) => value,
-                        Err(e) => {
+                        Err(_) => {
                             //eprintln!("Location Error: {:?}", e);
                             return Ok(LspMessage::None);
                         }
@@ -134,7 +134,7 @@ pub fn process_json(json: Value) -> io::Result<LspMessage> {
                     if json.get("uri").is_some() {
                         let location: Location = match serde_json::from_value(obj) {
                             Ok(value) => value,
-                            Err(e) => {
+                            Err(_) => {
                                 //eprintln!("Location Error: {:?}", e);
                                 return Ok(LspMessage::None);
                             }
@@ -147,7 +147,7 @@ pub fn process_json(json: Value) -> io::Result<LspMessage> {
                     else if json.get("targetUri").is_some() {
                         let location_link: LocationLink = match serde_json::from_value(obj) {
                             Ok(value) => value,
-                            Err(e) => {
+                            Err(_) => {
                                 //eprintln!("Location Error: {:?}", e);
                                 return Ok(LspMessage::None);
                             }

@@ -96,7 +96,7 @@ impl Drop for LspController {
         for (_, client) in self.clients.iter_mut() {
             match client.send_exit() {
                 Ok(_) => {},
-                Err(e) => {
+                Err(_) => {
                     //eprintln!("Error: {:?}", e);
                 }
             }
@@ -290,7 +290,7 @@ impl LspController {
                     LspNotification::ChangeText(uri, version, text) => {
                         match client.did_change_text(uri.as_ref(), version, text.as_ref()) {
                             Ok(_) => {},
-                            Err(e) => {
+                            Err(_) => {
                                 //eprintln!("Error: {:?}", e);
                                 clients_to_remove.push(lang.to_string());
                             }
@@ -299,7 +299,7 @@ impl LspController {
                     LspNotification::Open(uri, text) => {
                         match client.send_did_open(&lang.to_string(),uri.as_ref(), text.as_ref()) {
                             Ok(_) => {},
-                            Err(e) => {
+                            Err(_) => {
                                 //eprintln!("Error: {:?}", e);
                                 clients_to_remove.push(lang.to_string());
                             }
@@ -308,7 +308,7 @@ impl LspController {
                     LspNotification::Close(uri) => {
                         match client.did_close(uri.as_ref()) {
                             Ok(_) => {},
-                            Err(e) => {
+                            Err(_) => {
                                 //eprintln!("Error: {:?}", e);
                                 clients_to_remove.push(lang.to_string());
                             }
@@ -317,7 +317,7 @@ impl LspController {
                     LspNotification::Save(uri, text) => {
                         match client.did_save_text(uri.as_ref(), text.as_ref()) {
                             Ok(_) => {},
-                            Err(e) => {
+                            Err(_) => {
                                 //eprintln!("Error: {:?}", e);
                                 clients_to_remove.push(lang.to_string());
                             }
@@ -334,7 +334,7 @@ impl LspController {
                         };
                         match client.will_save_text(uri.as_ref(), reason) {
                             Ok(_) => {},
-                            Err(e) => {
+                            Err(_) => {
                                 //eprintln!("Error: {:?}", e);
                                 clients_to_remove.push(lang.to_string());
                             }
@@ -416,6 +416,7 @@ impl LspController {
                 let rust_analyzer = Command::new("rust-analyzer")
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
                     .spawn()?;
 
                 let mut lsp_client = Client::new(rust_analyzer);
@@ -438,12 +439,29 @@ impl LspController {
 
                 let mut lsp_client = Client::new(clangd);*/
 
-                let ccls = Command::new("ccls")
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .spawn()?;
+                let c_lsp =  match Command::new("ccls")
+                        .stdin(Stdio::piped())
+                        .stdout(Stdio::piped())
+                        .stderr(Stdio::piped())
+                        .spawn() {
+                    Ok(ccls) => ccls,
+                    Err(_) => {
+                        let clangd = match Command::new("clangd")
+                            .stdin(Stdio::piped())
+                            .stdout(Stdio::piped())
+                            .stderr(Stdio::piped())
+                            .spawn() {
+                            Ok(clangd) => clangd,
+                            Err(_) => {
+                                self.response.as_ref().unwrap().send(LspControllerMessage::NoClient).unwrap();
+                                return Ok(());
+                            }
+                        };
+                        clangd
+                    }
+                };
 
-                let mut lsp_client = Client::new(ccls);
+                let mut lsp_client = Client::new(c_lsp);
 
                 lsp_client.initialize()?;
 
@@ -457,6 +475,7 @@ impl LspController {
                 let python_lsp = Command::new("python-lsp-server")
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
                     .spawn()?;
 
                 let mut lsp_client = Client::new(python_lsp);
@@ -473,6 +492,7 @@ impl LspController {
                 let apple_swift = Command::new("sourcekit-lsp")
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
                     .spawn()?;
 
                 let mut lsp_client = Client::new(apple_swift);
@@ -489,6 +509,7 @@ impl LspController {
                 let gopls = Command::new("gopls")
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
                     .spawn()?;
 
                 let mut lsp_client = Client::new(gopls);
@@ -505,6 +526,7 @@ impl LspController {
                 let bash_lsp = Command::new("bash-language-server")
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
                     .spawn()?;
 
                 let mut lsp_client = Client::new(bash_lsp);
@@ -521,6 +543,7 @@ impl LspController {
                 let haskell_lsp = Command::new("haskell-language-server")
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
                     .spawn()?;
 
                 let mut lsp_client = Client::new(haskell_lsp);

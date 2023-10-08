@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
-use std::ops::{Range, RangeInclusive};
+use std::ops::Range;
 use serde::Deserialize;
 
 #[allow(non_snake_case)]
@@ -54,7 +53,7 @@ impl SemanticTokensRaw {
         let mut start_character = 0;
         let mut length = 0;
         let mut token_type = 0;
-        let mut token_modifiers = 0;
+        let mut token_modifiers;
 
         let mut tokens = Vec::new();
 
@@ -89,7 +88,6 @@ impl SemanticTokensRaw {
                             tok_modifiers.push(modifier.1.clone());
                         }
                     }
-                    token_modifiers = 0;
                     let token_modifiers = tok_modifiers;
 
 

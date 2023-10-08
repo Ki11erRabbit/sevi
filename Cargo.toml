@@ -1,6 +1,6 @@
 [package]
 name = "sevi"
-version = "0.14.2"
+version = "0.14.3"
 edition = "2021"
 
 #[[bin]]
@@ -38,10 +38,11 @@ tree-sitter-rust = "0.20.4"
 tree-sitter-c = "0.20.6"
 tree-sitter-cpp = "0.20.3"
 tree-sitter-python = "0.20.4"
-tree-sitter-java = "0.20.0"
+tree-sitter-java = "0.20.2"
 tree-sitter-commonlisp = "0.3.1"
 tree-sitter-swift = "0.3.6"
 tree-sitter-go = "0.20.0"
 tree-sitter-bash = "0.20.3"
 tree-sitter-javascript = "0.20.1"
 tree-sitter-c-sharp = "0.20.0"
+npezza93-tree-sitter-haskell = "0.14.1"

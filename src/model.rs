@@ -6,7 +6,6 @@ use tuirealm::{Application, terminal::TerminalBridge, tui::prelude::{Layout, Dir
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::env;
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
 use tuirealm::listener::{ListenerResult, Poll};

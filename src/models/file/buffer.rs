@@ -62,6 +62,7 @@ impl Buffer {
             trees.push(parser.parse(&buffer.to_string(), None).unwrap());
         }
         //trees.push(parser.parse(&self.history[self.current].to_string(), None).unwrap());
+        //eprintln!("{}", trees[0].root_node().to_sexp());
         self.tree_sitter_info = Some((parser, trees));
     }
 

@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::fmt::Formatter;
 use std::io::{Read, Write};
@@ -8,6 +8,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 use tree_sitter::Parser;
+use npezza93_tree_sitter_haskell as tree_sitter_haskell;
 use crate::models::file::buffer::Buffer;
 use crate::models::settings::Settings;
 use crate::models::style::{StyledLine, StyledSpan, StyledText};
@@ -559,16 +560,16 @@ impl File {
                         (Some("csharp".to_string()), buffer, lsp_info)
                     },
                     "hs" => {
-                        /*let language = tree_sitter_haskell::language();
+                        let language = tree_sitter_haskell::language();
 
                         let mut parser = Parser::new();
 
-                        parser.set_language(language).unwrap();*/
+                        parser.set_language(language).unwrap();
 
                         let mut buffer = Buffer::from(string);
                         buffer.set_settings(settings.clone());
 
-                        //buffer.set_tree_sitter(parser);
+                        buffer.set_tree_sitter(parser);
 
                         lsp_channels.0.send(LspControllerMessage::CreateClient(String::from("haskell").into())).unwrap();
 
@@ -1112,7 +1113,7 @@ impl File {
 
                         if !tokens.is_empty() {
                             self.syntax_highlights.clear();
-                            let mut col = 0;
+                            let mut col;
                             let mut start_col = 0;
                             let mut row = 0;
                             for token in tokens.data {
@@ -1124,7 +1125,7 @@ impl File {
                                 }
                                 col = start_col;
                                 row += line;
-                                for i in range {
+                                for _ in range {
 
                                     let byte_offset = self.get_byte_offset(row, col).unwrap();
                                     //eprintln!("col: {}, row: {}", col, row);
@@ -1403,9 +1404,9 @@ impl File {
             if self.syntax_highlights.contains_key(&i) {
                 let rules =  &settings.colors.syntax_highlighting[&self.syntax_highlights[&i].0];
                 let modifiers = &self.syntax_highlights[&i].1;
-                eprint!("{:?}: ", chr);
+                /*eprint!("{:?}: ", chr);
                 eprintln!("{}", &self.syntax_highlights[&i].0);
-                eprintln!("{:?}", modifiers);
+                eprintln!("{:?}", modifiers);*/
                 for rule in rules {
                     if rule.can_apply(modifiers) {
                         color = color.patch(rule.style);
