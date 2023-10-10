@@ -34,7 +34,7 @@ impl MirrorMode {
             "cancel" => {
                 self.text.clear();
                 self.edit_pos = 0;
-                eprintln!("returning to {}", self.return_to);
+                //eprintln!("returning to {}", self.return_to);
                 pane.execute_command(&format!("change_mode {}", self.return_to));
                 self.key_buffer.clear();
             }

@@ -1,6 +1,7 @@
 
 
 use futures::executor::block_on;
+use log::{error, info};
 use tokio::{io::{BufReader, AsyncBufReadExt, AsyncWriteExt, AsyncReadExt, BufWriter, self}, process::{ChildStdout, ChildStdin, Child}};
 
 
@@ -33,23 +34,35 @@ impl Client {
 
 impl Drop for Client {
     fn drop(&mut self) {
+
+        let stderr = self.child.stderr.take().expect("Failed to get stderr");
+
+        let mut stderr = BufReader::new(stderr);
+        let mut stderr_string = String::new();
+        block_on(async {
+            stderr.read_to_string(&mut stderr_string).await.unwrap()
+        });
+
+
+        info!("lsp stderr: {}", stderr_string);
+
         match self.send_shutdown() {
             Ok(_) => {},
-            Err(err) => {
-                eprintln!("Failed to send shutdown: {}", err);
+            Err(e) => {
+                error!("Failed to send shutdown: {}", e);
             },
         }
         match self.send_exit() {
             Ok(_) => {},
-            Err(err) => {
-                eprintln!("Failed to send exit: {}", err);
+            Err(e) => {
+                error!("Failed to send exit: {}", e);
             },
         };
         let future = async {
             match self.child.wait().await {
                 Ok(_) => {},
-                Err(err) => {
-                    eprintln!("Failed to wait for child: {}", err);
+                Err(e) => {
+                    error!("Failed to wait for child: {}", e);
                 },
             };
         };

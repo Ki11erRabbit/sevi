@@ -23,11 +23,16 @@ impl Buffer{
         let mut props = Props::default();
 
         props.set(Attribute::Display, AttrValue::Flag(true));
+        let xdg_dirs = xdg::BaseDirectories::with_prefix("sevi").unwrap();
+
+        let log_path = xdg_dirs.place_data_file("sevi.log").unwrap();
 
         let text = format!("SEVI - Structural Editor VIsual\n\nversion {}\nby Alec Davis.\n\
             Sevi is open source and freely distributable\n\n\
             type  :q<Enter>              to exit\n\
-            type  :help<Enter>           for help", env!("CARGO_PKG_VERSION"));
+            type  :help<Enter>           for help\n\
+            logs files can be found here: {}\n\
+            If there are any bugs, please report them with the log file.", env!("CARGO_PKG_VERSION"), log_path.display());
 
         props.set(Attribute::Text, AttrValue::String(text));
 
@@ -58,7 +63,7 @@ impl MockComponent for Buffer {
                     _ => String::new().into(),
                 };
 
-                let text = format!("{}{}", "\n".repeat((area.height as usize - 7) / 2), text);
+                let text = format!("{}{}", "\n".repeat((area.height as usize - 10) / 2), text);
 
                 frame.render_widget(
                     Paragraph::new(Text::from(text))

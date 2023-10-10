@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use futures::executor::block_on;
 use futures::FutureExt;
+use log::{error, info};
 use serde_json::Value;
 use tokio::io;
 use tokio::process::Command;
@@ -349,6 +350,7 @@ impl LspController {
 
         if !clients_to_remove.is_empty() {
             for client in clients_to_remove {
+                error!("Removing client for {}", client);
                 self.clients.remove(&client);
             }
         }

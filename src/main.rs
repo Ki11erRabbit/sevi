@@ -1,5 +1,7 @@
 use std::rc::Rc;
 use clap::Parser;
+use env_logger::{Builder, Target};
+use log::error;
 use model::Model;
 use tuirealm::{PollStrategy, Update};
 
@@ -20,6 +22,24 @@ pub mod lsp;
 
 
 fn main() {
+
+    std::env::set_var("RUST_LOG", "sevi");
+
+    let xdg_dirs = xdg::BaseDirectories::with_prefix("sevi").unwrap();
+
+    let log_path = xdg_dirs.place_data_file("sevi.log").unwrap();
+    let log_file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path)
+        .unwrap();
+
+    let log_file = Box::new(log_file);
+
+    Builder::from_default_env()
+        .target(Target::Pipe(log_file))
+        .init();
+
 
     let args = arg_parser::Args::parse();
 
@@ -51,7 +71,7 @@ fn main() {
             match controller.run() {
                 Ok(_) => {},
                 Err(e) => {
-                    eprintln!("Error: {:?}", e);
+                    error!("Lsp returned an error: {:?}", e);
                 }
             }
             drop(controller);
@@ -92,6 +112,16 @@ fn main() {
         }
             
     }
-    registers_handle.join().unwrap();
-    lsp_handle.join().unwrap();
+    match registers_handle.join() {
+        Ok(_) => {},
+        Err(e) => {
+            error!("Error joining registers thread: {:?}", e);
+        }
+    }
+    match lsp_handle.join() {
+        Ok(_) => {},
+        Err(e) => {
+            error!("Error joining lsp thread: {:?}", e);
+        }
+    }
 }

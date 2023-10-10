@@ -5,6 +5,7 @@ pub mod documentation;
 pub mod semantic_tokens;
 pub mod capabilities;
 
+use log::info;
 use serde::Deserialize;
 use serde_json::Value;
 use tokio::io;
@@ -85,6 +86,10 @@ pub fn process_json(json: Value) -> io::Result<LspMessage> {
         };
         match id {
             1 => {
+
+                info!("LSP initialization");
+                info!("json: {:#?}", json);
+
                 let obj = json["result"]["capabilities"].clone();
 
 

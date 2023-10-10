@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError};
+use log::error;
 use tree_sitter::Parser;
 use npezza93_tree_sitter_haskell as tree_sitter_haskell;
 use crate::models::file::buffer::Buffer;
@@ -143,6 +144,7 @@ impl File {
                                     continue;
                                 },
                                 Err(TryRecvError::Disconnected) => {
+                                    error!("LSP Controller disconnected");
                                     unreachable!();
                                 }
                             }
@@ -189,6 +191,7 @@ impl File {
                                     continue;
                                 },
                                 Err(TryRecvError::Disconnected) => {
+                                    error!("LSP Controller disconnected");
                                     unreachable!();
                                 }
                             }
@@ -234,6 +237,7 @@ impl File {
                                     continue;
                                 },
                                 Err(TryRecvError::Disconnected) => {
+                                    error!("LSP Controller disconnected");
                                     unreachable!();
                                 }
                             }
@@ -278,6 +282,7 @@ impl File {
                                     continue;
                                 },
                                 Err(TryRecvError::Disconnected) => {
+                                    error!("LSP Controller disconnected");
                                     unreachable!();
                                 }
                             }
@@ -322,6 +327,7 @@ impl File {
                                     continue;
                                 },
                                 Err(TryRecvError::Disconnected) => {
+                                    error!("LSP Controller disconnected");
                                     unreachable!();
                                 }
                             }
@@ -366,6 +372,7 @@ impl File {
                                     continue;
                                 },
                                 Err(TryRecvError::Disconnected) => {
+                                    error!("LSP Controller disconnected");
                                     unreachable!();
                                 }
                             }
@@ -411,6 +418,7 @@ impl File {
                                     continue;
                                 },
                                 Err(TryRecvError::Disconnected) => {
+                                    error!("LSP Controller disconnected");
                                     unreachable!();
                                 }
                             }
@@ -456,6 +464,7 @@ impl File {
                                     continue;
                                 },
                                 Err(TryRecvError::Disconnected) => {
+                                    error!("LSP Controller disconnected");
                                     unreachable!();
                                 }
                             }
@@ -501,6 +510,7 @@ impl File {
                                     continue;
                                 },
                                 Err(TryRecvError::Disconnected) => {
+                                    error!("LSP Controller disconnected");
                                     unreachable!();
                                 }
                             }
@@ -546,6 +556,7 @@ impl File {
                                     continue;
                                 },
                                 Err(TryRecvError::Disconnected) => {
+                                    error!("LSP Controller disconnected");
                                     unreachable!();
                                 }
                             }
@@ -590,6 +601,7 @@ impl File {
                                     continue;
                                 },
                                 Err(TryRecvError::Disconnected) => {
+                                    error!("LSP Controller disconnected");
                                     unreachable!();
                                 }
                             }
@@ -652,7 +664,12 @@ impl File {
 
                         let message = LspControllerMessage::Request(file.language.clone().unwrap().into(), request);
 
-                        file.lsp_info.lsp_channels.0.send(message).unwrap();
+                        match file.lsp_info.lsp_channels.0.send(message) {
+                            Ok(_) => {},
+                            Err(_) => {
+                                error!("Failed to send semantic tokens request to LSP");
+                            }
+                        }
                     },
                     None => {},
                 }
@@ -695,14 +712,34 @@ impl File {
     }
 
     pub fn save(&mut self, file_path: Option<PathBuf>, force: bool) -> Result<(), String> {
+
+
+        if self.lsp_info.lsp_client.is_some() {
+            let uri = self.generate_uri().into();
+
+            let notification = LspNotification::WillSave(uri, "manual".into());
+
+            let message = LspControllerMessage::Notification(self.language.clone().unwrap().into(), notification);
+
+            match self.lsp_info.lsp_channels.0.send(message) {
+                Ok(_) => {},
+                Err(_) => {
+                    error!("Failed to send will save notification to LSP");
+                }
+            }
+        }
+
+
         match file_path {
             Some(path) => {
                 match &mut self.path {
                     Some(path) => {
                         if path.is_dir() {
+                            error!("Cannot save over a directory");
                             return Err("Cannot save over a directory".to_string());
                         }
                         if path.is_file() && !force {
+                            error!("File already exists");
                             return Err("File already exists".to_string());
                         }
 
@@ -711,9 +748,11 @@ impl File {
                     }
                     None => {
                         if path.is_dir() {
+                            error!("Cannot save over a directory");
                             return Err("Cannot save over a directory".to_string());
                         }
                         if path.is_file() && !force {
+                            error!("File already exists");
                             return Err("File already exists".to_string());
                         }
 
@@ -722,20 +761,57 @@ impl File {
                     }
                 }
                 self.path = Some(path);
-                return Ok(());
             }
             None => {
                 if let Some(path) = &self.path {
                     self.buffer.save(path);
                     self.saved = true;
-                    return Ok(());
+
                 } else {
+                    error!("No file path bound to file");
                     return Err("No file path bound to file".to_string());
                 }
             }
         }
+
+        if self.lsp_info.lsp_client.is_some() {
+            let uri = self.generate_uri().into();
+            let body = self.buffer.to_string().into_boxed_str();
+
+            let notification = LspNotification::Save(uri, body);
+
+            let message = LspControllerMessage::Notification(self.language.clone().unwrap().into(), notification);
+
+            match self.lsp_info.lsp_channels.0.send(message) {
+                Ok(_) => {},
+                Err(_) => {
+                    error!("Failed to send save notification to LSP");
+                }
+            }
+        }
+
+
+        Ok(())
     }
 
+    fn text_changed(&mut self) {
+        self.saved = false;
+        if self.lsp_info.lsp_client.is_some() {
+            let uri = self.generate_uri().into();
+            let body = self.buffer.to_string().into_boxed_str();
+
+            let notification = LspNotification::ChangeText(uri, self.buffer.get_version(), body);
+
+            let message = LspControllerMessage::Notification(self.language.clone().unwrap().into(), notification);
+
+            match self.lsp_info.lsp_channels.0.send(message) {
+                Ok(_) => {},
+                Err(_) => {
+                    error!("Failed to send change text notification to LSP");
+                }
+            }
+        }
+    }
     pub fn get_settings(&self) -> Rc<RefCell<Settings>> {
         self.settings.clone()
     }
@@ -883,6 +959,8 @@ impl File {
 
         self.buffer.bulk_delete(ranges);
 
+        self.text_changed();
+
         start
     }
 
@@ -957,68 +1035,81 @@ impl File {
 
     pub fn insert_char(&mut self, byte_offset: usize, c: char) {
         self.buffer.insert_current(byte_offset, c.to_string());
-        self.saved = false;
+
+        self.text_changed();
     }
 
     pub fn insert_after_current<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
         self.buffer.insert(byte_offset, c);
-        self.saved = false;
+
+        self.text_changed();
     }
     pub fn insert_before_current<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
         let byte_offset = byte_offset.saturating_sub(1);
         self.buffer.insert(byte_offset, c);
-        self.saved = false;
+
+        self.text_changed();
     }
 
     pub fn insert_after<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
         self.buffer.insert(byte_offset, c);
-        self.saved = false;
+
+        self.text_changed();
     }
 
     pub fn insert_before<T>(&mut self, byte_offset: usize, c: T) where T: AsRef<str> {
         let byte_offset = byte_offset.saturating_sub(1);
         self.buffer.insert(byte_offset, c);
-        self.saved = false;
+
+        self.text_changed();
     }
 
     pub fn delete_current<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
         self.buffer.delete_current(range);
-        self.saved = false;
+
+        self.text_changed();
     }
     pub fn delete<R>(&mut self, range: R) where R: std::ops::RangeBounds<usize> {
         self.buffer.delete(range);
-        self.saved = false;
+
+        self.text_changed();
     }
 
     pub fn delete_word(&mut self, byte_offset: usize) -> usize {
         let x = self.buffer.delete_word(byte_offset);
-        self.saved = false;
+
+        self.text_changed();
         x
     }
     pub fn delete_line(&mut self, row: usize) {
         self.buffer.delete_line(row);
-        self.saved = false;
+
+        self.text_changed();
     }
 
     pub fn replace_current<R, T>(&mut self, range: R, c: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
         self.buffer.replace_current(range, c);
-        self.saved = false;
+
+        self.text_changed();
     }
 
     pub fn replace<R, T>(&mut self, range: R, c: T) where R: std::ops::RangeBounds<usize>, T: AsRef<str> {
         self.buffer.replace(range, c);
-        self.saved = false;
+
+        self.text_changed();
     }
 
 
     pub fn undo(&mut self) {
         self.buffer.undo();
-        self.saved = false;
+
+        self.text_changed();
     }
 
     pub fn redo(&mut self) {
         self.buffer.redo();
-        self.saved = false;
+
+        self.text_changed();
     }
 
     fn generate_uri(& self) -> String {
@@ -1091,6 +1182,7 @@ impl File {
                         match self.lsp_info.lsp_channels.0.send(message) {
                             Ok(_) => {},
                             Err(_) => {
+                                error!("Failed to send semantic tokens request to LSP");
                                 return Err("LSP Client Disconnected".to_string());
                             }
                         };
@@ -1104,6 +1196,7 @@ impl File {
                         return Ok(None);
                     },
                     Err(TryRecvError::Disconnected) => {
+                        error!("LSP Client Disconnected");
                         return Err("LSP Client Disconnected".to_string());
                     }
                 };
@@ -1928,7 +2021,7 @@ impl File {
         };
 
         self.buffer.replace(.., string);
-
+        self.text_changed();
 
         Ok(())
     }
@@ -1983,6 +2076,7 @@ impl ReplaceSelections<&str> for File {
         let strings = vec![selection.to_string(); ranges.len()];
 
         self.buffer.replace_bulk(ranges, strings);
+        self.text_changed();
 
     }
 }
@@ -2034,6 +2128,7 @@ impl ReplaceSelections<Vec<String>> for File {
 
 
         self.buffer.replace_bulk(ranges, selection);
+        self.text_changed();
 
     }
 }
@@ -2088,6 +2183,7 @@ impl InsertPairs<(&str, &str)> for File {
         }
 
         self.buffer.insert_bulk_pair(ranges, pairs);
+        self.text_changed();
     }
 }
 
@@ -2140,11 +2236,28 @@ impl InsertPairs<Vec<(&str, &str)>> for File {
         }
 
         self.buffer.insert_bulk_pair(ranges, pairs);
+        self.text_changed();
     }
 }
 
 impl Drop for File {
     fn drop(&mut self) {
+
+        if self.lsp_info.lsp_client.is_some() {
+            let uri = self.generate_uri().into();
+
+            let notification = LspNotification::Close(uri);
+
+            let message = LspControllerMessage::Notification(self.language.clone().unwrap().into(), notification);
+
+            match self.lsp_info.lsp_channels.0.send(message) {
+                Ok(_) => (),
+                Err(_) => {
+                    error!("Failed to send close notification to LSP server");
+                },
+            }
+        }
+
         if !self.saved && !self.safe_close {
             match self.path {
                 Some(ref path) => {
