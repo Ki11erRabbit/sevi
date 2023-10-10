@@ -1891,6 +1891,7 @@ impl File {
             }
         }
 
+
         self.internal_display(string, self.buffer.get_byte_offset(0, start_row).unwrap())
     }
 

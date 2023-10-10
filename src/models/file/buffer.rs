@@ -859,7 +859,7 @@ impl Buffer {
 
 
     pub fn get_row(&self, row: usize) -> Option<BufferSlice> {
-        if row >= self.get_line_count() - 1 {
+        if row >= self.get_line_count() {
             return None;
         }
 
